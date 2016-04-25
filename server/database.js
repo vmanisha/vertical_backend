@@ -28,7 +28,9 @@ var page_response_database  = new MicroDB({'file':'page_response.db', 'defaultCl
 
 module.exports = {
 	// Load the task dictionary with vertical preferences. 
-	loadTaskIdAndVerticals: function(task_file){
+	// Tab seperated file containing task_id, description
+	// and preferred vertical. 
+	loadTaskIdDescPref: function(task_file){
 		var task_desc_dict = {};
      	var filepath = __dirname+'/'+task_file;
      	try
@@ -39,10 +41,11 @@ module.exports = {
      	        for (var i in array)
      	        {
      	        	var split = array[i].split('\t');
-     	           // format : task_id, task_description, task_pref in 3
-				   // verticals
-     	           if(split.length == 3)
-     	           	task_des_dict[split[0]].push({'desc':split[1],'pref_order': [split[2], split[3], split[4]]});
+     	           // format : task_id, task_query, task_description, task_pref in 4
+				   // verticals (img, video, wiki, organic)
+     	           if(split.length == 7)
+					   task_desc_dict[split[0]] = {'task_query':split[1], 'task_desc':split[2],
+						'task_pref_order': [split[3].trim(), split[4].trim(), split[5].trim(), split[6].trim()]};
      	           else
      	               console.log('Error in task file in line '+i+' '+split.length);
      	        }
@@ -50,7 +53,7 @@ module.exports = {
      	}
      	catch(error)
      	{
-     	        console.log('Attempt to load incorrect file '+filepath );
+     	        console.log('Error loading file '+filepath+ ' '+error );
      	        return false;
      	}
 	},
@@ -66,8 +69,8 @@ module.exports = {
 
 	  // Increment global_query_id
 	  global_query_id++;
-	
-	  return [query_id,;
+
+	  return query_id;
 	}, 
 	
 	// Add clicked document
@@ -99,6 +102,13 @@ module.exports = {
 
 	  // finished the task. Update the user task complete dictionary.
 	  user_task_complete_dict[user_name].push(task_id);
+	  
+	  // Write to the databases and clear the cache.
+	  task_response_database.flush();
+	  page_response_database.flush();
+	  click_database.flush();
+	  query_database.flush();
+	  event_database.flush();
 
 	},
 

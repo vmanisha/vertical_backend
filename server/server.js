@@ -1,21 +1,26 @@
+// TODO(mverma): Save the search results for later use
+// for every user, task and query combination. 
 
 var express = require('express');
 var app = express();
 var engines = require('consolidate');
+
 var bodyParser = require('body-parser');
 var database = require('./database');
 var search_manager = require('./search_manager');
-// Task list dictionary
-// task_id : [task_pref, task_desc]
 
 // User task completion dictionary
 // user_id : [task_id,..,task_id]
 var user_task_complete_dict = {};
 
-// Tab seperated file containing task_id, description
-// and preferred vertical. 
+// Task list dictionary
+// task_id : [task_pref, task_desc]
 var task_file = 'task_descriptions.txt';
-var task_desc_dict = database.loadTaskIdAndVerticals(task_file);
+var task_desc_dict = database.loadTaskIdDescPref(task_file);
+
+// task_pref_order is the key to access preferences from
+// task_desc_dict
+search_manager.setTaskPreferences(task_desc_dict, 'task_pref_order');
 
 // Use body parser
 app.use(bodyParser.urlencoded({ extended: true }));
@@ -25,13 +30,14 @@ app.set('views', __dirname + '/../views');
 app.use("/", express.static(__dirname + '/../views'));
 app.use("/js", express.static(__dirname + '/../views/js'));
 app.use("/css", express.static(__dirname + '/../views/css'));
+app.use("/img", express.static(__dirname + '/../views/img'));
 
 
 app.engine('html', engines.mustache);
 app.set('view engine', 'html');
 app.get('/index', function(req, res) {
   res.type('text/html'); // set content-type
-  res.render('instructions.html');
+  res.render('index.html');
 });
 
 //----------------------------------------------
@@ -55,7 +61,8 @@ app.post('/api/registerUser', function(req, res){
 	for (var task_id in task_desc_dict)
 	{
 		if(!(task_id in tasks_completed))
-			task_dict[task_id] = task_desc_dict[task_id];
+			task_dict[task_id] = [task_desc_dict[task_id]['task_query'],
+								  task_desc_dict[task_id]['task_desc']] ;
 	}
 	res.json(task_dict);
 });
@@ -63,22 +70,40 @@ app.post('/api/registerUser', function(req, res){
 //----------------------------------------------
 // SEARCH REQUEST MANAGEMENT
 //----------------------------------------------
+
+// Load the first page. 
+app.post('/api/loadSearchPage', function (req, res) {
+  var task_id = '1'; //req.body.task;
+  var query_text ='kim kardashian';  //req.body.query;
+  var user_name = 'manisha'; //req.body.user;
+ 
+  // Set the values and load the 
+
+});
+
 // Search a query using ms api and present the results. 
 app.post('/api/search', function(req, res){
-  var task_id = req.body.task;
-  var query_text = req.body.query;
-  var user_name = req.body.user;
+  var task_id = '1'; //req.body.task;
+  var query_text ='kim kardashian';  //req.body.query;
+  var user_name = 'manisha'; //req.body.user;
+  var page_number = parseInt('1');//req.body.page);
 
   // update the query database.
   var query_id = database.addUserQuery(user_name,
 	  task_id, query_text, new Date().getTime());
 
+  console.log('Got query_id '+query_id+' '+task_id+' '+query_text+' '+user_name);
+
   // given the task and user query, prepare the search result
   // page and render that. 
   // Keep the global_query_id in page.
   results = search_manager.searchQuery(user_name, task_id, 
-	  task_desc_dict[task_id]['pref_order'], query_text);
+	   query_text, page_number );
+  
+  // Save the search results for future use. 
+
   res.json({'query_id':query_id, 'results':results});
+
 
 });
 
@@ -128,5 +153,6 @@ app.post('/api/submitTaskResponse', function(req, res){
 //-------------------------------------------------------
 // START THE SERVER
 //-------------------------------------------------------
+var port = 4300;
 app.listen(port);
 console.log('Magic happens on port ' + port);
