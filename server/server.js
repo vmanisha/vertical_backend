@@ -33,11 +33,15 @@ app.use("/css", express.static(__dirname + '/../views/css'));
 app.use("/img", express.static(__dirname + '/../views/img'));
 
 
-app.engine('html', engines.mustache);
-app.set('view engine', 'html');
+// app.engine('html', engines.mustache);
+// app.set('view engine', 'html');
+
+// set the view engine to ejs
+app.set('view engine', 'ejs');
+
 app.get('/index', function(req, res) {
-  res.type('text/html'); // set content-type
-  res.render('index.html');
+  // res.type('text/html'); // set content-type
+  res.render('index.ejs');
 });
 
 //----------------------------------------------
@@ -70,16 +74,6 @@ app.post('/api/registerUser', function(req, res){
 //----------------------------------------------
 // SEARCH REQUEST MANAGEMENT
 //----------------------------------------------
-
-// Load the first page. 
-app.post('/api/loadSearchPage', function (req, res) {
-  var task_id = '1'; //req.body.task;
-  var query_text ='kim kardashian';  //req.body.query;
-  var user_name = 'manisha'; //req.body.user;
- 
-  // Set the values and load the 
-
-});
 
 // Search a query using ms api and present the results. 
 app.post('/api/search', function(req, res){
