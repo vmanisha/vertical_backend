@@ -3,13 +3,17 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <link rel="stylesheet" href="./css/flickity.css" media="screen">
 <link rel="stylesheet" href="./css/search_page.css" media="screen">
+<script src="https://code.jquery.com/jquery-1.9.1.min.js"></script>
+<script src="./js/jquery.validate.js"></script>
+<script src="./js/client.js"></script>
 </head>
 <body>
 <input type ='hidden' id = 'user_name' value = '<% user_name %>'/>
 <input type ='hidden' id = 'task_id' value = '<%task_id %>'/>
+<input type ='hidden' id = 'query_id' value = ''/>
 <input type ='hidden' id = 'search_page_id' value = '<%search_page_id %>'/>
 
-<form id='search_form' class = 'search_form' method = 'POST'>
+<form id='search_form' class = 'search_form' method="POST">
    <input type="text" name="search_input" id="search_input"
    value="<% user_query %>" tabindex="2">
    <input type="submit" name="search_submit" id="search_submit" value="Search">

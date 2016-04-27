@@ -20,13 +20,15 @@ $(function(){
    var user_query = $('#search_input').val();
    var search_page_id = $('#search_page_id').val();
 
+   alert('Im here!');
+
    // Add validation for search request. 
    $('#search_form').validate({
 	            rules: {   search_input: { required:true }  },
 			    errorPlacement: function(error, element) {
                         error.css("color","red");
-                        error.css('text-decoration', 'bold');
-                        error.appendTo('#'+element.attr("name")+'_error');
+                        error.css('text-decoration', 'red');
+                        error.appendTo('#'+element.attr("id")+'_error');
                 },
                 submitHandler: function postForm(validator, form, submit_event) {
                         // Grab the query, user_name and task_id to server.
@@ -40,23 +42,26 @@ $(function(){
 	                    	contentType: "application/json",
                     		type:'post',
                     		success : function(output){
-
+								$('#query_id').val(output["query_id"]);
 								// output is a json object containing [ [result_type, {result_info} ] ]
-								var html_strings = [];
 								var rid = 1; 
-								for (var result_block : output) {
-									if (result_block[0] == 'Image')
-										html_strings.push(PrepareImageResult(rid, result_block[1]));
-									if (result_block[0] == 'Wiki')			
-										html_strings.push(PrepareWikiResult(rid, result_block[1]));
-									if (result_block[0] == 'Video')			
-										html_strings.push(PrepareVideoResult(rid, result_block[1]));
-									if (result_block[0] == 'Web')			
-										html_strings.push(PrepareWebResult(rid, result_block[1]));
+								var result_block;
+								var type;
+								for (var i in output["results"]) {
+									var $element_block = '';
+									rid = i;
+									type = output["results"][i][0];
+									result_block = output["results"][i][1];
+									if (type == 'i')
+										$element_block=PrepareImageResult(rid, result_block);
+									if (type == 'w')			
+										$element_block=PrepareWikiResult(rid, result_block);
+									if (type == 'v')			
+										$element_block=PrepareVideoResult(rid, result_block);
+									if (type == 'o')			
+										$element_block=PrepareWebResult(rid, result_block);
+									$element_block.appendTo('#search_results');
 								}
-								// Add all the html elements to body.
-								$('#search_results').append(html_strings);
-							
                     		},
                     		error : function(output)
                     		{
@@ -65,17 +70,13 @@ $(function(){
                         		$('#search_form_error').html(output.responseText);
                     		}
              		  });
+			  }
 	});	
-
 
 	// Add tap events
 	// Add swipe events
-
-	// Add 
-
-
-
-
+	// Add pinch event
+	// Add drag event
 });
 
 function PrepareVideoResult(rid, result_json)
@@ -88,52 +89,76 @@ function PrepareVideoResult(rid, result_json)
 //			</div>
 //			<div class = 'video_bottom'>
 //				<div class = 'video_thumbnail'>
-//					<a href="http://m.youtube.com/watch?v=7eul_Vt6SZY" ><span ><img alt="Video for
-//						boyzone" src= '../img/download.jpg'></span></a>
-//	
+//					<a href="external_url" ><span ><img alt="title" src= 'thumbnail'></span></a>
 //				</div>
-//				<div class = 'video_info' > <span class='time_creation' >Time </span> Attributes  </div>
+//				<div class = 'video_info' > <span class='time_creation' >Time </span>time </div>
 //			</div> 
 //		</div>
 //	</div> 
 
-	// (Title, duration in milliseconds, external_url, display_url, thumbnail_image_source)
-
-	var video_html = $("<div>", {
-							id : rid,
-							class : "video_box", 
-							
-	var div_end_string = '</div>';
-	var html_string = "<div class = 'video_box'> <div class = 'card'> <div class ='card_top' >";
-	
-
-	return html_string;
+	// (Title, time, external_url, display_url, thumbnail_image_source)
+	var $card_head = $("<h3>", { "class" : "card_heading"}).append(
+			$("<a>",{"href": result_json["external_url"], "html" : result_json["title"]}));
+	var $domain = $("<span>",{"class" : "domain", "text":result_json["display_url"]});
+	var $card_top = $("<div>" ,{ "class": "card_top"}).append($card_head).append($domain);
 
 
+	var $time_creation = $("<span>", { "class" : "time_creation", "text" :"Time"});
+	var $video_info = $("<div>", { "class" : "video_info"}).append($time_creation).append(result_json["time"]);
+	var $video_thumb = $("<div>", { "class": "video_thumbnail", 
+									"html" : $("<a>", {"href" :result_json["external_url"],
+											 "html" : $("<span>", {
+												 "html": $("<img>", { 
+													 "alt" : result_json["title"],
+													 "src": result_json["thumbnail"]
+												 })
+											 })
+										 })
+									 });
+	var $video_bottom = $("<div>", { "class": "video_bottom"}).append($video_thumb).append($video_info);
+	var $card = $("<div>", { "class" : "card"}).append($card_top).append($video_bottom);
+	var $video_elem = $("<div>", { "id" : rid,"class" : "video_box"}).append($card);
 
+	return $video_elem;
 }
 
 function PrepareWikiResult()
 {
-
 	var html_string = '';
-
-
 	return html_string;
-
-
-
 }
-
-function PrepareImageResult()
+// image_result contains multiple images on a panel. 
+function PrepareImageResult(image_json)
 {
-	var html_string = '';
 
+  //  <div class = 'image_box'>
+  //  <div class = 'card'>
+  //  <div > Images </div>
+  //  
+  //  <div class = 'main_gallery js_flickity' id = 'image_search_results' 
+  //  	data_flickity_options='{"cellAlign":"left", "contain":true , "prevNextButtons": false,  "pageDots": false, "resize":true}'>
+  //  	<div class="gallery_cell">  <a> <img src =
+  //  		'../img/40_1resized___HOLI_LB2012_002.jpg  '> </a> </div>
+  //  	<div class="gallery_cell"> <img src =
+  //  		'../img/friends-anniversary-main.jpg ' > </div>
+  //    <div class="gallery-cell"> <img src =
+  //  	  '../img/Big-Bang-Fair-2014_1-300x225.jpg ' > </div>
+  //    <div class="gallery-cell"> <img src =
+  //  	  '../img/11429037_10153397369389813_8239213770649931342_n.jpg '> </div>
+  //    <div class="gallery_cell"> <img src =
+  //  	  '../img/66e6deb0-9242-11e3-9925-21bc8763600a_IMG_6340.jpg '> </div>
+  //  
+  //  </div>
+  //  </div>
+  //  </div>
 
-	return html_string;
+	var $img_elem;
 
+	var inner_div_array = [];
 
+	// Start by creating inner divs.
 
+	return img_elem;
 }
 
 function PrepareOrganicResult(result_json)
@@ -158,30 +183,6 @@ function PrepareOrganicResult(result_json)
 		
 
 	return html_string;
-
-
-
 }
-<div class = 'image_box'>
-<div class = 'card'>
-<div > Images </div>
-
-<div class = 'main_gallery js_flickity' id = 'image_search_results' 
-	data_flickity_options='{"cellAlign":"left", "contain":true , "prevNextButtons": false,  "pageDots": false, "resize":true}'>
-	<div class="gallery_cell">  <a> <img src =
-		'../img/40_1resized___HOLI_LB2012_002.jpg  '> </a> </div>
-	<div class="gallery_cell"> <img src =
-		'../img/friends-anniversary-main.jpg ' > </div>
-  <div class="gallery-cell"> <img src =
-	  '../img/Big-Bang-Fair-2014_1-300x225.jpg ' > </div>
-  <div class="gallery-cell"> <img src =
-	  '../img/11429037_10153397369389813_8239213770649931342_n.jpg '> </div>
-  <div class="gallery_cell"> <img src =
-	  '../img/66e6deb0-9242-11e3-9925-21bc8763600a_IMG_6340.jpg '> </div>
-
-</div>
-</div>
-</div>
-
 
 

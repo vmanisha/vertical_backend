@@ -21,8 +21,6 @@ var wiki_uri = 'http://en.wikipedia.org';
 
 function GetSearchResults(query_text, page_number, type, result_count)
 {
-
-
 	param = null;
 	authorization = '';
 	if (!(type == 'Wiki'))
@@ -34,7 +32,7 @@ function GetSearchResults(query_text, page_number, type, result_count)
 	}
 	else {
 		search_uri = wiki_uri;
-		params = '/w/api.php?format=json&action=query&generator=search&gsrnamespace=0&gsrlimit=1&prop=pageimages|extracts&pilimit=max&exintro&explaintext&exsentences=2&exlimit=max&gsrsearch='+query_text;
+		params = '/w/api.php?format=json&action=query&generator=search&gsrnamespace=0&gsrlimit=1&prop=pageimages|extracts&pilimit=max&exintro&explaintext&exsentences=2&exlimit=max&&pithumbsize=100&gsrsearch='+query_text;
 	}
 
 	var response = request('GET',search_uri+params, 
@@ -46,9 +44,25 @@ function GetSearchResults(query_text, page_number, type, result_count)
 	results = JSON.parse(response.getBody('utf8'));
 
 	if (!(type == 'Wiki'))
-	  return results['d']['results'];
+	{
+		// Create result array.
+		//
+		// Video : search_results.push(["v", {"title" : "","time" : "" , "external_url" : "",
+		//		"display_url" : "", "thumbnail" : ""} ]);
+		// Image : search_results.push(["i", {"" : "","time" : "" , "external_url" : "",
+		//		"display_url" : "", "thumbnail" : ""} ]);
+
+
+		return results['d']['results'];
+
+	}
 	else
-	  return results['query']['pages'];
+	{
+		// Create a result array
+		return results['query']['pages'];
+	
+	
+	}
 }
 
 // Generate the results for a single query.
@@ -82,6 +96,12 @@ module.exports = {
 			// Shift the queue.
 			first_result_queues[task_id].push(first_result_type);
 
+			// Send dummy video results 
+			// Video : (Title, time, external_url, display_url, thumbnail_image_source)
+			// Image :
+			// Wiki :
+			// Web : 
+			/*
 			// Fix the number of elements in image.
 			var num_elements = 1;
 			if (first_result_type == 'Image')
@@ -98,6 +118,7 @@ module.exports = {
 			num_elements = 10 - search_results.length;
 			search_results = search_results.concat(GetBingResults(query_text, page_number, 
 						'Web', num_elements));
+			*/
 	   }
 	   else
 	   {

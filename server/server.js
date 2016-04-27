@@ -41,7 +41,10 @@ app.set('view engine', 'ejs');
 
 app.get('/index', function(req, res) {
   // res.type('text/html'); // set content-type
-  res.render('index.ejs');
+  res.render('index.ejs', {"task_id":0, 
+	  "user_name": "Guest", "search_page_id": 1,
+	  "user_query" : ""
+  });
 });
 
 //----------------------------------------------
@@ -97,7 +100,6 @@ app.post('/api/search', function(req, res){
   // Save the search results for future use. 
 
   res.json({'query_id':query_id, 'results':results});
-
 
 });
 
