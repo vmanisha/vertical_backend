@@ -29,7 +29,6 @@ $(function(){
                         // Grab the query, user_name and task_id to server.
    						user_query = $('#search_input').val();
 						$("#search_results").html('');
-						alert('sending '+user_query +' '+user_name+' '+search_page_id+' '+task_id);
 						$.ajax({url:'api/search',data: {'task':task_id , 'user':user_name, 
 						'page':search_page_id, 'query':user_query },
 	                    	contentType: "application/json",

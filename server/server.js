@@ -82,12 +82,9 @@ app.get('/api/registerUser', function(req, res){
 
 // Search a query using ms api and present the results. 
 app.get('/api/search', function(req, res){
-
-  console.log(req.body);
   var task_id = req.query.task;
   var query_text =req.query.query;
   var user_name = req.query.user;
-
   var page_number = parseInt(req.query.page);
 
   // update the query database.
