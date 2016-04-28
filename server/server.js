@@ -53,7 +53,7 @@ app.get('/index', function(req, res) {
 // USER MANAGEMENT
 //----------------------------------------------
 // Register a user with user name and id. 
-app.post('/api/registerUser', function(req, res){
+app.get('/api/registerUser', function(req, res){
 
 	var task_dict = {};
 	var tasks_completed = [];
@@ -81,12 +81,14 @@ app.post('/api/registerUser', function(req, res){
 //----------------------------------------------
 
 // Search a query using ms api and present the results. 
-app.post('/api/search', function(req, res){
-  var task_id = req.body.task;
-  var query_text =req.body.query;
-  var user_name = req.body.user;
+app.get('/api/search', function(req, res){
 
-  var page_number = parseInt(req.body.page);
+  console.log(req.body);
+  var task_id = req.query.task;
+  var query_text =req.query.query;
+  var user_name = req.query.user;
+
+  var page_number = parseInt(req.query.page);
 
   // update the query database.
   var query_id = database.addUserQuery(user_name,
@@ -152,6 +154,6 @@ app.post('/api/submitTaskResponse', function(req, res){
 //-------------------------------------------------------
 // START THE SERVER
 //-------------------------------------------------------
-var port = 4300;
+var port = 4730;
 app.listen(port);
 console.log('Magic happens on port ' + port);

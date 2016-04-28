@@ -29,11 +29,11 @@ $(function(){
                         // Grab the query, user_name and task_id to server.
    						user_query = $('#search_input').val();
 						$("#search_results").html('');
-
-						$.ajax({url:'api/search',data: JSON.stringify({'task':task_id , 'user':user_name, 
-						'page':search_page_id, 'query':user_query }),
+						alert('sending '+user_query +' '+user_name+' '+search_page_id+' '+task_id);
+						$.ajax({url:'api/search',data: {'task':task_id , 'user':user_name, 
+						'page':search_page_id, 'query':user_query },
 	                    	contentType: "application/json",
-                    		type:'post',
+                    		type:'get',
                     		success : function(output){
 								$('#query_id').val(output["query_id"]);
 								// Clear existing results. 
