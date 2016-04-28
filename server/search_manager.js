@@ -6,8 +6,7 @@ var changeCase = require("change-case");
 var array_utils = require("underscore");
 var base64 = require('base-64');
 var math = require('mathjs');
-
-var SearchSource = Object.freeze({BING: 0, WIKIPEDIA: 1})
+var ReadWriteLock = require('rwlock');
 
 // Stores task preferences
 var task_preferences = {};
@@ -18,6 +17,9 @@ var first_result_queues = {};
 var account_key = 'hTAHc8JGEP57nkCFiKPUlmevu5aaQIZfYniGYV3hH/0';
 var bing_uri = 'https://api.datamarket.azure.com';
 var wiki_uri = 'http://en.wikipedia.org';
+
+// For updating the result type shown to a user.
+var lock = new ReadWriteLock();
 
 function GetSearchResults(query_text, page_number, type, result_count, removeWiki)
 {
@@ -153,15 +155,22 @@ module.exports = {
 		var search_results = [];
 		query_text ="'"+ changeCase.lowerCase(query_text)+"'";
 		query_text = encodeURI(query_text);
-		console.log(query_text+' '+task_id+' '+user_name+' '+page_number);
+		var first_result_type = null;
 
 		if (page_number == 1)
 		{
-			var first_result_type = first_result_queues[task_id].shift();
-
-			console.log('Fetching results for '+query_text+' for '+first_result_type);
-			// Shift the queue.
-			first_result_queues[task_id].push(first_result_type);
+			// Acquire a lock to change the queue
+			// If two people query synonymously change queue safely.
+			lock.readLock(function (release) {
+			  first_result_type = first_result_queues[task_id].shift();
+			  console.log('Fetching results for '+query_text+' for '+first_result_type);
+			  lock.writeLock(function (release) {
+	  			  // Shift the queue.
+				  first_result_queues[task_id].push(first_result_type);
+				  release();
+			  });
+			  release();
+			});
 
 			// Fix the number of elements in image.
 			var num_elements = 1;

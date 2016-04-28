@@ -1,14 +1,18 @@
-// TODO(mverma): Save the search results for later use
-// for every user, task and query combination. 
-
+// TODO (mverma): Set the parameters for first visit.
 var express = require('express');
 var app = express();
 var engines = require('consolidate');
 var math = require('mathjs');
-
 var bodyParser = require('body-parser');
 var database = require('./database');
 var search_manager = require('./search_manager');
+var ReadWriteLock = require('rwlock');
+
+// For updating the result type shown to a user.
+var lock = new ReadWriteLock();
+
+// Global query_id 
+var global_query_id = 0;
 
 // User task completion dictionary
 // user_id : [task_id,..,task_id]
@@ -33,14 +37,11 @@ app.use("/js", express.static(__dirname + '/../views/js'));
 app.use("/css", express.static(__dirname + '/../views/css'));
 app.use("/img", express.static(__dirname + '/../views/img'));
 
-
-// app.engine('html', engines.mustache);
-// app.set('view engine', 'html');
-
 // set the view engine to ejs
 app.set('view engine', 'ejs');
 
 app.get('/index', function(req, res) {
+  
   // res.type('text/html'); // set content-type
   var task_id = math.round(math.random(1,10));
   res.render('index.ejs', {"task_id":JSON.stringify(task_id), 
@@ -87,22 +88,42 @@ app.get('/api/search', function(req, res){
   var user_name = req.query.user;
   var page_number = parseInt(req.query.page);
 
-  // update the query database.
-  var query_id = database.addUserQuery(user_name,
-	  task_id, query_text, new Date().getTime());
+  // Check if this is a repeated request. If yes
+  // get the results and send them again.
+  var check_result = database.checkQueryAndPageInHistory(user_name, task_id, 
+	  query_text, page_number);
 
-  console.log('Got query_id '+query_id+' '+task_id+' '+query_text+' '+user_name);
+  var query_id = null;
 
-  // given the task and user query, prepare the search result
-  // page and render that. 
-  // Keep the global_query_id in page.
-  results = search_manager.searchQuery(user_name, task_id, 
-	   query_text, page_number );
-  
-  // Save the search results for future use. 
+  // If the result is undefined 
+  if (check_result == null)
+  {
+	  // Acquire a lock to assign query id
+	  lock.readLock(function (release) {
+		query_id = global_query_id;
+		lock.writeLock(function (release) {
+		  // Shift the queue.
+		  global_query_id;
+		  release();
+		});
+		release();
+	  });
 
-  res.json({'query_id':query_id, 'results':results});
+	  console.log('New request '+query_id+' '+query_text+' '+task_id +' '+user_name);
+	  // given the task and user query, prepare the search result
+  	  // page and render that. Keep the global_query_id in page.
+  	  var results = search_manager.searchQuery(user_name, task_id, 
+	   query_text, page_number);
+	  
+	  // Save the search results for future use. 
+	  database.addSearchResults(user_name, task_id, query_id, query_text, 
+			  page_id, results, new Date().getTime());
 
+	  res.json({'query_id':query_id, 'results':results});
+  }
+  else
+	  res.json({'query_id':check_result['query_id'], 
+		  'results':check_result['search_results']});
 });
 
 // Submit serp interaction to db.
