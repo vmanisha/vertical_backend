@@ -66,7 +66,7 @@ module.exports = {
 	  if(user_name in last_query_search_results && task_id in last_query_search_results[user_name])
 	  {
 		  var search_result_array = last_query_search_results[user_name][task_id];
-		  if (var i = (search_result_array.length-1); i > -1 ; i--)
+		  for (var i = (search_result_array.length-1); i > -1 ; i--)
 		  {
 			  var stored_query = search_result_array[i]['query_text'];
 			  var stored_page = search_result_array[i]['page_id'];
@@ -89,7 +89,7 @@ module.exports = {
 	  // Update the query database.
 	  query_results_database.add({'user_id':user_name , 'query_id':query_id,
 		  'task_id':task_id, 'query_text':query_text, 'page_id' : page_id, 
-		  'search_results': }, timestamp);
+		  'search_results': search_results } , timestamp);
 
 	  // Update the last query stats for this user and task.
 	  if(user_name in last_query_search_results)
