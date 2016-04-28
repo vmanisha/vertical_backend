@@ -101,12 +101,12 @@
 body { font-family: sans-serif; background: #f2f2f2; }
 
 .gallery {
-	  background: #C8C2C2 none repeat scroll 0% 0%;
-	  opacity: 0.12;
+	  background: none repeat scroll 0% 0%;
+	  opacity: 1;
 }
 
 .gallery_cell {
-	  width:40%;
+	  width:20%;
 	  background: white;
 	  height: 146px;
 	  margin-bottom: 10px;
@@ -125,7 +125,7 @@ body { font-family: sans-serif; background: #f2f2f2; }
 
 .gallery_cell img {
   display: block;
-  width: 316px;
+  width: 20%;
   height: 146px;
   min-width: 40px;
   box-shadow : 2px 2px 1px #C8C2C2;
@@ -203,18 +203,20 @@ width: 100%;
 .card_bottom {
 display: inline-block;
 width: 100%;
-    text-overflow: ellipsis;
+text-overflow: ellipsis;
 }
 
 .card_heading {
 /* Heading */
 	margin:0;
 	padding:0;
+	text-overflow: ellipsis;
 
 }
 
 /* Domain url */ 
 .domain {
+	display:inline-block;
     margin-top: -2px;
 	overflow: hidden;
     text-overflow: ellipsis;

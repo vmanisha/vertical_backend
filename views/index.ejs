@@ -3,11 +3,19 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <link rel="stylesheet" href="./css/flickity.css" media="screen">
 <link rel="stylesheet" href="./css/search_page.css" media="screen">
+<script>
+   var user_name = <%- user_name %> 
+   var search_page_id = <%- search_page_id %> 
+   var user_query = <%- user_query %> 
+   var task_id = <%- task_id %> 
+</script>
 <script src="https://code.jquery.com/jquery-1.9.1.min.js"></script>
 <script src="./js/jquery.validate.js"></script>
 <script src="./js/client.js"></script>
+<script src="./js/flickity.pkgd.js"></script>
 </head>
 <body>
+
 <input type ='hidden' id = 'user_name' value = '<% user_name %>'/>
 <input type ='hidden' id = 'task_id' value = '<%task_id %>'/>
 <input type ='hidden' id = 'query_id' value = ''/>
@@ -21,12 +29,9 @@
 </form>
 
 <div id = 'search_results'>
-	
-
 
 </div>
 
-<script src="../js/flickity.pkgd.min.js"></script>
 
 </body>
 

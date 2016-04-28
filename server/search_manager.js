@@ -5,7 +5,7 @@ var request = require('sync-request');
 var changeCase = require("change-case");
 var array_utils = require("underscore");
 var base64 = require('base-64');
-
+var math = require('mathjs');
 
 var SearchSource = Object.freeze({BING: 0, WIKIPEDIA: 1})
 
@@ -19,7 +19,7 @@ var account_key = 'hTAHc8JGEP57nkCFiKPUlmevu5aaQIZfYniGYV3hH/0';
 var bing_uri = 'https://api.datamarket.azure.com';
 var wiki_uri = 'http://en.wikipedia.org';
 
-function GetSearchResults(query_text, page_number, type, result_count)
+function GetSearchResults(query_text, page_number, type, result_count, removeWiki)
 {
 	param = null;
 	authorization = '';
@@ -27,12 +27,13 @@ function GetSearchResults(query_text, page_number, type, result_count)
 	{
 	  params = '/Bing/Search/'+type+'?$format=json&$top='+result_count+ 
 			  '&$Skip='+10*(page_number-1)+'&Market=\'en-US\'&Query=' + query_text ;
+	  console.log(params);
 	  authorization ='Basic ' + base64.encode(account_key+ ':' + account_key);
 	  search_uri = bing_uri;
 	}
 	else {
 		search_uri = wiki_uri;
-		params = '/w/api.php?format=json&action=query&generator=search&gsrnamespace=0&gsrlimit=1&prop=pageimages|extracts&pilimit=max&exintro&explaintext&exsentences=2&exlimit=max&&pithumbsize=100&gsrsearch='+query_text;
+		params = '/w/api.php?format=json&action=query&generator=search&gsrnamespace=0&gsrlimit=1&prop=pageimages|extracts&pilimit=max&exintro&explaintext&exsentences=1&exlimit=max&pithumbsize=200&gsrsearch='+query_text;
 	}
 
 	var response = request('GET',search_uri+params, 
@@ -43,26 +44,92 @@ function GetSearchResults(query_text, page_number, type, result_count)
 			  }});
 	results = JSON.parse(response.getBody('utf8'));
 
+	var search_results = [];
 	if (!(type == 'Wiki'))
 	{
 		// Create result array.
-		//
-		// Video : search_results.push(["v", {"title" : "","time" : "" , "external_url" : "",
-		//		"display_url" : "", "thumbnail" : ""} ]);
-		// Image : search_results.push(["i", {"" : "","time" : "" , "external_url" : "",
-		//		"display_url" : "", "thumbnail" : ""} ]);
+		// Video : (["v", {"title" : "Title","time" : "RunTime" , "external_url" : "MediaUrl",
+		//		"display_url" : "DisplayUrl", "thumbnail" : "Thumbnail"} ]);
+		// Image : (["i", {"title" : "Title" , "external_url" : "MediaUrl",
+		//		"display_url" : "DisplayUrl", "thumbnail" : "Thumbnail"} ]);
+		// Web : (['o', {"title": "Title", "desc":"description", "display_url": "DisplayUrl", 
+		//		"external_url":"Url"}]);
+		if (results.d !== undefined)
+		{ 
+			var items = results.d.results;
 
-
-		return results['d']['results'];
-
+			for (var k = 0, len = items.length; k < len; k++)
+			{
+				var item = items[k];
+				switch (item.__metadata.type)
+				{
+					case 'WebResult':
+						// If wiki result and it has to be ignored, i.e.
+						// removeWiki = true
+						if (removeWiki && item.DisplayUrl.indexOf("wikipedia") != -1)
+						  continue;
+						search_results.push([ "o" , {"title" :item.Title , 
+							"desc": item.Description,
+							"display_url": item.DisplayUrl , 
+							"external_url": item.Url } ] );
+						break;
+					case 'ImageResult':{
+						if (search_results.length == 0)
+							search_results.push(["i", []] );
+			  
+						search_results[0][1].push({"title" : item.Title ,
+							"external_url" : item.MediaUrl,	
+							"display_url" : item.DisplayUrl, 
+							"thumbnail" : item.Thumbnail.MediaUrl});
+						break;
+					  }
+					case 'VideoResult':{
+						var runTime = (item.RunTime != null) ? parseInt(item.RunTime) : 0;
+						var totalSecs = runTime / 1000;
+						var hours = math.round(totalSecs / 3600,0);
+						var mins = math.round(hours / 60,0);
+						var secs = totalSecs % 60; 
+						var time_string = '';
+						if (secs > 0)
+							time_string = secs+' secs';
+						if (mins > 0)
+							time_string = mins+' mins '+time_string;
+						if (hours > 0)
+							time_string = hours +' hours '+time_string;
+						search_results.push(["v", {"title" : item.Title,
+						   "time" : time_string , 
+						   "external_url" : item.MediaUrl,
+						   "display_url" : item.DisplayUrl, 
+						   "thumbnail" : item.Thumbnail.MediaUrl}] );
+						break;
+					}
+				}
+			}
+		}
 	}
 	else
 	{
 		// Create a result array
-		return results['query']['pages'];
-	
-	
+		// Wiki : ([''w, {"title": "title", "desc":"extract", "display_url": "external_url (next)", 
+		//		"external_url":https://en.m.wikipedia.org/wiki?curid=+"Url", "thumbnail": "thumbnail"}]);
+		console.log('In wiki');
+
+		if(results.query !== undefined)
+		{
+			var items = results.query.pages;
+			for (var k in items)
+			{
+				var item = items[k];
+				var source = '';
+				if (item.thumbnail !== undefined)
+					source =  item.thumbnail.source;
+				var page_url = "https://en.m.wikipedia.org/wiki?curid="+item.pageid;
+				search_results.push(['w', {"title": item.title, "desc":item.extract, "display_url":page_url , 
+				"external_url": page_url, "thumbnail":source }]);
+			}
+		}
 	}
+	return search_results;
 }
 
 // Generate the results for a single query.
@@ -96,36 +163,39 @@ module.exports = {
 			// Shift the queue.
 			first_result_queues[task_id].push(first_result_type);
 
-			// Send dummy video results 
-			// Video : (Title, time, external_url, display_url, thumbnail_image_source)
-			// Image :
-			// Wiki :
-			// Web : 
-			/*
 			// Fix the number of elements in image.
 			var num_elements = 1;
 			if (first_result_type == 'Image')
-				num_elements = 9;
-		
+				num_elements = 7;
+			if (first_result_type == 'Web')
+				num_elements = 10;
+	
+			var removeWiki = false;
+
 			// Fetch the first result.
-			if (first_result_type == 'Wiki')
-				search_results.push(GetWikiResults(query_text));
+			if (first_result_type == 'Wiki') {
+				search_results = search_results.concat(
+						GetSearchResults(query_text, page_number, 
+						first_result_type,num_elements, removeWiki));
+				removeWiki = true;
+			}
 			else				
-				search_results.push(GetBingResults(query_text, page_number, 
-					first_result_type, num_elements));
+				search_results = search_results.concat(
+						GetSearchResults(query_text, page_number, 
+						first_result_type, num_elements,removeWiki));
 
 			//// Fetch the remaining results from Web.
 			num_elements = 10 - search_results.length;
-			search_results = search_results.concat(GetBingResults(query_text, page_number, 
-						'Web', num_elements));
-			*/
+			if (num_elements > 0)
+			  search_results = search_results.concat(GetSearchResults(query_text, 
+						page_number, 'Web', num_elements,removeWiki));
 	   }
 	   else
 	   {
 			// Return the remaining 10 results after page_number 
 		  	// they are web only results.
-		  	search_results = search_results.concat(GetBingResults(query_text, page_number, 
-						'Web', 10));
+		  	search_results = search_results.concat(GetSearchResults(query_text, 
+						page_number, 'Web', 10));
 	   }
 	  return search_results;
 	}

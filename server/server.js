@@ -4,6 +4,7 @@
 var express = require('express');
 var app = express();
 var engines = require('consolidate');
+var math = require('mathjs');
 
 var bodyParser = require('body-parser');
 var database = require('./database');
@@ -41,9 +42,10 @@ app.set('view engine', 'ejs');
 
 app.get('/index', function(req, res) {
   // res.type('text/html'); // set content-type
-  res.render('index.ejs', {"task_id":0, 
-	  "user_name": "Guest", "search_page_id": 1,
-	  "user_query" : ""
+  var task_id = math.round(math.random(1,10));
+  res.render('index.ejs', {"task_id":JSON.stringify(task_id), 
+	  "user_name": JSON.stringify("Guest"), "search_page_id": JSON.stringify(1),
+	  "user_query" : JSON.stringify("")
   });
 });
 
@@ -80,10 +82,11 @@ app.post('/api/registerUser', function(req, res){
 
 // Search a query using ms api and present the results. 
 app.post('/api/search', function(req, res){
-  var task_id = '1'; //req.body.task;
-  var query_text ='kim kardashian';  //req.body.query;
-  var user_name = 'manisha'; //req.body.user;
-  var page_number = parseInt('1');//req.body.page);
+  var task_id = req.body.task;
+  var query_text =req.body.query;
+  var user_name = req.body.user;
+
+  var page_number = parseInt(req.body.page);
 
   // update the query database.
   var query_id = database.addUserQuery(user_name,
