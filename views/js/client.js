@@ -30,10 +30,10 @@ $(function(){
    						user_query = $('#search_input').val();
 						$("#search_results").html('');
 
-						$.ajax({url:'api/search',data: JSON.stringify({'task':task_id , 'user':user_name, 
-						'page':search_page_id, 'query':user_query }),
+						$.ajax({url:'api/search',data: {'task':task_id , 'user':user_name, 
+						'page':search_page_id, 'query':user_query },
 	                    	contentType: "application/json",
-                    		type:'post',
+                    		type:'get',
                     		success : function(output){
 								$('#query_id').val(output["query_id"]);
 								// Clear existing results. 

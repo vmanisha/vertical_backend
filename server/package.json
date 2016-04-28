@@ -1,9 +1,0 @@
-{
-"name": "search-vertical-api",
-    "main": "server.js",
-    "dependencies": {
-        "express": "~4.13.0",
-        "nodejs-microdb": "~0.0.2",
-        "body-parser": "~1.0.1"
-    }
-}
