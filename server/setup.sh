@@ -7,6 +7,7 @@ npm install body-parser
 npm install base-64
 npm install change-case
 npm install ejs
+npm install rwlock
 npm install mathjs
 npm install sync-request@2.2.0
 

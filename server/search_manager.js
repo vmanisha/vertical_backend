@@ -8,6 +8,9 @@ var base64 = require('base-64');
 var math = require('mathjs');
 var ReadWriteLock = require('rwlock');
 
+// For updating the result type shown to a user.
+var lock = new ReadWriteLock();
+
 // Stores task preferences
 var task_preferences = {};
 
@@ -18,8 +21,6 @@ var account_key = 'hTAHc8JGEP57nkCFiKPUlmevu5aaQIZfYniGYV3hH/0';
 var bing_uri = 'https://api.datamarket.azure.com';
 var wiki_uri = 'http://en.wikipedia.org';
 
-// For updating the result type shown to a user.
-var lock = new ReadWriteLock();
 
 function GetSearchResults(query_text, page_number, type, result_count, removeWiki)
 {
