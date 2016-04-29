@@ -16,15 +16,15 @@
 </head>
 <body>
 
+
+<form id='search_form' class = 'search_form' method="GET">
+   <input type="text" name="search_input" id="search_input"
+   value="<% user_query %>" tabindex="2">
+   <input type="submit" name="search_submit" id="search_submit" value="Search">
 <input type ='hidden' id = 'user_name' value = '<% user_name %>'/>
 <input type ='hidden' id = 'task_id' value = '<%task_id %>'/>
 <input type ='hidden' id = 'query_id' value = ''/>
 <input type ='hidden' id = 'search_page_id' value = '<%search_page_id %>'/>
-
-<form id='search_form' class = 'search_form' method="POST">
-   <input type="text" name="search_input" id="search_input"
-   value="<% user_query %>" tabindex="2">
-   <input type="submit" name="search_submit" id="search_submit" value="Search">
 	<div id='search_form_error'> </div>
 </form>
 
@@ -32,6 +32,12 @@
 
 </div>
 
+<div id = 'page_nav'>
+	<a href = '' id = 'prev_page' float = 'left'> << Prev </a> 
+	&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+	&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+	<a href = '' id = 'next_page', float = 'right'> Next >> </a>
+</div>
 
 </body>
 

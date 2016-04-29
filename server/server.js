@@ -40,7 +40,7 @@ app.use("/img", express.static(__dirname + '/../views/img'));
 // set the view engine to ejs
 app.set('view engine', 'ejs');
 
-app.get('/index', function(req, res) {
+app.get('/', function(req, res) {
   
   // res.type('text/html'); // set content-type
   var task_id = math.round(math.random(1,10));
@@ -117,7 +117,7 @@ app.get('/api/search', function(req, res){
 	  
 	  // Save the search results for future use. 
 	  database.addSearchResults(user_name, task_id, query_id, query_text, 
-			  page_id, results, new Date().getTime());
+			  page_number, results, new Date().getTime());
 
 	  res.json({'query_id':query_id, 'results':results});
   }

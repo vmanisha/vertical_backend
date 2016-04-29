@@ -185,7 +185,6 @@ margin :0;
 .video_bottom {
 display: inline-block;
 width: 100%;
-height: 150px;
 
 }
 .video_thumbnail {
@@ -200,6 +199,15 @@ height: 150px;
  height: 143px;
 }
 
+.video_thumbnail img {
+  display: block;
+  width: 90%;
+  height: 146px;
+  min-width: 80px;
+  min-height: 80px;
+	/* dim unselected */
+  opacity: 1;
+}
 
 .card_bottom {
 display: inline-block;
@@ -232,11 +240,9 @@ text-overflow: ellipsis;
  margin: 5px;
  position: right;
  width:98%;
- padding-left: 40%;
- overflow: hidden;
- display:inline-block;
+ padding-left: 10%;
  text-overflow: ellipsis;
- white-space: nowrap;
+
 }
 
 .time_creation{

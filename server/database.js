@@ -84,7 +84,7 @@ module.exports = {
 
 	// By now we know that the query and page id do not exist for a user and
 	// task.
-	addSearchResults: function(user_name, task_id, query_id, user_query, 
+	addSearchResults: function(user_name, task_id, query_id, query_text, 
 								   page_id, search_results, timestamp) {
 	  // Update the query database.
 	  query_results_database.add({'user_id':user_name , 'query_id':query_id,

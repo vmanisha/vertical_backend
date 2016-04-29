@@ -13,64 +13,123 @@
 //How much time do they spend on tapping and reading.
 //------------------------------------------------------------------------
 
-$(function(){
-  
 
+$(function(){
+
+   // Hide Page Navigation
+   $('#page_nav').hide();
 
    // Add validation for search request. 
    $('#search_form').validate({
-	            rules: {   search_input: { required:true }  },
-			    errorPlacement: function(error, element) {
-                        error.css("color","red");
-                        error.css('text-decoration', 'red');
-                        error.appendTo('#'+element.attr("id")+'_error');
-                },
-                submitHandler: function postForm(validator, form, submit_event) {
-                        // Grab the query, user_name and task_id to server.
-   						user_query = $('#search_input').val();
-						$("#search_results").html('');
-						$.ajax({url:'api/search',data: {'task':task_id , 'user':user_name, 
-						'page':search_page_id, 'query':user_query },
-	                    	contentType: "application/json",
-                    		type:'get',
-                    		success : function(output){
-								$('#query_id').val(output["query_id"]);
-								// Clear existing results. 
-								// output is a json object containing [ [result_type, {result_info} ] ]
-								var rid = 1; 
-								var result_block;
-								var type;
-								for (var i in output["results"]) {
-									var $element_block = '';
-									rid = i;
-									type = output["results"][i][0];
-									result_block = output["results"][i][1];
-									if (type == 'i')
-										$element_block=PrepareImageResult(rid, result_block);
-									if (type == 'w')			
-										$element_block=PrepareCompositeResult('w',rid, result_block);
-									if (type == 'v')			
-										$element_block=PrepareCompositeResult('v',rid, result_block);
-									if (type == 'o')			
-										$element_block=PrepareOrganicResult(rid, result_block);
-									$element_block.appendTo('#search_results');
-								}
-                    		},
-                    		error : function(output)
-                    		{
-                        		$('#search_form_error').css("color","red");
-                        		$('#search_form_error').css('text-decoration', 'bold');
-                        		$('#search_form_error').html(output.responseText);
-                    		}
-             		  });
-			  }
+        rules: {   search_input: { required:true }  },
+	    errorPlacement: function(error, element) {
+                error.css("color","red");
+                error.css('text-decoration', 'red');
+                error.appendTo('#'+element.attr("id")+'_error');
+        },
+        submitHandler: function postForm(validator, form, submit_event) {
+				  search_page_id = 1;
+				  MakeSearchRequestAndServeResults(search_page_id);
+     		  }
 	});	
 
+	$('#next_page').on('click', function () {
+		// Increment the page_id
+		search_page_id++;
+		MakeSearchRequestAndServeResults(search_page_id);
+
+	});
+
+	$('#prev_page').on('click',function () {
+		// Decrement the page_id
+		search_page_id--;
+		MakeSearchRequestAndServeResults(search_page_id);
+	});
+
+	/*
+	// Add the history bit.
+	$(window).bind('popstate', function() {
+		alert(location.pathname);
+		$.ajax({url:location.pathname,
+			success: function(output){
+			alert(this.data.page, output);
+			RenderPage(1);
+	  }});
+	});
+	*/
 	// Add tap events
 	// Add swipe events
 	// Add pinch event
 	// Add drag event
 });
+
+function MakeSearchRequestAndServeResults(request_page_id) {
+    
+	$('#page_nav').hide();
+	// Grab the query, user_name and task_id to server.
+	user_query = $('#search_input').val();
+	// Clear the search result page.
+	$("#search_results").html('');
+	alert(user_query+' '+task_id+' '+request_page_id);
+
+	// Send the ajax response.
+	$.ajax({url:'api/search',data: {'task':task_id , 'user':user_name, 
+	'page':request_page_id, 'query':user_query },
+    	contentType: "application/json",
+		type:'get',
+		// @output: the result json returned by api.
+		// output is a json object containing [ [result_type, {result_info} ] ]
+		success : function(output){
+			// Serve results.
+			RenderPage(request_page_id,output);
+			// Update the url in history. 
+			/*var pageurl = window.location+this.url;
+			alert(pageurl);
+
+			if(pageurl!=window.location){
+				window.history.pushState({path:pageurl},'',pageurl);
+			}
+			return false;	*/
+
+		}, 
+		error : function(output)
+		{
+    		$('#search_form_error').css("color","red");
+    		$('#search_form_error').css('text-decoration', 'bold');
+    		$('#search_form_error').html(output.responseText);
+		}
+	});
+}
+
+function RenderPage(request_page_id, output)
+{
+	$('#query_id').val(output["query_id"]);
+	var rid = 1; 
+	var result_block;
+	var type;
+	for (var i in output["results"]) {
+		var $element_block = '';
+		rid = i;
+		type = output["results"][i][0];
+		result_block = output["results"][i][1];
+		if (type == 'i')
+			$element_block=PrepareImageResult(rid, result_block);
+		if (type == 'w')			
+			$element_block=PrepareCompositeResult('w',rid, result_block);
+		if (type == 'v')			
+			$element_block=PrepareCompositeResult('v',rid, result_block);
+		if (type == 'o')			
+			$element_block=PrepareOrganicResult(rid, result_block);
+		$element_block.appendTo('#search_results');
+	}
+	$('#page_nav').show();
+	if (request_page_id == 1)
+		$('#prev_page').hide();
+	else
+		$('#prev_page').show();
+	$('#next_page').show();
+}
+
 
 function PrepareCompositeResult(type, rid, result_json)
 {
@@ -100,7 +159,7 @@ function PrepareCompositeResult(type, rid, result_json)
 	var $video_info = $("<div>", { "class" : "video_info"});
 	if (type == 'v')
 	  $video_info = $video_info.append($("<span>", { "class" : "time_creation",
-								  "text" :"Time"})).append(result_json["time"]);
+								  "text" :"Time: "})).append(result_json["time"]);
 	if (type == 'w')
 	  $video_info = $video_info.append(result_json["desc"]);
 
@@ -138,8 +197,6 @@ function PrepareImageResult(rid, image_json)
    // 	data_flickity_options='{"cellAlign":"left", "contain":true , "prevNextButtons": false,  "pageDots": false, "resize":true}'>
    // 	<div class="gallery_cell">  <a> <img src =
    // 		'../img/40_1resized___HOLI_LB2012_002.jpg  '> </a> </div>
-   // 	<div class="gallery_cell"> <img src =
-   // 		'../img/friends-anniversary-main.jpg ' > </div>
    //   <div class="gallery-cell"> <img src =
    // 	  '../img/11429037_10153397369389813_8239213770649931342_n.jpg '> </div>
    // </div>
