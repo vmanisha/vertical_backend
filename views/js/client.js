@@ -46,17 +46,17 @@ $(function(){
 		MakeSearchRequestAndServeResults(search_page_id);
 	});
 
-	/*
 	// Add the history bit.
 	$(window).bind('popstate', function() {
 		alert(location.pathname);
+		$("#search_results").html('');
 		$.ajax({url:location.pathname,
 			success: function(output){
 			alert(this.data.page, output);
 			RenderPage(1);
 	  }});
 	});
-	*/
+	
 	// Add tap events
 	// Add swipe events
 	// Add pinch event
@@ -83,13 +83,13 @@ function MakeSearchRequestAndServeResults(request_page_id) {
 			// Serve results.
 			RenderPage(request_page_id,output);
 			// Update the url in history. 
-			/*var pageurl = window.location+this.url;
+			var pageurl = window.location+this.url;
 			alert(pageurl);
 
 			if(pageurl!=window.location){
 				window.history.pushState({path:pageurl},'',pageurl);
 			}
-			return false;	*/
+			/* return false;	*/
 
 		}, 
 		error : function(output)
