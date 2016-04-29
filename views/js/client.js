@@ -19,6 +19,7 @@ $(function(){
    // Hide Page Navigation
    $('#page_nav').hide();
 
+   
    // Add validation for search request. 
    $('#search_form').validate({
         rules: {   search_input: { required:true }  },
@@ -72,13 +73,15 @@ function MakeSearchRequestAndServeResults(request_page_id) {
 		success : function(output){
 			// Serve results.
 			RenderPage(request_page_id,output);
-			// Update the url in history. 
 			var pageurl = 'http://localhost:4730/'+this.url;
+			window.location = pageurl;
+			// Update the url in history. 
+			/*var pageurl = 'http://localhost:4730/'+this.url;
 			alert('Adding '+pageurl);
 			if(pageurl!=window.location){
 				window.history.pushState({ page_id:request_page_id },'',pageurl);
 			}
-			return false;	
+			return false;	*/
 		}, 
 		error : function(output)
 		{
@@ -90,6 +93,7 @@ function MakeSearchRequestAndServeResults(request_page_id) {
 	return false;
 }
 
+/*
 // Add the history bit.
 window.onpopstate = function(event) {
 	alert(' current url '+location.href  + ' '+ window.history.state);
@@ -106,6 +110,7 @@ window.onpopstate = function(event) {
 	  });
 	}
 };
+*/
 
 function RenderPage(request_page_id, output)
 {

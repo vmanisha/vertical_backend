@@ -46,7 +46,7 @@ app.get('/', function(req, res) {
   var task_id = math.round(math.random(1,10));
   res.render('index.ejs', {"task_id":JSON.stringify(task_id), 
 	  "user_name": JSON.stringify("Guest"), "search_page_id": JSON.stringify(1),
-	  "user_query" : JSON.stringify("")
+	  "user_query" : JSON.stringify(""), "query_id" : JSON.stringify(1),
   });
 });
 

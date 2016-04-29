@@ -1,0 +1,24 @@
+
+// This is to replace relative url/path to absolute path/url
+Elements links = doc.select("a[href]");
+for(int index = 0; index < links.size(); index++){
+  Element link = links.get(index);
+	String urlnew = link.attr("abs:href");
+	  String newLinkUrl = "view.jsp?url="+URLEncoder.encode(urlnew,"utf-8");
+		link.attr("href", newLinkUrl);
+		}
+
+		Elements medias = doc.select("[src]");
+		for(int index = 0; index < medias.size(); index++){
+		  String urlnew = medias.get(index).attr("abs:src");
+			medias.get(index).attr("src", urlnew);
+			}
+				  
+				  Elements imports = doc.select("link[href]");
+				      for(int index = 0; index < imports.size(); index++){
+					      String urlnew = imports.get(index).attr("abs:href");
+						      imports.get(index).attr("href", urlnew);
+							  }
+
+
+
