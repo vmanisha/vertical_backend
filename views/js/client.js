@@ -46,16 +46,7 @@ $(function(){
 		MakeSearchRequestAndServeResults(search_page_id);
 	});
 
-	// Add the history bit.
-	$(window).bind('popstate', function() {
-		alert(location.pathname);
-		$("#search_results").html('');
-		$.ajax({url:location.pathname,
-			success: function(output){
-			alert(this.data.page, output);
-			RenderPage(1);
-	  }});
-	});
+	
 	
 	// Add tap events
 	// Add swipe events
@@ -70,11 +61,10 @@ function MakeSearchRequestAndServeResults(request_page_id) {
 	user_query = $('#search_input').val();
 	// Clear the search result page.
 	$("#search_results").html('');
-	alert(user_query+' '+task_id+' '+request_page_id);
 
 	// Send the ajax response.
-	$.ajax({url:'api/search',data: {'task':task_id , 'user':user_name, 
-	'page':request_page_id, 'query':user_query },
+	$.ajax({url:'search',data: 
+		{'task':task_id , 'user':user_name, 'page':request_page_id, 'query':user_query },
     	contentType: "application/json",
 		type:'get',
 		// @output: the result json returned by api.
@@ -83,14 +73,12 @@ function MakeSearchRequestAndServeResults(request_page_id) {
 			// Serve results.
 			RenderPage(request_page_id,output);
 			// Update the url in history. 
-			var pageurl = window.location+this.url;
-			alert(pageurl);
-
+			var pageurl = 'http://localhost:4730/'+this.url;
+			alert('Adding '+pageurl);
 			if(pageurl!=window.location){
-				window.history.pushState({path:pageurl},'',pageurl);
+				window.history.pushState({ page_id:request_page_id },'',pageurl);
 			}
-			/* return false;	*/
-
+			return false;	
 		}, 
 		error : function(output)
 		{
@@ -99,7 +87,25 @@ function MakeSearchRequestAndServeResults(request_page_id) {
     		$('#search_form_error').html(output.responseText);
 		}
 	});
+	return false;
 }
+
+// Add the history bit.
+window.onpopstate = function(event) {
+	alert(' current url '+location.href  + ' '+ window.history.state);
+	alert( window.history.state.page_id);
+	if (event.state !== null)
+	{
+	  $("#search_results").html('');
+	  $.ajax({url:location.pathname,
+		success: function(output){
+		alert(this.data.page);
+		alert(output);
+		//RenderPage(1, output);
+		}
+	  });
+	}
+};
 
 function RenderPage(request_page_id, output)
 {

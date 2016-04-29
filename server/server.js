@@ -82,7 +82,7 @@ app.get('/api/registerUser', function(req, res){
 //----------------------------------------------
 
 // Search a query using ms api and present the results. 
-app.get('/api/search', function(req, res){
+app.get('/search', function(req, res){
   var task_id = req.query.task;
   var query_text =req.query.query;
   var user_name = req.query.user;
@@ -127,7 +127,7 @@ app.get('/api/search', function(req, res){
 });
 
 // Submit serp interaction to db.
-app.post('/api/submitSERPEvent', function(req, res){
+app.post('/submitSERPEvent', function(req, res){
   
   database.addSerpEvent(req.body.user, req.body.task,
   req.body.query, req.body.doc, req.body.eventt,req.body.value,
@@ -137,7 +137,7 @@ app.post('/api/submitSERPEvent', function(req, res){
 });
 
 // Submit page interaction to db.
-app.post('/api/submitPageClick', function(req, res){
+app.post('/submitPageClick', function(req, res){
   database.addClickDoc(req.body.user, req.body.task,
   req.body.query, req.body.doc, req.body.docurl,
   new Date().getTime());
@@ -145,13 +145,13 @@ app.post('/api/submitPageClick', function(req, res){
 });
 
 // Submit page responses (relevance and satisfaction) interaction to db.
-app.post('/api/submitPageResponse', function(req, res){
+app.post('/submitPageResponse', function(req, res){
   
 
 });
 
 // Submit task responses (relevance and satisfaction) interaction to db.
-app.post('/api/submitTaskResponse', function(req, res){
+app.post('/submitTaskResponse', function(req, res){
   var response_array = req.body.responses;
   var time;
   for(var i = 0; i < response_array.length;i++) 

@@ -60,6 +60,7 @@ function GetSearchResults(query_text, page_number, type, result_count, removeWik
 		if (results.d !== undefined)
 		{ 
 			var items = results.d.results;
+			console.log(items.length);
 
 			for (var k = 0, len = items.length; k < len; k++)
 			{
