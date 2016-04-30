@@ -44,9 +44,11 @@ app.get('/', function(req, res) {
   
   // res.type('text/html'); // set content-type
   var task_id = math.round(math.random(1,10));
-  res.render('index.ejs', {"task_id":JSON.stringify(task_id), 
+  res.render('index.ejs', {
+	  "task_id":JSON.stringify(task_id), 
 	  "user_name": JSON.stringify("Guest"), "search_page_id": JSON.stringify(1),
 	  "user_query" : JSON.stringify(""), "query_id" : JSON.stringify(1),
+	  "results" : JSON.stringify({})
   });
 });
 
@@ -119,11 +121,20 @@ app.get('/search', function(req, res){
 	  database.addSearchResults(user_name, task_id, query_id, query_text, 
 			  page_number, results, new Date().getTime());
 
-	  res.json({'query_id':query_id, 'results':results});
+	  res.render("index.ejs", { "task_id":JSON.stringify(task_id), 
+	  "user_name": JSON.stringify(user_name), 
+	  "search_page_id": JSON.stringify(page_number),
+	  "user_query" : JSON.stringify(query_text), 
+	  "query_id" : JSON.stringify(query_id),
+	  'results': JSON.stringify(results)});
   }
   else
-	  res.json({'query_id':check_result['query_id'], 
-		  'results':check_result['search_results']});
+	  res.render("index.ejs", { "task_id":JSON.stringify(task_id), 
+	  "user_name": JSON.stringify(user_name), 
+	  "search_page_id": JSON.stringify(page_number),
+	  "user_query" : JSON.stringify(query_text), 
+	  "query_id" : JSON.stringify(check_result['query_id']),
+	  'results':JSON.stringify(check_result['search_results'])});
 });
 
 // Submit serp interaction to db.

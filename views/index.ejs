@@ -4,10 +4,14 @@
 <link rel="stylesheet" href="./css/flickity.css" media="screen">
 <link rel="stylesheet" href="./css/search_page.css" media="screen">
 <script>
+   // Is passed with every request :(
+   // TODO(mverma) : Can we stop passing these parameters with
+   // every request. 
    var user_name = <%- user_name %> 
    var search_page_id = <%- search_page_id %> 
    var user_query = <%- user_query %> 
    var task_id = <%- task_id %> 
+   // alert(task_id +' '+user_query+' '+search_page_id+' '+ user_name);
 </script>
 <script src="https://code.jquery.com/jquery-1.9.1.min.js"></script>
 <script src="./js/jquery.validate.js"></script>
@@ -17,7 +21,7 @@
 <body>
 
 
-<form id='search_form' class = 'search_form' method="GET">
+<form id='search_form' class = 'search_form' method="GET" >
    <input type="text" name="search_input" id="search_input"
    value="<% user_query %>" tabindex="2">
    <input type="submit" name="search_submit" id="search_submit" value="Search">
@@ -32,12 +36,18 @@
 
 </div>
 
-<div id = 'page_nav'>
-	<a href = '#' id = 'prev_page' float = 'left'> << Prev </a> 
-	&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
-	&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
-	<a href = '#' id = 'next_page', float = 'right'> Next >> </a>
-</div>
+<script>
+	// Set the query id
+	$('#query_id').val(<%- query_id %>);
+	// Set the query
+	$('#search_input').val(<%- user_query %>);
+	
+	// Get a results object. Display results on page.
+	var output = <%- results %>
+	if (output.length > 0)
+		RenderPage(search_page_id, output);		 
+</script>
+
 
 </body>
 

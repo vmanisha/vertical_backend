@@ -17,7 +17,6 @@
 $(function(){
 
    // Hide Page Navigation
-   $('#page_nav').hide();
 
    
    // Add validation for search request. 
@@ -57,72 +56,32 @@ $(function(){
 
 function MakeSearchRequestAndServeResults(request_page_id) {
     
-	$('#page_nav').hide();
 	// Grab the query, user_name and task_id to server.
-	user_query = $('#search_input').val();
+	var curr_query = $('#search_input').val();
 	// Clear the search result page.
 	$("#search_results").html('');
 
-	// Send the ajax response.
-	$.ajax({url:'search',data: 
-		{'task':task_id , 'user':user_name, 'page':request_page_id, 'query':user_query },
-    	contentType: "application/json",
-		type:'get',
-		// @output: the result json returned by api.
-		// output is a json object containing [ [result_type, {result_info} ] ]
-		success : function(output){
-			// Serve results.
-			RenderPage(request_page_id,output);
-			var pageurl = 'http://localhost:4730/'+this.url;
-			window.location = pageurl;
-			// Update the url in history. 
-			/*var pageurl = 'http://localhost:4730/'+this.url;
-			alert('Adding '+pageurl);
-			if(pageurl!=window.location){
-				window.history.pushState({ page_id:request_page_id },'',pageurl);
-			}
-			return false;	*/
-		}, 
-		error : function(output)
-		{
-    		$('#search_form_error').css("color","red");
-    		$('#search_form_error').css('text-decoration', 'bold');
-    		$('#search_form_error').html(output.responseText);
-		}
-	});
-	return false;
+
+	// Create a new form and submit with parameters.
+	var $form =  $('<form>', { "action" : "/search" , "method" : "GET"}).append(
+		$('<input>',{ "name":"query", "id":"query" , "value" : curr_query  }))
+		.append($('<input>',{ "name":"user", "id":"user" , "value" : user_name}))
+		.append($('<input>',{ "name":"task", "id":"task" , "value" : task_id  }))
+		.append($('<input>',{ "name":"page", "id":"page" , "value" : search_page_id}));
+		
+		$form.appendTo('body').hide().submit();
 }
 
-/*
-// Add the history bit.
-window.onpopstate = function(event) {
-	alert(' current url '+location.href  + ' '+ window.history.state);
-	alert( window.history.state.page_id);
-	if (event.state !== null)
-	{
-	  $("#search_results").html('');
-	  $.ajax({url:location.pathname,
-		success: function(output){
-		alert(this.data.page);
-		alert(output);
-		//RenderPage(1, output);
-		}
-	  });
-	}
-};
-*/
-
-function RenderPage(request_page_id, output)
+function RenderPage(request_page_id,  output)
 {
-	$('#query_id').val(output["query_id"]);
 	var rid = 1; 
 	var result_block;
 	var type;
-	for (var i in output["results"]) {
+	for (var i in output) {
 		var $element_block = '';
 		rid = i;
-		type = output["results"][i][0];
-		result_block = output["results"][i][1];
+		type = output[i][0];
+		result_block = output[i][1];
 		if (type == 'i')
 			$element_block=PrepareImageResult(rid, result_block);
 		if (type == 'w')			
@@ -133,12 +92,17 @@ function RenderPage(request_page_id, output)
 			$element_block=PrepareOrganicResult(rid, result_block);
 		$element_block.appendTo('#search_results');
 	}
-	$('#page_nav').show();
-	if (request_page_id == 1)
-		$('#prev_page').hide();
-	else
-		$('#prev_page').show();
-	$('#next_page').show();
+
+	// Add next and previous button.
+	var $nav_div = $('<div>',{"id" : "page_nav", "class": "page_nav"});
+	if (request_page_id > 1)
+	  {	$nav_div = $nav_div.append($("<a>", {"href": "#" , "id": 'prev_page', 
+			"text" : "<< Prev"}));
+	  	$nav_div = $nav_div.append("&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;");
+	  }
+	$nav_div = $nav_div.append($("<a>", {"href": "#" , "id": 'next_page',"text" : " Next >>"}));
+	$nav_div.appendTo('body');
+  
 }
 
 

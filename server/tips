@@ -1,4 +1,69 @@
 
+<script>
+    $(document).bind('mobileinit',function(){
+	        $.mobile.changePage.defaults.changeHash = false;
+			        $.mobile.hashListeningEnabled = false;
+        $.mobile.pushStateEnabled = false;
+		    });
+			</script> 
+
+
+http://www.sitepoint.com/javascript-history-pushstate/
+
+<link rel="stylesheet" href="http://code.jquery.com/ui/1.10.3/themes/smoothness/jquery-ui.css">
+     <script src="http://code.jquery.com/jquery-1.9.1.js">
+     </script>  <script src="http://code.jquery.com/ui/1.10.3/jquery-ui.js"></script>
+    <script>
+        function ShowMessage(message) {
+            $("#dialog-message").html(message);
+            $("#dialog-message").dialog({ modal: true, buttons: { Ok: function () { $(this).dialog("close"); } } });
+        
+        }
+    </script>
+<div id="dialog-message" title="Alert">
+    
+</div>i
+Dim strScript1 As String = "ShowMessage('Your Leave Request has been submitted Successfully!');window.location ='EmployeeMain2.aspx?EmpID=" & EmpId & "';"
+ ClientScript.RegisterStartupScript(strScript1.GetType(), "loadScript", strScript1, True)
+
+
+<!-- Supporting jQuery Scripts -->
+<link href="http://ajax.googleapis.com/ajax/libs/jqueryui/1/themes/smoothness/jquery-ui.min.css" rel="stylesheet" type="text/css" />
+<script src="http://ajax.googleapis.com/ajax/libs/jquery/1/jquery.min.js"></script>
+<script src="http://ajax.googleapis.com/ajax/libs/jqueryui/1/jquery-ui.min.js"></script>
+<!-- Your Script -->
+  <script type='text/javascript'>
+    $(function(){
+       //Attaches a jQuery dialog to the 'YourDialog' element
+       $("#YourDialog").dialog({
+           //Properties
+           autoOpen: false,
+           height: 300,
+           width: 350,
+           modal: true,
+         buttons: {
+        "Ok": function() {
+          $( this ).dialog( "close" );
+          window.location.href = $("#YourDialog input:radio:checked").val();
+        }
+      }
+           //Additional Code Here
+       });
+ 
+       //Displays the dialog modal when the "YourButton" element is clicked
+      $("#YourDialog").dialog("open");
+     
+    });
+</script>
+
+
+<div id='YourDialog'>
+    Please choose an option : <br />
+    <input name='choice' type='radio' value='http://www.asp.net' checked >ASP.NET<br />
+    <input name='choice' type='radio' value='http://www.microsoft.com'>Microsoft
+</div>
+
+
 // This is to replace relative url/path to absolute path/url
 Elements links = doc.select("a[href]");
 for(int index = 0; index < links.size(); index++){
