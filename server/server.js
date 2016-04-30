@@ -56,11 +56,11 @@ app.get('/', function(req, res) {
 // USER MANAGEMENT
 //----------------------------------------------
 // Register a user with user name and id. 
-app.get('/api/registerUser', function(req, res){
+app.get('/registerUser', function(req, res){
 
 	var task_dict = {};
 	var tasks_completed = [];
-	var user_name = req.body.user;
+	var user_name = req.query.user;
 	// Check if user already exists in use
 	if (user_name in user_task_complete_dict)
 		// User has used the app before
@@ -69,6 +69,7 @@ app.get('/api/registerUser', function(req, res){
 		// User is visiting the app first time. 
 		user_task_complete_dict[user_name] = [];
 
+	console.log("Registering "+user_name+", has completed "+user_task_complete_dict[user_name].length);
 	// Return the list of tasks not finished. 
 	for (var task_id in task_desc_dict)
 	{
@@ -76,7 +77,7 @@ app.get('/api/registerUser', function(req, res){
 			task_dict[task_id] = [task_desc_dict[task_id]['task_query'],
 								  task_desc_dict[task_id]['task_desc']] ;
 	}
-	res.json(task_dict);
+	res.json(JSON.stringify(task_dict));
 });
 
 //----------------------------------------------
