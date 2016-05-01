@@ -46,7 +46,23 @@ $(function(){
 		MakeSearchRequestAndServeResults(search_page_id);
 	});
 
-	
+	// Attach click event to every element
+	$('body').on("click", "a", function(a_event) {
+		// Get the url, query, page_id, query_id and task_id
+		var link = $(this).attr("href");
+		var curr_query = $('#search_input').val();
+		var doc_id =  
+		// Submit it to the server 
+		$.ajax({ url : "/submitPageClick", 
+			type : "POST", 
+			data : { "user" : user_name, "task" : task_id,
+					  "page" : search_page_id , "query" : curr_query, 
+					  "docurl" : link, "docid" : doc_id},
+			success : function (output) {
+					
+
+			}});
+	});
 	
 	// Add tap events
 	// Add swipe events
@@ -54,10 +70,16 @@ $(function(){
 	// Add drag event
 });
 
+
+
 function MakeSearchRequestAndServeResults(request_page_id) {
     
 	// Grab the query, user_name and task_id to server.
 	var curr_query = $('#search_input').val();
+
+	// Lower case and remove spaces.
+	curr_query = curr_query.toLowerCase().trim();
+
 	// Clear the search result page.
 	$("#search_results").html('');
 

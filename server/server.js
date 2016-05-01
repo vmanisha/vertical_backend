@@ -180,7 +180,7 @@ app.post('/submitSERPEvent', function(req, res){
 // Submit page interaction to db.
 app.post('/submitPageClick', function(req, res){
   database.addClickDoc(req.body.user, req.body.task,
-  req.body.query, req.body.doc, req.body.docurl,
+  req.body.query, req.body.doc, req.body.docurl, req.body.page,
   new Date().getTime());
   res.json(true);
 });
