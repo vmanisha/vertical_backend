@@ -58,6 +58,27 @@ module.exports = {
      	}
 	},
 
+	// In case user was working on the task and was interupted. Send the last state
+	// of the task <query_id, page_id, query_text and results>.
+	getLastUserAndTaskState: function (user_name, task_id) {
+	  
+		if( (user_name in last_query_search_results) && (task_id in last_query_search_results[user_name]))
+		{
+		  console.log("Resuming for user"+user_name+" and task "+task_id+" "+
+						last_query_search_results[user_name][task_id].length);
+		  var search_result_array = last_query_search_results[user_name][task_id];
+		  if (search_result_array.length > 0)
+		  {
+			  var array =search_result_array[search_result_array.length -1];
+			  return { 'query_id' : array['query_id'],"page_id" : array["page_id"], 
+						"query_text" : array["query_text"],
+						'search_results' : array['search_results'] };
+		  }
+		}
+		return null;
+	}, 
+
+
 	// Check if user query was fired previously in the task session.
 	checkQueryAndPageInHistory: function(user_name,task_id, user_query, page_id){
  

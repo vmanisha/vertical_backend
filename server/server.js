@@ -58,12 +58,26 @@ app.get('/begin', function(req, res) {
   var task_id = req.query.task;
   var user_name = req.query.user;
   var query_text =req.query.query;
-  res.render('index.ejs', {
+
+  // check what was the last entry of user for the task.
+  // If it is present send it.
+  var last_history_state = database.getLastUserAndTaskState( user_name, task_id);
+
+  if (last_history_state == null)
+  // else send a new search page with input query. 
+    res.render('index.ejs', {
 	  "task_id":JSON.stringify(task_id), 
 	  "user_name": JSON.stringify(user_name), "search_page_id": JSON.stringify(1),
 	  "user_query" : JSON.stringify(query_text), "query_id" : JSON.stringify(""),
-	  "results" : JSON.stringify({})
-  });
+	  "results" : JSON.stringify({})});
+  else
+	  res.render("index.ejs", { "task_id":JSON.stringify(task_id), 
+	  "user_name": JSON.stringify(user_name), 
+	  "search_page_id": JSON.stringify(last_history_state["page_id"]),
+	  "user_query" : JSON.stringify(last_history_state["query_text"]), 
+	  "query_id" : JSON.stringify(last_history_state["query_id"]),
+	  'results': JSON.stringify(last_history_state["search_results"])});
+  
 });
 
 //----------------------------------------------
