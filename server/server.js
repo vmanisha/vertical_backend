@@ -41,13 +41,27 @@ app.use("/img", express.static(__dirname + '/../views/img'));
 app.set('view engine', 'ejs');
 
 app.get('/', function(req, res) {
-  
   // res.type('text/html'); // set content-type
   var task_id = math.round(math.random(1,10));
   res.render('index.ejs', {
 	  "task_id":JSON.stringify(task_id), 
 	  "user_name": JSON.stringify("Guest"), "search_page_id": JSON.stringify(1),
 	  "user_query" : JSON.stringify(""), "query_id" : JSON.stringify(1),
+	  "results" : JSON.stringify({})
+  });
+});
+
+
+// The user is just beginning a task. No search query or
+// page id is recieved. 
+app.get('/begin', function(req, res) {
+  var task_id = req.query.task;
+  var user_name = req.query.user;
+  var query_text =req.query.query;
+  res.render('index.ejs', {
+	  "task_id":JSON.stringify(task_id), 
+	  "user_name": JSON.stringify(user_name), "search_page_id": JSON.stringify(1),
+	  "user_query" : JSON.stringify(query_text), "query_id" : JSON.stringify(""),
 	  "results" : JSON.stringify({})
   });
 });
@@ -77,7 +91,7 @@ app.get('/registerUser', function(req, res){
 			task_dict[task_id] = [task_desc_dict[task_id]['task_query'],
 								  task_desc_dict[task_id]['task_desc']] ;
 	}
-	res.json(JSON.stringify(task_dict));
+	res.json(task_dict);
 });
 
 //----------------------------------------------
@@ -112,7 +126,8 @@ app.get('/search', function(req, res){
 		release();
 	  });
 
-	  console.log('New request '+query_id+' '+query_text+' '+task_id +' '+user_name);
+	  console.log('New request for query_id: '+query_id+', query: '+query_text+
+			' task_id: '+task_id +' user_id: '+user_name+' page_id: '+page_number);
 	  // given the task and user query, prepare the search result
   	  // page and render that. Keep the global_query_id in page.
   	  var results = search_manager.searchQuery(user_name, task_id, 
@@ -158,6 +173,18 @@ app.post('/submitPageClick', function(req, res){
 
 // Submit page responses (relevance and satisfaction) interaction to db.
 app.post('/submitPageResponse', function(req, res){
+  var response_array = req.body.responses;
+  var time;
+  for(var i = 0; i < response_array.length;i++) 
+  {
+	for(var rkey in response_array[i])
+	  {
+		 time = new Date(time.getTime()+10+i);
+		 database.addPageresponse(req.body.user, req.body.task,
+		 req.body.docurl, rkey,response_array[i][rkey],time.getTime());
+	  }
+  }
+  res.json({"success":true});
   
 
 });

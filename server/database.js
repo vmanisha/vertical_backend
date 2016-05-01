@@ -63,8 +63,9 @@ module.exports = {
  
 	  // If the user_name and task_id exist return the query
 	  // and page_id.
-	  if(user_name in last_query_search_results && task_id in last_query_search_results[user_name])
+	  if( (user_name in last_query_search_results) && (task_id in last_query_search_results[user_name]))
 	  {
+		  console.log("Found user and task searches "+last_query_search_results[user_name][task_id].length);
 		  var search_result_array = last_query_search_results[user_name][task_id];
 		  for (var i = (search_result_array.length-1); i > -1 ; i--)
 		  {
@@ -105,10 +106,16 @@ module.exports = {
 		  last_query_search_results[user_name][task_id] = [{ 'query_id' : query_id,
 			  'page_id': page_id, 'query_text': query_text, 'search_results': search_results }];
 	  }
-	  else
+	  else{
 		  // First visit of the user.
-		  last_query_search_results[user_name] = {task_id : [{ 'query_id' : query_id,
-			  'page_id': page_id, 'query_text': query_text, 'search_results': search_results }]};
+		 last_query_search_results[user_name] =  {};
+		 last_query_search_results[user_name][task_id] = [{ 'query_id' : query_id,
+			  'page_id': page_id, 'query_text': query_text, 'search_results': search_results }];
+	  }
+	  
+          console.log("Adding results for "+ user_name+" "+task_id + 
+			" "+query_text + " "+ query_id + " "+page_id +" " + 
+			last_query_search_results[user_name][task_id].length);
 	  return true;
     },
 	
@@ -158,11 +165,11 @@ module.exports = {
 	},
 
 	// Update the page response database.
-	addPageResponse: function(user_id, task_id, query_id, doc_id, response_type, 
+	addPageResponse: function(user_id, task_id, doc_id, response_type, 
 							 response_value, timestamp){
 	  
-	  page_response_database.add({'user_id':user_name , 'query_id':query_id,
-		  'task_id':task_id, 'doc_id':doc_id, 'response_type':response_type,
+	  page_response_database.add({'user_id':user_name , 
+		  'task_id':task_id, 'doc_url':doc_id, 'response_type':response_type,
 		  'response_value':response_value}, timestamp);
 	  return true;
 	}
