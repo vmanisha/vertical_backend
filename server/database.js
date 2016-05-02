@@ -83,7 +83,7 @@ module.exports = {
 		
 		if( (user_name in last_query_doc_click) && (task_id in last_query_doc_click[user_name]))
 		{
-		  console.log("User clicked some doc before. Username "+user_name+" and task "+task_id+" "+
+		  console.log("User clicked some doc before. Username: "+user_name+" and task: "+task_id+" #clicks: "+
 						last_query_doc_click[user_name][task_id].length);
 		  var doc_click_array = last_query_doc_click[user_name][task_id];
 		  return doc_click_array[doc_click_array.length -1];
@@ -202,8 +202,6 @@ module.exports = {
 	  task_response_database.add({'user_id':user_name , 'task_id':task_id,
 		  'response_type':response_type, 'response_value':response_value}, timestamp);
 
-	  // finished the task. Update the user task complete dictionary.
-	  user_task_complete_dict[user_name].push(task_id);
 	  
 	  // Write to the databases and clear the cache.
 	  task_response_database.flush();
@@ -220,9 +218,10 @@ module.exports = {
 	},
 
 	// Update the page response database.
-	addPageResponse: function(user_id, task_id, query_id, page_id, doc_id, response_type, 
+	addPageResponse: function(user_name, task_id, query_id, page_id, doc_id, response_type, 
 							 response_value, timestamp){
-	  
+	 
+
 	  page_response_database.add({'user_id':user_name , 
 		  'task_id':task_id, 'query_id' : query_id, 'page_id' : page_id, 
 		  'doc_url':doc_id, 'response_type':response_type,

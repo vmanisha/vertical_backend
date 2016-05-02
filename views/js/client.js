@@ -49,20 +49,26 @@ $(function(){
 	// Attach click event to every element
 	$('body').on("click", "a", function(a_event) {
 		// Get the url, query, page_id, query_id and task_id
-		var link = $(this).attr("href");
-		var doc_id =$(this).attr("id");  
+		var link = escape($(this).attr("href"));
+		var doc_id =$(this).attr("id");
+		var send_data = JSON.stringify({ "user" : user_name, "task" : task_id,
+					  "page" : search_page_id , "queryid" : $("#query_id").val(), 
+					  "docurl" : link, "docid" : doc_id});
 		// Submit it to the server if not a prev_page or next_page click 
-		if (!("page" in doc_id))
-			$.ajax({ url : "/submitPageClick", 
-				type : "POST", 
-				data : { "user" : user_name, "task" : task_id,
-					  "page" : search_page_id , "queryid" : queryid, 
-					  "docurl" : link, "docid" : doc_id},
+		if (doc_id.indexOf("aid") > -1)
+		{ 
+			$.ajax({ url : "submitPageClick", 
+				contentType: "application/json",
+				type : "post", 
+				data : send_data,
 				success : function (output) {
-				alert("Submitted click "+link+" "+doc_id +" "+curr_query);	
-			}});
-		
-		
+				},
+				error: function(response){
+					$('#search_form_error').html(response.responseText);
+				}
+
+			});
+		}
 	});
 	// Add tap events
 	

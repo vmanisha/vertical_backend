@@ -179,12 +179,11 @@ app.post('/submitSERPEvent', function(req, res){
 
 // Submit page interaction to db.
 app.post('/submitPageClick', function(req, res){
-
-  console.log("Click : "+req.body.user+" "+req.body.task+" "
-	+req.body.docurl+" "+req.body.doc+" "+req.body.queryid);
+  console.log("Click : user: "+req.body.user+" task_id: "+req.body.task+" url: "
+	+req.body.docurl+" doc_id: "+req.body.docid+" query_id: "+req.body.queryid);
 
   database.addClickDoc(req.body.user, req.body.task,
-  req.body.queryid, req.body.page, req.body.doc, 
+  req.body.queryid, req.body.page, req.body.docid, 
   req.body.docurl, new Date().getTime());
   res.json(true);
 });
@@ -207,19 +206,23 @@ app.post('/submitPageResponse', function(req, res){
 	  query_id = last_click_dict["query_id"];
 	  page_id = last_click_dict["page_id"];
 	  doc_id = last_click_dict["doc_id"];
+	  console.log("Page Response : user: "+req.body.user+" task_id: "+
+		  req.body.task+ "query_id: "+query_id +"+ page_id: "+page_id+
+		  " doc_id: "+doc_id);
   }
-  
-  for(var i = 0; i < response_array.length;i++) 
+  if (response_array !== undefined)
   {
-	for(var rkey in response_array[i])
+	  for(var i = 0; i < response_array.length;i++) 
 	  {
-		 time = new Date(time.getTime()+10+i);
-		 database.addPageResponse(req.body.user, req.body.task, query_id, 
-		 page_id, doc_id, rkey,response_array[i][rkey],time.getTime());
+		for(var rkey in response_array[i])
+		{
+		   time = new Date(time.getTime()+10+i);
+		   database.addPageResponse(req.body.user, req.body.task, query_id, 
+		   page_id, doc_id, rkey,response_array[i][rkey],time.getTime());
+		}
 	  }
   }
   res.json({"success":true});
-  
 
 });
 
@@ -227,6 +230,8 @@ app.post('/submitPageResponse', function(req, res){
 app.post('/submitTaskResponse', function(req, res){
   var response_array = req.body.responses;
   var time = new Date();
+  console.log("Page Response : user: "+req.body.user+" task_id: "+
+		  req.body.task+ "response_array: "+response_array);
   for(var i = 0; i < response_array.length;i++) 
   {
 	for(var rkey in response_array[i])
@@ -235,8 +240,10 @@ app.post('/submitTaskResponse', function(req, res){
 		  database.addTaskResponse(req.body.user, req.body.task,
 		  rkey,response_array[i][rkey],time.getTime());
 	  }
-  }
-  res.json(true);
+    }
+  // finished the task. Update the user task complete dictionary.
+  user_task_complete_dict[req.body.user].push(req.body.task);
+  res.json({"success":true});
 
 });
 
