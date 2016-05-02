@@ -189,7 +189,7 @@ app.post('/submitPageClick', function(req, res){
 app.post('/submitPageResponse', function(req, res){
   var response_array = req.body.responses;
 
-  var time;
+  var time = new Date();
   var query_id = '';
   var page_id = '';
   var doc_id = '';
@@ -222,7 +222,7 @@ app.post('/submitPageResponse', function(req, res){
 // Submit task responses (relevance and satisfaction) interaction to db.
 app.post('/submitTaskResponse', function(req, res){
   var response_array = req.body.responses;
-  var time;
+  var time = new Date();
   for(var i = 0; i < response_array.length;i++) 
   {
 	for(var rkey in response_array[i])

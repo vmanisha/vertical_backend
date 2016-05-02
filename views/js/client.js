@@ -61,8 +61,11 @@ $(function(){
 				success : function (output) {
 				alert("Submitted click "+link+" "+doc_id +" "+curr_query);	
 			}});
+		
+		
 	});
 	// Add tap events
+	
 	// Add swipe events
 	// Add pinch event
 	// Add drag event
