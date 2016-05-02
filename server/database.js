@@ -165,18 +165,18 @@ module.exports = {
 	  {
 		  if (task_id in last_query_doc_click[user_name])
 			last_query_doc_click[user_name][task_id].push({'query_id' : query_id,
-			  'page_id': page_id, 'doc_id' doc_id, 'doc_url': doc_url });
+			  'page_id': page_id, 'doc_id': doc_id, 'doc_url': doc_url });
 		  // A user may choose not to submit task feedback :(
 		  // So, there may be multiple tasks. 
 		  else
 		  last_query_doc_click[user_name][task_id] = [{ 'query_id' : query_id,
-			  'page_id': page_id, 'doc_id' doc_id, 'doc_url': doc_url }];
+			  'page_id': page_id, 'doc_id': doc_id, 'doc_url': doc_url }];
 	  }
 	  else{
 		  // First click of the user.
 		 last_query_doc_click[user_name] =  {};
 		 last_query_doc_click[user_name][task_id] = [{ 'query_id' : query_id,
-			  'page_id': page_id, 'doc_id' doc_id, 'doc_url': doc_url  }];
+			  'page_id': page_id, 'doc_id': doc_id, 'doc_url': doc_url  }];
 	  }
 
 

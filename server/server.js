@@ -179,6 +179,10 @@ app.post('/submitSERPEvent', function(req, res){
 
 // Submit page interaction to db.
 app.post('/submitPageClick', function(req, res){
+
+  console.log("Click : "+req.body.user+" "+req.body.task+" "
+	+req.body.docurl+" "+req.body.doc+" "+req.body.queryid);
+
   database.addClickDoc(req.body.user, req.body.task,
   req.body.queryid, req.body.page, req.body.doc, 
   req.body.docurl, new Date().getTime());
