@@ -1,6 +1,6 @@
 //TODO (mverma) : How to update the task list once 
 //				user submits feedback for current task.
-
+// TODO (mverma) : Add lock to global document click count. 
 var fs = require('fs');
 var MicroDB = require('nodejs-microdb');
 
@@ -9,6 +9,7 @@ var MicroDB = require('nodejs-microdb');
 // global counts of queries and clicked documents.
 var global_clicked_doc_id = 0;
 var last_query_search_results = {};
+var last_query_doc_click = {};
 
 // User query database
 var query_results_database = new MicroDB({'file':'query_result.db', 'defaultClean':true});
@@ -64,7 +65,7 @@ module.exports = {
 	  
 		if( (user_name in last_query_search_results) && (task_id in last_query_search_results[user_name]))
 		{
-		  console.log("Resuming for user"+user_name+" and task "+task_id+" "+
+		  console.log("User searched for this task before. Username "+user_name+" and task "+task_id+" "+
 						last_query_search_results[user_name][task_id].length);
 		  var search_result_array = last_query_search_results[user_name][task_id];
 		  if (search_result_array.length > 0)
@@ -78,6 +79,17 @@ module.exports = {
 		return null;
 	}, 
 
+	getLastUserTaskQueryClick: function (user_name, task_id) {
+		
+		if( (user_name in last_query_doc_click) && (task_id in last_query_doc_click[user_name]))
+		{
+		  console.log("User clicked some doc before. Username "+user_name+" and task "+task_id+" "+
+						last_query_doc_click[user_name][task_id].length);
+		  var doc_click_array = last_query_doc_click[user_name][task_id];
+		  return doc_click_array[doc_click_array.length -1];
+		}
+		return null;
+	}, 
 
 	// Check if user query was fired previously in the task session.
 	checkQueryAndPageInHistory: function(user_name,task_id, user_query, page_id){
@@ -142,10 +154,31 @@ module.exports = {
 	
 	
 	// Add clicked document
-	addClickDoc: function(user_name,task_id, query_id, doc_id, doc_url, timestamp){
+	addClickDoc: function(user_name,task_id, query_id, page_id, doc_id, doc_url, timestamp){
 	  // Update the click database.
-	  click_database.add({'user_id':user_name , 'query_id':query_id,
+	  click_database.add({'user_id':user_name , 'query_id':query_id, "page_id" : page_id, 
 		  'task_id':task_id, 'doc_id':doc_id, 'doc_url':doc_url}, timestamp);
+
+	  // Store the last click. 
+	  // Update the last query click stats for this user and task.
+	  if(user_name in last_query_doc_click)
+	  {
+		  if (task_id in last_query_doc_click[user_name])
+			last_query_doc_click[user_name][task_id].push({'query_id' : query_id,
+			  'page_id': page_id, 'doc_id' doc_id, 'doc_url': doc_url });
+		  // A user may choose not to submit task feedback :(
+		  // So, there may be multiple tasks. 
+		  else
+		  last_query_doc_click[user_name][task_id] = [{ 'query_id' : query_id,
+			  'page_id': page_id, 'doc_id' doc_id, 'doc_url': doc_url }];
+	  }
+	  else{
+		  // First click of the user.
+		 last_query_doc_click[user_name] =  {};
+		 last_query_doc_click[user_name][task_id] = [{ 'query_id' : query_id,
+			  'page_id': page_id, 'doc_id' doc_id, 'doc_url': doc_url  }];
+	  }
+
 
 	  global_clicked_doc_id++;
 	  return true;
@@ -181,16 +214,18 @@ module.exports = {
 
 	  // Given that task is finished, remove the session from session array.
 	  delete last_query_search_results[user_name][task_id];
+	  delete last_query_doc_click[user_name][task_id];
 
 	  return true;
 	},
 
 	// Update the page response database.
-	addPageResponse: function(user_id, task_id, doc_id, response_type, 
+	addPageResponse: function(user_id, task_id, query_id, page_id, doc_id, response_type, 
 							 response_value, timestamp){
 	  
 	  page_response_database.add({'user_id':user_name , 
-		  'task_id':task_id, 'doc_url':doc_id, 'response_type':response_type,
+		  'task_id':task_id, 'query_id' : query_id, 'page_id' : page_id, 
+		  'doc_url':doc_id, 'response_type':response_type,
 		  'response_value':response_value}, timestamp);
 	  return true;
 	}

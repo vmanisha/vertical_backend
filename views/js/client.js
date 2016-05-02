@@ -50,20 +50,18 @@ $(function(){
 	$('body').on("click", "a", function(a_event) {
 		// Get the url, query, page_id, query_id and task_id
 		var link = $(this).attr("href");
-		var curr_query = $('#search_input').val();
-		var doc_id =  
-		// Submit it to the server 
-		$.ajax({ url : "/submitPageClick", 
-			type : "POST", 
-			data : { "user" : user_name, "task" : task_id,
-					  "page" : search_page_id , "query" : curr_query, 
+		var doc_id =$(this).attr("id");  
+		// Submit it to the server if not a prev_page or next_page click 
+		if (!("page" in doc_id))
+			$.ajax({ url : "/submitPageClick", 
+				type : "POST", 
+				data : { "user" : user_name, "task" : task_id,
+					  "page" : search_page_id , "queryid" : queryid, 
 					  "docurl" : link, "docid" : doc_id},
-			success : function (output) {
-					
-
+				success : function (output) {
+				alert("Submitted click "+link+" "+doc_id +" "+curr_query);	
 			}});
 	});
-	
 	// Add tap events
 	// Add swipe events
 	// Add pinch event
@@ -148,7 +146,8 @@ function PrepareCompositeResult(type, rid, result_json)
 
 	// (Title, time, external_url, display_url, thumbnail_image_source)
 	var $card_head = $("<h3>", { "class" : "card_heading"}).append(
-			$("<a>",{"href": result_json["external_url"], "html" : result_json["title"]}));
+			$("<a>",{"href": result_json["external_url"], "id" : "aid_"+rid, 
+					"html" : result_json["title"]}));
 	var $domain = $("<span>",{"class" : "domain", "text":result_json["display_url"]});
 	var $card_top = $("<div>" ,{ "class": "card_top"}).append($card_head).append($domain);
 
@@ -162,6 +161,7 @@ function PrepareCompositeResult(type, rid, result_json)
 
 	var $video_thumb = $("<div>", { "class": "video_thumbnail", 
 									"html" : $("<a>", {"href" :result_json["external_url"],
+											  "id" : "aid_"+rid, 
 											 "html" : $("<span>", {
 												 "html": $("<img>", { 
 													 "alt" : result_json["title"],
@@ -210,7 +210,7 @@ function PrepareImageResult(rid, image_json)
 		var result_json = image_json[i];
 		var $thumbnail =  $("<img>", {"src" : result_json["thumbnail"]});
 		var $gallery_cell = $("<div>",{"class" : "gallery_cell"}).append(
-				$("<a>", { "href" : result_json["external_url"]}).append($thumbnail));
+				$("<a>", { "id" : "aid_"+rid, "href" : result_json["external_url"]}).append($thumbnail));
 
 		$gallery.flickity( 'insert', $gallery_cell, i);
 	}
@@ -232,7 +232,8 @@ function PrepareOrganicResult(rid, result_json)
 	// Web : (['o', {"title": "Title", "desc":"description", "display_url": "DisplayUrl", 
 	//		"external_url":"Url"}]);
 	var $card_head = $("<h3>", { "class" : "card_heading"}).append(
-			$("<a>",{"href": result_json["external_url"], "html" : result_json["title"]}));
+			$("<a>",{"id" : "aid_"+rid,"href": result_json["external_url"], 
+				"html" : result_json["title"]}));
 	var $domain = $("<span>",{"class" : "domain", "text":result_json["display_url"]});
 	var $card_top = $("<div>" ,{ "class": "card_top"}).append($card_head).append($domain);
 

@@ -180,22 +180,38 @@ app.post('/submitSERPEvent', function(req, res){
 // Submit page interaction to db.
 app.post('/submitPageClick', function(req, res){
   database.addClickDoc(req.body.user, req.body.task,
-  req.body.query, req.body.doc, req.body.docurl, req.body.page,
-  new Date().getTime());
+  req.body.queryid, req.body.page, req.body.doc, 
+  req.body.docurl, new Date().getTime());
   res.json(true);
 });
 
 // Submit page responses (relevance and satisfaction) interaction to db.
 app.post('/submitPageResponse', function(req, res){
   var response_array = req.body.responses;
+
   var time;
+  var query_id = '';
+  var page_id = '';
+  var doc_id = '';
+
+  // Ideally the click is registered in a global database. 
+  // So fetch last click information. 
+  last_click_dict = database.getLastUserTaskQueryClick(req.body.user, req.body.task);
+  if (last_click_dict == null)
+	console.log("ERROR : Cannot find a click for this page! Storing it without query");
+  else {
+	  query_id = last_click_dict["query_id"];
+	  page_id = last_click_dict["page_id"];
+	  doc_id = last_click_dict["doc_id"];
+  }
+  
   for(var i = 0; i < response_array.length;i++) 
   {
 	for(var rkey in response_array[i])
 	  {
 		 time = new Date(time.getTime()+10+i);
-		 database.addPageresponse(req.body.user, req.body.task,
-		 req.body.docurl, rkey,response_array[i][rkey],time.getTime());
+		 database.addPageResponse(req.body.user, req.body.task, query_id, 
+		 page_id, doc_id, rkey,response_array[i][rkey],time.getTime());
 	  }
   }
   res.json({"success":true});
