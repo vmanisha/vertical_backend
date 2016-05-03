@@ -296,8 +296,8 @@ app.get('/viewPage', function (req, res) {
   	    request(options, function(error, response, body) {
   	        
   	    	// check if response is success
-  	    	if (response.statusCode !== 200) 
-  	    	    return cb('Response status was ' + response.statusCode);
+  	    	if ( response !== undefined && response.statusCode !== 200) 
+				  res.send('Response status was ' + response.statusCode);
   	    	var baseUrl= req.query.docurl;
   	    	var to_append = "viewPage?user="+req.query.user+"&task="+req.query.task+
   	    					"&queryid="+req.query.queryid+"&page="+req.query.page+
@@ -344,7 +344,7 @@ app.get('/viewPage', function (req, res) {
 					  console.log('Written html to ' + filename);
 			});
 			global_page_location_dict[req.query.docurl] = filename;
-			database.addPageLocation(filename, docurl, req.query.docid, (new Date()).getTime());
+			database.addPageLocation(filename, req.query.docurl, req.query.docid, (new Date()).getTime());
 			// Add the url mapping to database
   	    	res.send($.html());
   	    });
