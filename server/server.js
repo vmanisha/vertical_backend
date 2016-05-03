@@ -207,22 +207,10 @@ app.post('/submitPageResponse', function(req, res){
   var response_array = req.body.responses;
 
   var time = new Date();
-  var query_id = '';
-  var page_id = '';
-  var doc_id = '';
-
   // Ideally the click is registered in a global database. 
   // So fetch last click information. 
-  last_click_dict = database.getLastUserTaskQueryClick(req.body.user, req.body.task);
-  if (last_click_dict == null)
-	console.log("ERROR : Cannot find a click for this page! Storing it without query");
-  else {
-	  query_id = last_click_dict["query_id"];
-	  page_id = last_click_dict["page_id"];
-	  doc_id = last_click_dict["doc_id"];
-	  console.log("Page Response : user: "+req.body.user+" task_id: "+
-		  req.body.task+ "query_id: "+query_id +"+ page_id: "+page_id+
-		  " doc_id: "+doc_id);
+  console.log("Page Response : user: "+req.body.user+" task_id: "+
+		  req.body.task+ " doc_url: "+req.body.docurl);
   }
   if (response_array !== undefined)
   {
@@ -231,8 +219,8 @@ app.post('/submitPageResponse', function(req, res){
 		for(var rkey in response_array[i])
 		{
 		   time = new Date(time.getTime()+10+i);
-		   database.addPageResponse(req.body.user, req.body.task, query_id, 
-		   page_id, doc_id, rkey,response_array[i][rkey],time.getTime());
+		   database.addPageResponse(req.body.user, req.body.task, 
+		   req.body.docurl, rkey,response_array[i][rkey],time.getTime());
 		}
 	  }
   }

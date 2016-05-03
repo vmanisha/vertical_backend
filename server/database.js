@@ -9,7 +9,6 @@ var MicroDB = require('nodejs-microdb');
 // global counts of queries and clicked documents.
 var global_clicked_doc_id = 0;
 var last_query_search_results = {};
-var last_query_doc_click = {};
 
 // User query database
 var query_results_database = new MicroDB({'file':'query_result.db', 'defaultClean':true});
@@ -77,18 +76,6 @@ module.exports = {
 						"query_text" : array["query_text"],
 						'search_results' : array['search_results'] };
 		  }
-		}
-		return null;
-	}, 
-
-	getLastUserTaskQueryClick: function (user_name, task_id) {
-		
-		if( (user_name in last_query_doc_click) && (task_id in last_query_doc_click[user_name]))
-		{
-		  console.log("User clicked some doc before. Username: "+user_name+" and task: "+task_id+" #clicks: "+
-						last_query_doc_click[user_name][task_id].length);
-		  var doc_click_array = last_query_doc_click[user_name][task_id];
-		  return doc_click_array[doc_click_array.length -1];
 		}
 		return null;
 	}, 
@@ -166,27 +153,6 @@ module.exports = {
 	  click_database.add({'user_id':user_name , 'query_id':query_id, "page_id" : page_id, 
 		  'task_id':task_id, 'doc_id':doc_id, 'doc_url':doc_url}, timestamp);
 
-	  // Store the last click. 
-	  // Update the last query click stats for this user and task.
-	  if(user_name in last_query_doc_click)
-	  {
-		  if (task_id in last_query_doc_click[user_name])
-			last_query_doc_click[user_name][task_id].push({'query_id' : query_id,
-			  'page_id': page_id, 'doc_id': doc_id, 'doc_url': doc_url });
-		  // A user may choose not to submit task feedback :(
-		  // So, there may be multiple tasks. 
-		  else
-		  last_query_doc_click[user_name][task_id] = [{ 'query_id' : query_id,
-			  'page_id': page_id, 'doc_id': doc_id, 'doc_url': doc_url }];
-	  }
-	  else{
-		  // First click of the user.
-		 last_query_doc_click[user_name] =  {};
-		 last_query_doc_click[user_name][task_id] = [{ 'query_id' : query_id,
-			  'page_id': page_id, 'doc_id': doc_id, 'doc_url': doc_url  }];
-	  }
-
-
 	  global_clicked_doc_id++;
 	  return true;
 	},
@@ -226,13 +192,11 @@ module.exports = {
 	},
 
 	// Update the page response database.
-	addPageResponse: function(user_name, task_id, query_id, page_id, doc_id, response_type, 
+	addPageResponse: function(user_name, task_id, doc_url, response_type, 
 							 response_value, timestamp){
-	 
-
 	  page_response_database.add({'user_id':user_name , 
-		  'task_id':task_id, 'query_id' : query_id, 'page_id' : page_id, 
-		  'doc_url':doc_id, 'response_type':response_type,
+		  'task_id':task_id,
+		  'doc_url':doc_url, 'response_type':response_type,
 		  'response_value':response_value}, timestamp);
 	  return true;
 	}
