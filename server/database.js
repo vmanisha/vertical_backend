@@ -26,6 +26,8 @@ var task_response_database  = new MicroDB({'file':'task_response.db', 'defaultCl
 // Page Response DB
 var page_response_database  = new MicroDB({'file':'page_response.db', 'defaultClean':true});
 
+// document to physical location mapping DB
+var page_location_database  = new MicroDB({'file':'page_location.db', 'defaultClean':true});
 
 module.exports = {
 	// Load the task dictionary with vertical preferences. 
@@ -152,7 +154,12 @@ module.exports = {
 	  return true;
     },
 	
-	
+
+	addPageLocation: function(doc_path, doc_url, doc_id, timestamp) {
+	  // Update the page location database.
+	  page_location_database.add({'doc_id':doc_id, 'doc_url':doc_url , 'doc_path': doc_path}, timestamp);
+	},
+
 	// Add clicked document
 	addClickDoc: function(user_name,task_id, query_id, page_id, doc_id, doc_url, timestamp){
 	  // Update the click database.
@@ -206,6 +213,7 @@ module.exports = {
 	  // Write to the databases and clear the cache.
 	  task_response_database.flush();
 	  page_response_database.flush();
+	  page_location_database.flush();
 	  click_database.flush();
 	  query_results_database.flush();
 	  event_database.flush();

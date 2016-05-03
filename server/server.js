@@ -8,12 +8,21 @@ var database = require('./database');
 var search_manager = require('./search_manager');
 var ReadWriteLock = require('rwlock');
 
+var request = require('request');
+var fs = require('fs');
+var url = require('url');
+var cheerio = require('cheerio');
+
 // For updating the result type shown to a user.
 var lock = new ReadWriteLock();
 
 // Global query_id 
 var global_query_id = 0;
 
+// Global page index
+// Contains url to page location mapping
+var global_page_location_dict = {}
+var saved_pages_count = 0;
 // User task completion dictionary
 // user_id : [task_id,..,task_id]
 var user_task_complete_dict = {};
@@ -133,8 +142,7 @@ app.get('/search', function(req, res){
 	  lock.readLock(function (release) {
 		query_id = global_query_id;
 		lock.writeLock(function (release) {
-		  // Shift the queue.
-		  global_query_id;
+		  global_query_id++;
 		  release();
 		});
 		release();
@@ -167,11 +175,13 @@ app.get('/search', function(req, res){
 	  'results':JSON.stringify(check_result['search_results'])});
 });
 
+
 // Submit serp interaction to db.
 app.post('/submitSERPEvent', function(req, res){
   
   database.addSerpEvent(req.body.user, req.body.task,
-  req.body.query, req.body.doc, req.body.eventt,req.body.value,
+  req.body.queryid, req.body.pageid, req.body.docid, 
+  req.body.eventt,req.body.value,
   req.body.dist, new Date().getTime());
   res.json(true);
 
@@ -182,10 +192,14 @@ app.post('/submitPageClick', function(req, res){
   console.log("Click : user: "+req.body.user+" task_id: "+req.body.task+" url: "
 	+req.body.docurl+" doc_id: "+req.body.docid+" query_id: "+req.body.queryid);
 
-  database.addClickDoc(req.body.user, req.body.task,
-  req.body.queryid, req.body.page, req.body.docid, 
-  req.body.docurl, new Date().getTime());
-  res.json(true);
+  if (req.query.user && req.query.docurl && req.query.task && 
+	  req.query.queryid && req.query.page && req.query.docid) {
+
+		  database.addClickDoc(req.body.user, req.body.task,
+		  req.body.queryid, req.body.page, req.body.docid, 
+		  req.body.docurl, new Date().getTime());
+  }
+  	  res.json(true);
 });
 
 // Submit page responses (relevance and satisfaction) interaction to db.
@@ -230,7 +244,7 @@ app.post('/submitPageResponse', function(req, res){
 app.post('/submitTaskResponse', function(req, res){
   var response_array = req.body.responses;
   var time = new Date();
-  console.log("Page Response : user: "+req.body.user+" task_id: "+
+  console.log("Task Response : user: "+req.body.user+" task_id: "+
 		  req.body.task+ "response_array: "+response_array);
   for(var i = 0; i < response_array.length;i++) 
   {
@@ -244,10 +258,118 @@ app.post('/submitTaskResponse', function(req, res){
   // finished the task. Update the user task complete dictionary.
   user_task_complete_dict[req.body.user].push(req.body.task);
   res.json({"success":true});
-
 });
 
 //-------------------------------------------------------
+
+
+//-------------------------------------------------------
+// PAGE MANAGEMENT
+//-------------------------------------------------------
+
+app.get('/viewPage', function (req, res) {
+
+  // user clicks on page 
+  console.log("View page click : user: "+req.query.user+" task_id: "+req.query.task+" url: "
+	+req.query.docurl+" doc_id: "+req.query.docid+" query_id: "+req.query.queryid);
+
+  if (req.query.user && req.query.docurl && req.query.task && 
+	  req.query.queryid && req.query.page && req.query.docid) {
+		  
+	  database.addClickDoc(req.query.user, req.query.task,
+  	  req.query.queryid, req.query.page, req.query.docid, 
+  	  req.query.docurl, new Date().getTime());
+
+  	  // Check if url is on the server.
+  	  if (req.query.docurl in global_page_location_dict) 
+    	    res.sendFile(__dirname+'/'+global_page_location_dict[req.query.docurl])
+  	  else {
+  	    // if not load it.
+  	    	
+  	    options = {
+  	      url : req.query.docurl,
+  	      headers: {
+  	    	"User-Agent" : "Mozilla/5.0 (iPhone; U; CPU like Mac OS X; en) AppleWebKit/420.1"+
+  	    		"(KHTML, like Gecko) Version/3.0 Mobile/3B48b Safari/419.3"
+  	      }
+  	    }
+  	    request(options, function(error, response, body) {
+  	        
+  	    	// check if response is success
+  	    	if (response.statusCode !== 200) 
+  	    	    return cb('Response status was ' + response.statusCode);
+  	    	var baseUrl= req.query.docurl;
+  	    	var to_append = "viewPage?user="+req.query.user+"&task="+req.query.task+
+  	    					"&queryid="+req.query.queryid+"&page="+req.query.page+
+  	    					"&docid="+req.query.docid+"1&docurl=";
+
+  	  		$ = cheerio.load(body);
+  	    	// Replace all the relative links with absolute page.
+  	    	$('[src]').each(function(i, ele) {
+  	    		src = $(this).attr('src');
+  	    		$(this).attr('src', FullUrl(src, baseUrl, ""));
+  	    	});
+  	    	$('[srcset]').each(function(i, ele) {
+  	    		src = $(this).attr('src');
+  	    		$(this).attr('srcset', FullUrl(src, baseUrl,""));
+  	    	});
+  	    	
+  	    	// Replace all the outlinks by modify url function 
+  	  		$('a[href]').each(function(i, ele) {
+  	    		href = $(this).attr('href');
+				// Check if there is no image.
+				if(!CheckURLForImage(href) && !CheckURLForDomains(href))
+				  $(this).attr('href', FullUrl(href, baseUrl, to_append));
+				else
+				  $(this).attr('href', FullUrl(href, baseUrl, ""));
+
+  	  		});
+		  
+  	  		$('link[href]').each(function(i, ele) {
+  	    		href = $(this).attr('href');
+  	    		$(this).attr('href', FullUrl(href, baseUrl,""));
+  	  		});
+
+			$('[background]').each(function(i,ele) {
+  	    		href = $(this).attr('background');
+  	    		$(this).attr('background', FullUrl(href, baseUrl,""));
+			});
+			
+  	    	// Add the javascript with event detection.
+
+  	    	// Save the html to a file.
+			var filename = "pages/"+(saved_pages_count) + ".html";
+			saved_pages_count++;
+			fs.writeFile(filename, $.html(), function(err) {
+					  console.log('Written html to ' + filename);
+			});
+			global_page_location_dict[req.query.docurl] = filename;
+			database.addPageLocation(filename, docurl, req.query.docid, (new Date()).getTime());
+			// Add the url mapping to database
+  	    	res.send($.html());
+  	    });
+  	  }
+  } 
+
+});
+
+function CheckURLForDomains(url) {
+   return(url.match(/(instagram\.com|viewPage|bleacherreport\.com|facebook\.com|youtube\.com|timesofindia)/) != null);
+}
+
+function CheckURLForImage(url) {
+   return(url.match(/\.(jpeg|jpg|gif|png)/) != null);
+}
+
+function Relative(uri) {
+  return !url.parse(uri || '').host;
+}
+
+function FullUrl(uri, baseUrl, to_append) {
+  full_url =  (uri && Relative(uri)) ? url.resolve(baseUrl, uri) : uri;
+
+  return to_append+full_url; 
+}
 
 //-------------------------------------------------------
 // START THE SERVER

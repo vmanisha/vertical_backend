@@ -21,7 +21,6 @@ var account_key = 'hTAHc8JGEP57nkCFiKPUlmevu5aaQIZfYniGYV3hH/0';
 var bing_uri = 'https://api.datamarket.azure.com';
 var wiki_uri = 'http://en.wikipedia.org';
 
-
 function GetSearchResults(query_text, page_number, type, result_count, removeWiki)
 {
 	param = null;

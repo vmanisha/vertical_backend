@@ -16,9 +16,6 @@
 
 $(function(){
 
-   // Hide Page Navigation
-
-   
    // Add validation for search request. 
    $('#search_form').validate({
         rules: {   search_input: { required:true }  },
@@ -29,6 +26,8 @@ $(function(){
         },
         submitHandler: function postForm(validator, form, submit_event) {
 				  search_page_id = 1;
+				  if ($('#page_nav').length > 0)
+					  $('#page_nav').hide();
 				  MakeSearchRequestAndServeResults(search_page_id);
      		  }
 	});	
@@ -36,6 +35,7 @@ $(function(){
 	$('#next_page').on('click', function () {
 		// Increment the page_id
 		search_page_id++;
+		$('#page_nav').hide();
 		MakeSearchRequestAndServeResults(search_page_id);
 
 	});
@@ -43,6 +43,7 @@ $(function(){
 	$('#prev_page').on('click',function () {
 		// Decrement the page_id
 		search_page_id--;
+		$('#page_nav').hide();
 		MakeSearchRequestAndServeResults(search_page_id);
 	});
 
@@ -51,36 +52,54 @@ $(function(){
 		// Get the url, query, page_id, query_id and task_id
 		var link = escape($(this).attr("href"));
 		var doc_id =$(this).attr("id");
-		var send_data = JSON.stringify({ "user" : user_name, "task" : task_id,
-					  "page" : search_page_id , "queryid" : $("#query_id").val(), 
-					  "docurl" : link, "docid" : doc_id});
-		// Submit it to the server if not a prev_page or next_page click 
-		if (doc_id.indexOf("aid") > -1)
-		{ 
-			$.ajax({ url : "submitPageClick", 
-				contentType: "application/json",
-				type : "post", 
-				data : send_data,
-				success : function (output) {
-				},
-				error: function(response){
-					$('#search_form_error').html(response.responseText);
-				}
 
-			});
+		if (!CheckURLForImage(link) && !CheckURLForDomains(link) && (doc_id.indexOf("page")==-1))
+			$(this).attr("href", ModifyUrl(doc_id, link));
+		else {
+			// register a click
+			var send_data = JSON.stringify({ "user" : user_name, "task" : task_id,
+						  "page" : search_page_id , "queryid" : $("#query_id").val(), 
+						  "docurl" : link, "docid" : doc_id});
+			// Submit it to the server if not a prev_page or next_page click 
+			if (doc_id.indexOf("aid") > -1)
+			{ 
+				$.ajax({ url : "submitPageClick", 
+					contentType: "application/json",
+					type : "post", 
+					data : send_data,
+					success : function (output) {
+					},
+					error: function(response){
+						$('#search_form_error').html(response.responseText);
+					}
+
+				});
+			}
 		}
+
 	});
-	// Add tap events
-	
-	// Add swipe events
-	// Add pinch event
-	// Add drag event
 });
 
 
+// Format the url into following form: viewPage?page=page_number&docid=doc_id&url=url
+function ModifyUrl(doc_id, url) {
+	var modified_url = 'viewPage?page='+search_page_id+"&docid="+doc_id+
+		"&queryid="+$("#query_id").val()+"&user="+user_name+"&task="+
+		task_id+"&docurl="+url;
+
+return modified_url;
+}
+
+function CheckURLForDomains(url) {
+   return(url.match(/(instagram\.com|viewPage|bleacherreport\.com|facebook\.com|youtube\.com|timesofindia)/) != null);
+}
+
+function CheckURLForImage(url) {
+   return(url.match(/\.(jpeg|jpg|gif|png)/) != null);
+}
 
 function MakeSearchRequestAndServeResults(request_page_id) {
-    
+   
 	// Grab the query, user_name and task_id to server.
 	var curr_query = $('#search_input').val();
 
