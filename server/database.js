@@ -158,12 +158,10 @@ module.exports = {
 	},
 
 	// Add serp event
-	addSerpEvent: function(user_name, task_id, query_id, doc_id, event_type, 
-						  event_value, event_dist, timestamp){ 
+	addPageEvent: function(doc_url, event_type,  event_value, timestamp){ 
 
-	  click_database.add({'user_id':user_name , 'query_id':query_id,
-		  'task_id':task_id, 'doc_id':doc_id, 'event_type':event_type,
-		  'event_value':event_value,'event_dist':event_dist}, timestamp);
+	  event_database.add({'doc_url':doc_url, 'event_type':event_type,
+		  'event_value':event_value}, timestamp);
 
 	  return true;
 	},
