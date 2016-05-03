@@ -211,7 +211,6 @@ app.post('/submitPageResponse', function(req, res){
   // So fetch last click information. 
   console.log("Page Response : user: "+req.body.user+" task_id: "+
 		  req.body.task+ " doc_url: "+req.body.docurl);
-  }
   if (response_array !== undefined)
   {
 	  for(var i = 0; i < response_array.length;i++) 
