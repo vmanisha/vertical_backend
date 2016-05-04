@@ -173,40 +173,40 @@ function PrepareCompositeResult(type, rid, result_json)
 //	</div> 
 
 	// (Title, time, external_url, display_url, thumbnail_image_source)
-	var $card_head = $("<h3>", { "class" : "card_heading"}).append(
+	var $card_head = $("<h3>", {"id" : "card_head_"+ rid,  "class" : "card_heading"}).append(
 			$("<a>",{"href": result_json["external_url"], "id" : "aid_"+rid, 
 					"html" : result_json["title"]}));
-	var $domain = $("<span>",{"class" : "domain", "text":result_json["display_url"]});
-	var $card_top = $("<div>" ,{ "class": "card_top"}).append($card_head).append($domain);
+	var $domain = $("<span>",{"id" : "domain_id_"+ rid, "class" : "domain", "text":result_json["display_url"]});
+	var $card_top = $("<div>" ,{"id" : "card_top_id_"+ rid,  "class": "card_top"}).append($card_head).append($domain);
 
 
-	var $video_info = $("<div>", { "class" : "video_info"});
+	var $video_info = $("<div>", { "id" : "info_id_"+ rid, "class" : "video_info"});
 	if (type == 'v')
 	  $video_info = $video_info.append($("<span>", { "class" : "time_creation",
 								  "text" :"Time: "})).append(result_json["time"]);
 	if (type == 'w')
 	  $video_info = $video_info.append(result_json["desc"]);
 
-	var $video_thumb = $("<div>", { "class": "video_thumbnail", 
+	var $video_thumb = $("<div>", {"id" : "dthumb_id_"+rid, "class": "video_thumbnail", 
 									"html" : $("<a>", {"href" :result_json["external_url"],
-											  "id" : "aid_"+rid, 
-											 "html" : $("<span>", {
-												 "html": $("<img>", { 
+											  "id" : "athumb_id_"+rid, 
+											 "html" : $("<span>", {"id" : "sthumb_id_"+ rid, 
+												 "html": $("<img>", {"id" : "ithumb_id_"+ rid, 
 													 "alt" : result_json["title"],
 													 "src": result_json["thumbnail"]
 												 })
 											 })
 										 })
 									 });
-	var $video_bottom = $("<div>", { "class": "video_bottom"});
+	var $video_bottom = $("<div>", { "id" : "bott_id_"+ rid, "class": "video_bottom"});
 
 	if (result_json["thumbnail"].length == 0)
 		$video_bottom = $video_bottom.append($video_info);
 	else
 		$video_bottom = $video_bottom.append($video_thumb).append($video_info);
 	
-	var $card = $("<div>", { "class" : "card"}).append($card_top).append($video_bottom);
-	var $video_elem = $("<div>", { "id" : "result_id"+ rid,"class" : "video_box"}).append($card);
+	var $card = $("<div>", { "id" : "card_id_"+ rid, "class" : "card"}).append($card_top).append($video_bottom);
+	var $video_elem = $("<div>", { "id" : "result_id_"+ rid,"class" : "video_box"}).append($card);
 
 	return $video_elem;
 }
@@ -232,17 +232,17 @@ function PrepareImageResult(rid, image_json)
 		resize:true, prevNextButtons: false,contain:true });
 
 	
-	var $card =  $("<div>",{"class": "card"}).append($("<div>", {"text" : "Images"}));
+	var $card =  $("<div>",{"id" : "card_id_"+ rid,"class": "card"}).append($("<div>", {"text" : "Images"}));
 	for(var i in image_json)
 	{
 		var result_json = image_json[i];
-		var $thumbnail =  $("<img>", { "id" : "siid_"+rid,  "src" : result_json["thumbnail"]});
+		var $thumbnail =  $("<img>", { "id" : "image_panel_thumb_id_"+rid,  "src" : result_json["thumbnail"]});
 		var $gallery_cell = $("<div>",{"class" : "gallery_cell"}).append(
-				$("<a>", { "id" : "aid_"+rid, "href" : result_json["external_url"]}).append($thumbnail));
+				$("<a>", { "id" : "image_panel_img_"+rid, "href" : result_json["external_url"]}).append($thumbnail));
 
 		$gallery.flickity( 'insert', $gallery_cell, i);
 	}
-	var $img_elem= $('<div>', {"id" : "result_id"+rid ,"class" : "image_box" }).append($card.append($gallery));
+	var $img_elem= $('<div>', {"id" : "result_id_"+rid ,"class" : "image_box" }).append($card.append($gallery));
 	return $img_elem;
 }
 
@@ -259,15 +259,15 @@ function PrepareOrganicResult(rid, result_json)
 	// </div>
 	// Web : (['o', {"title": "Title", "desc":"description", "display_url": "DisplayUrl", 
 	//		"external_url":"Url"}]);
-	var $card_head = $("<h3>", { "class" : "card_heading"}).append(
+	var $card_head = $("<h3>", {"id" : "card_head_"+ rid, "class" : "card_heading"}).append(
 			$("<a>",{"id" : "aid_"+rid,"href": result_json["external_url"], 
 				"html" : result_json["title"]}));
-	var $domain = $("<span>",{"class" : "domain", "text":result_json["display_url"]});
-	var $card_top = $("<div>" ,{ "class": "card_top"}).append($card_head).append($domain);
+	var $domain = $("<span>",{"id" : "domain_id_"+ rid,"class" : "domain", "text":result_json["display_url"]});
+	var $card_top = $("<div>" ,{"id" : "card_top_id_"+ rid,  "class": "card_top"}).append($card_head).append($domain);
 
-	var $card_bottom = $("<div>", {"class" : "card_bottom", "text" : result_json["desc"]});
-	var $card = $("<div>", { "class" : "card"}).append($card_top).append($card_bottom);
-	var $organic_elem = $("<div>", { "id" : "result_id"+rid,"class" : "organic_box"}).append($card);
+	var $card_bottom = $("<div>", {"id" : "bott_id_"+ rid, "class" : "card_bottom", "text" : result_json["desc"]});
+	var $card = $("<div>", {"id" : "card_id_"+ rid, "class" : "card"}).append($card_top).append($card_bottom);
+	var $organic_elem = $("<div>", { "id" : "result_id_"+rid,"class" : "organic_box"}).append($card);
 	return $organic_elem;
 }
 

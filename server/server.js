@@ -178,17 +178,11 @@ app.get('/search', function(req, res){
 
 // Submit serp interaction to db.
 app.post('/submitPageEvent', function(req, res){
-  
-  event_dict = req.body.events;
-  i = 0
-  for (eventt in event_dict) {
-	  database.addPageEvent(req.body.url, 
-	  eventt,event_dict[eventt], new Date().getTime()+i);
-	  i++;
-   }
-   res.json(true);
 
-
+  console.log(req.body.eventtype+' '+req.body.eventvalue.html +' '+req.body.eventvalue.prop);
+  database.addPageEvent(req.body.url, req.body.eventtype,
+  req.body.eventvalue, new Date().getTime());
+  res.json(true);
 });
 
 // Submit page interaction to db.
@@ -329,16 +323,6 @@ app.get('/viewPage', function (req, res) {
   	    	// Add the javascript with event detection.
 			$('body').append('<script src="./js/hammer.js"></script>');
 			$('body').append('<script src="./js/hammer_events.js"></script>');
-			// Add inputs holding event data.
-   			$('body').append('<input type="hidden" id="dragrightdata" value="" />') ;
-   			$('body').append('<input type="hidden" id="dragleftdata" value="" /> ');
-   			$('body').append('<input type="hidden" id="dragupdata" value="" /> ');
-   			$('body').append('<input type="hidden" id="dragdowndata" value="" /> ');
-   			$('body').append('<input type="hidden" id="tapdata" value="" /> ');
-   			$('body').append('<input type="hidden" id="doubletapdata" value="" />') ;
-   			$('body').append('<input type="hidden" id="pinchindata" value="" />'); 
-   			$('body').append('<input type="hidden" id="pinchoutdata" value="" /> ');
-
   	    	// Save the html to a file.
 			var filename = "pages/"+(saved_pages_count) + ".html";
 			saved_pages_count++;
