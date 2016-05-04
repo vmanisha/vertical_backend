@@ -55,8 +55,8 @@ app.get('/', function(req, res) {
   res.render('index.ejs', {
 	  "task_id":JSON.stringify(task_id), 
 	  "user_name": JSON.stringify("Guest"), "search_page_id": JSON.stringify(1),
-	  "user_query" : JSON.stringify(""), "query_id" : JSON.stringify(1),
-	  "results" : JSON.stringify({})
+	  "user_query" : JSON.stringify(task_desc_dict[task_id]['task_query']), "query_id" : JSON.stringify(1),
+	  "results" : JSON.stringify({}), "task_description" : JSON.stringify(task_desc_dict[task_id]['task_desc'])
   });
 });
 
@@ -287,8 +287,11 @@ app.get('/viewPage', function (req, res) {
   	    	var to_append = "viewPage?user="+req.query.user+"&task="+req.query.task+
   	    					"&queryid="+req.query.queryid+"&page="+req.query.page+
   	    					"&docid="+req.query.docid+"1&docurl=";
+		
+		if (body !== undefined) {
 
   	  		$ = cheerio.load(body);
+<<<<<<< HEAD
   	    	// Replace all the relative links with absolute page.
   	    	$('[src]').each(function(i, ele) {
   	    		src = $(this).attr('src');
