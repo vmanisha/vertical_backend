@@ -291,7 +291,6 @@ app.get('/viewPage', function (req, res) {
 		if (body !== undefined) {
 
   	  		$ = cheerio.load(body);
-<<<<<<< HEAD
   	    	// Replace all the relative links with absolute page.
   	    	$('[src]').each(function(i, ele) {
   	    		src = $(this).attr('src');
@@ -336,6 +335,7 @@ app.get('/viewPage', function (req, res) {
 			database.addPageLocation(filename, req.query.docurl, req.query.docid, (new Date()).getTime());
 			// Add the url mapping to database
   	    	res.send($.html());
+		  }
   	    });
   	  }
   } 

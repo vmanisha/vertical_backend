@@ -1,7 +1,8 @@
 var body = document.getElementById('search_results');
 // Check if it is a search result page.
 if (body == null) 
-	body = document.getElementById('body');
+	body = document.body;
+
 
 // Ripped from http://crystal.exp.sis.pitt.edu:8080/cdmobile/ 
 // We do not know what the page is
