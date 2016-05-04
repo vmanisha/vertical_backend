@@ -10,4 +10,7 @@ npm install ejs
 npm install rwlock
 npm install mathjs
 npm install sync-request@2.2.0
-
+npm install url
+npm install fs
+npm install cheerio
+npm install request
