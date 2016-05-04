@@ -1,6 +1,5 @@
 var body = document.getElementById('search_results');
 // Check if it is a search result page.
-alert(body== null);
 if (body == null) 
 	body = document.getElementById('body');
 

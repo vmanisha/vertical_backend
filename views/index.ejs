@@ -41,7 +41,13 @@
 	$('#query_id').val(<%- query_id %>);
 	// Set the query
 	$('#search_input').val(<%- user_query %>);
-	
+
+	<% if (!( typeof task_description == 'undefined' )) { %>
+		var task_desc = <%- task_description %>;
+		if (task_desc.length > 0)
+			alert(task_desc);
+	<% } %>
+			
 	// Get a results object. Display results on page.
 	var output = <%- results %>
 	if (output.length > 0)
