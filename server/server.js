@@ -182,7 +182,6 @@ app.post('/submitPageEvent', function(req, res){
   event_dict = req.body.events;
   i = 0
   for (eventt in event_dict) {
-		console.log(eventt+" "+event_dict[eventt]); 
 	  database.addPageEvent(req.body.url, 
 	  eventt,event_dict[eventt], new Date().getTime()+i);
 	  i++;
