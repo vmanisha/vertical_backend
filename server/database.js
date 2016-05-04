@@ -162,6 +162,8 @@ module.exports = {
 
 	  event_database.add({'doc_url':doc_url, 'event_type':event_type,
 		  'event_value':event_value}, timestamp);
+	  console.log("added event " +event_type);
+	  event_database.flush();
 
 	  return true;
 	},

@@ -55,8 +55,8 @@ app.get('/', function(req, res) {
   res.render('index.ejs', {
 	  "task_id":JSON.stringify(task_id), 
 	  "user_name": JSON.stringify("Guest"), "search_page_id": JSON.stringify(1),
-	  "user_query" : JSON.stringify(task_desc_dict[task_id]['task_query']), "query_id" : JSON.stringify(1),
-	  "results" : JSON.stringify({}), "task_description" : JSON.stringify(task_desc_dict[task_id]['task_desc'])
+	  "user_query" : JSON.stringify(""), "query_id" : JSON.stringify(1),
+	  "results" : JSON.stringify({})
   });
 });
 
@@ -179,7 +179,6 @@ app.get('/search', function(req, res){
 // Submit serp interaction to db.
 app.post('/submitPageEvent', function(req, res){
 
-  console.log(req.body.eventtype+' '+req.body.eventvalue.html +' '+req.body.eventvalue.prop);
   database.addPageEvent(req.body.url, req.body.eventtype,
   req.body.eventvalue, new Date().getTime());
   res.json(true);
@@ -287,8 +286,6 @@ app.get('/viewPage', function (req, res) {
   	    	var to_append = "viewPage?user="+req.query.user+"&task="+req.query.task+
   	    					"&queryid="+req.query.queryid+"&page="+req.query.page+
   	    					"&docid="+req.query.docid+"1&docurl=";
-		
-		if (body !== undefined) {
 
   	  		$ = cheerio.load(body);
   	    	// Replace all the relative links with absolute page.
@@ -325,6 +322,7 @@ app.get('/viewPage', function (req, res) {
   	    	// Add the javascript with event detection.
 			$('body').append('<script src="./js/hammer.js"></script>');
 			$('body').append('<script src="./js/hammer_events.js"></script>');
+			$('body').append('<script src="https://code.jquery.com/jquery-1.9.1.min.js"></script>');
   	    	// Save the html to a file.
 			var filename = "pages/"+(saved_pages_count) + ".html";
 			saved_pages_count++;
@@ -335,7 +333,6 @@ app.get('/viewPage', function (req, res) {
 			database.addPageLocation(filename, req.query.docurl, req.query.docid, (new Date()).getTime());
 			// Add the url mapping to database
   	    	res.send($.html());
-		  }
   	    });
   	  }
   } 

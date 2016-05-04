@@ -28,7 +28,7 @@ hammer_body.on("tap swipeup swipedown swipeleft swiperight pinchin pinchout doub
   
 	// For taps send the data right away.
 	var touchHtml = devent.target.innerHTML;	
-
+	touchHtml = touchHtml.replace(/\s\s+/g, ' ');
 	var event_value = {"html" : touchHtml, "prop" : deventsMeta};
 
 	// Make an ajax call and submit the data.
