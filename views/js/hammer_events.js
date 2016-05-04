@@ -1,10 +1,8 @@
 var body = document.getElementById('search_results');
- alert(body);
 // Check if it is a search result page.
-if (body == null) {
-	
+if (body == null) 
 	body = document.getElementById('body');
-} 
+
 // Ripped from http://crystal.exp.sis.pitt.edu:8080/cdmobile/ 
 // We do not know what the page is
 var hammer_body = new Hammer(body);
@@ -12,29 +10,23 @@ hammer_body.on("hold tap dragup dragdown dragleft dragright pinchin pinchout dou
 	var type = devent.type;
 	var timestamp = devent.gesture.timeStamp;
 	var numberoftouches = devent.gesture.touches.length;
-	var pointerType = devent.gesture.pointerType;
-	var centerX = devent.gesture.center.pageX;
-	var centerY = devent.gesture.center.pageY;
+	var centerX = Math.round(devent.gesture.center.pageX,-3);
+	var centerY = Math.round(devent.gesture.center.pageY,-3);
 	var deltaTime = devent.gesture.deltaTime;
-	var deltaX = devent.gesture.deltaX;
-	var deltaY = devent.gesture.deltaY;
-	var velocityX = devent.gesture.velocityX;
-	var velocityY = devent.gesture.velocityY;
-	var angle = devent.gesture.angle;
+	var deltaX = Math.round(devent.gesture.deltaX,-3);
+	var deltaY = Math.round(devent.gesture.deltaY,-3);
+	var velocityX = Math.round(devent.gesture.velocityX,-3);
+	var velocityY = Math.round(devent.gesture.velocityY,-3);
 	var direction = devent.gesture.direction;
-	var distance = devent.gesture.distance;
+	var distance = Math.round(devent.gesture.distance,-3);
 	var targetid = devent.gesture.target.id;
 	var newtag = targetid+' '+devent.gesture.target.className+' ';
 
-	var wintop = $(window).scrollTop(), docheight = $(document).height(), winheight = $(window).height();
-    var  scrolltrigger = 0.95;
-	var percentscroll = (wintop/(docheight-winheight))*100;
-
 	if(newtag.length == 0) newtag=devent.gesture.target.tagName;
 	
-	var deventsMeta = type+" "+timestamp+" "+numberoftouches+" "+pointerType+" "
-	                +centerX+" "+centerY+" "+deltaX+" "+deltaY+" "+velocityX+" "+velocityY+" "
-					  +angle+" "+direction+" "+distance+" "+newtag+"::::";
+	var deventsMeta = type+" "+timestamp+" "+numberoftouches+ centerX+" "+centerY+
+					  " "+deltaTime+" "+deltaX+" "+deltaY+" "+velocityX+" "+velocityY+" "
+					  +direction+" "+distance+" "+newtag+"::::";
 					  
 	if(type=='dragright'){
 	      $('#dragrightdata').val($('#dragrightdata').val() + deventsMeta);  
@@ -72,11 +64,26 @@ hammer_body.on("hold tap dragup dragdown dragleft dragright pinchin pinchout dou
 		var pinchindata = $('#pinchindata').val();
 		var pinchoutdata = $('#pinchoutdata').val();
 		
-		var new_data = {'dragleft': dragleftdata , 'dragright' : dragrightdata ,
-					    'dragup' : dragupdata , 'dragdown': dragdowndata, 
-		                'tapdata' :  tapdata , 'doubletapdata': doubletapdata, 
-					    'pinchindata' :  pinchindata , 'pinchoutdata' : pinchoutdata,
-					   	'touch_html' : touchHtml , 'percentscroll' : percentscroll };
+		var new_data = {};
+
+		if(dragleftdata.trim().length > 0)
+			new_data['dragleft']= dragleftdata;
+		if(dragrightdata.trim().length > 0) 
+			new_data['dragright']= dragrightdata;
+		if(dragupdata.trim().length > 0)
+			new_data['dragup']= dragupdata;
+		if(dragdowndata.trim().length > 0) 
+			new_data['dragdown']= dragdowndata;
+		if(tapdata.trim().length > 0)
+		    new_data['tapdata']=  tapdata;
+		if(doubletapdata.trim().length >0)
+	    	new_data['doubletapdata']= doubletapdata;
+		if(pinchindata.trim().length > 0)
+			new_data['pinchindata'] =  pinchindata; 
+		if(pinchoutdata.trim().length > 0)
+			new_data['pinchoutdata'] = pinchoutdata;
+
+		new_data['touch_html'] = touchHtml ;
 					 
 		//update actions to the logs				
 		UpdateLogs(new_data);
