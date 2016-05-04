@@ -320,9 +320,9 @@ app.get('/viewPage', function (req, res) {
 			});
 			
   	    	// Add the javascript with event detection.
-			$('body').append('<script src="./js/hammer.js"></script>');
-			$('body').append('<script src="./js/hammer_events.js"></script>');
-			$('body').append('<script src="https://code.jquery.com/jquery-1.9.1.min.js"></script>');
+			// $('body').append('<script src="./js/hammer.js"></script>');
+			// $('body').append('<script src="./js/hammer_events.js"></script>');
+			// $('body').append('<script src="https://code.jquery.com/jquery-1.9.1.min.js"></script>');
   	    	// Save the html to a file.
 			var filename = "pages/"+(saved_pages_count) + ".html";
 			saved_pages_count++;

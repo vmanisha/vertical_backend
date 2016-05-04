@@ -7,7 +7,7 @@ if (body == null)
 // Ripped from http://crystal.exp.sis.pitt.edu:8080/cdmobile/ 
 // We do not know what the page is
 var hammer_body = new Hammer(body);
-hammer_body.on("tap pinchin pinchout doubletap panup pandown panleft panright", function(devent) {
+hammer_body.on("tap swipeup swipedown swipeleft swiperight pinchin pinchout doubletap panup pandown", function(devent) {
 	var type = devent.type;
 	var timestamp = new Date().getTime();
 	var deltaTime = devent.deltaTime;
