@@ -54,7 +54,7 @@ hammer_body.on("hold tap dragup dragdown dragleft dragright pinchin pinchout dou
 	}			
 	else if(type=='release'){
 
-		var touchHtml = devent.gesture.target.outerHTML;	
+		var touchHtml = devent.gesture.target.innerHTML;	
 		var dragleftdata = $('#dragleftdata').val();
 		var dragrightdata = $('#dragrightdata').val();
 		var dragupdata = $('#dragupdata').val();
