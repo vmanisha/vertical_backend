@@ -236,7 +236,7 @@ function PrepareImageResult(rid, image_json)
 	for(var i in image_json)
 	{
 		var result_json = image_json[i];
-		var $thumbnail =  $("<img>", {"src" : result_json["thumbnail"]});
+		var $thumbnail =  $("<img>", { "id" : "siid_"+rid,  "src" : result_json["thumbnail"]});
 		var $gallery_cell = $("<div>",{"class" : "gallery_cell"}).append(
 				$("<a>", { "id" : "aid_"+rid, "href" : result_json["external_url"]}).append($thumbnail));
 
