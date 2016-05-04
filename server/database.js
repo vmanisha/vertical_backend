@@ -186,8 +186,6 @@ module.exports = {
 
 	  // Given that task is finished, remove the session from session array.
 	  delete last_query_search_results[user_name][task_id];
-	  delete last_query_doc_click[user_name][task_id];
-
 	  return true;
 	},
 
