@@ -288,19 +288,19 @@ app.get('/viewPage', function (req, res) {
   	    	var to_append = "viewPage?user="+req.query.user+"&task="+req.query.task+
   	    					"&queryid="+req.query.queryid+"&page="+req.query.page+
   	    					"&docid="+req.query.docid+"1&docurl=";
-
-  	  		$ = cheerio.load(body);
-  	    	// Replace all the relative links with absolute page.
-  	    	$('[src]').each(function(i, ele) {
-  	    		src = $(this).attr('src');
-  	    		$(this).attr('src', FullUrl(src, baseUrl, ""));
-  	    	});
-  	    	$('[srcset]').each(function(i, ele) {
-  	    		src = $(this).attr('src');
-  	    		$(this).attr('srcset', FullUrl(src, baseUrl,""));
-  	    	});
-  	    	
-  	    	// Replace all the outlinks by modify url function 
+		if (body !== undefined) {
+ 			$ = cheerio.load(body);
+  	    		// Replace all the relative links with absolute page.
+  	    		$('[src]').each(function(i, ele) {
+  	    			src = $(this).attr('src');
+  	    			$(this).attr('src', FullUrl(src, baseUrl, ""));
+  	    		});
+  	    		$('[srcset]').each(function(i, ele) {
+  	    			src = $(this).attr('src');
+  	    			$(this).attr('srcset', FullUrl(src, baseUrl,""));
+  	    		});
+  	    		
+  	    		// Replace all the outlinks by modify url function 
   	  		$('a[href]').each(function(i, ele) {
   	    		href = $(this).attr('href');
 				// Check if there is no image.
@@ -321,11 +321,11 @@ app.get('/viewPage', function (req, res) {
   	    		$(this).attr('background', FullUrl(href, baseUrl,""));
 			});
 			
-  	    	// Add the javascript with event detection.
+  	    		// Add the javascript with event detection.
 			// $('body').append('<script src="./js/hammer.js"></script>');
 			// $('body').append('<script src="./js/hammer_events.js"></script>');
 			// $('body').append('<script src="https://code.jquery.com/jquery-1.9.1.min.js"></script>');
-  	    	// Save the html to a file.
+  	    		// Save the html to a file.
 			var filename = "pages/"+(saved_pages_count) + ".html";
 			saved_pages_count++;
 			fs.writeFile(filename, $.html(), function(err) {
@@ -334,7 +334,8 @@ app.get('/viewPage', function (req, res) {
 			global_page_location_dict[req.query.docurl] = filename;
 			database.addPageLocation(filename, req.query.docurl, req.query.docid, (new Date()).getTime());
 			// Add the url mapping to database
-  	    	res.send($.html());
+  	    		res.send($.html());
+		}
   	    });
   	  }
   } 
