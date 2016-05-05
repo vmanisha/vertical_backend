@@ -150,7 +150,31 @@ function RenderPage(request_page_id,  output)
 	  }
 	$nav_div = $nav_div.append($("<a>", {"href": "#" , "id": 'next_page',"text" : " Next >>"}));
 	$nav_div.appendTo('body');
-  
+	
+
+	// Compute the elements that are visible.
+	var visibleElements = "";
+	$('.card').each(function(i,obj){
+		if(IsElementInViewport(obj))
+			visibleElements = visibleElements + obj.id + " ";
+	});
+	
+
+	visibleElements = visibleElements.trim(); // Removing extra space at the end		
+	var event_value = {"visible_elements" : visibleElements};
+	// Make an ajax call and submit the data.
+	$.ajax ( { url : '/submitPageEvent',
+		type :"post",
+		contentType: "application/json",
+		data : JSON.stringify({"eventtype" : "initial_state" ,"eventvalue" : event_value , "url" :window.location.href }),
+		success : function (response) {
+		},
+		error : function(response) {
+			//alert(response);
+		} 
+	});
+ 
+	 
 }
 
 
@@ -271,4 +295,18 @@ function PrepareOrganicResult(rid, result_json)
 	return $organic_elem;
 }
 
+function IsElementInViewport (el) {
+    if (typeof jQuery === "function" && el instanceof jQuery) {
+        el = el[0];
+    }
+
+    var rect = el.getBoundingClientRect();
+
+    return (
+        rect.top >= 0 &&
+        rect.left >= 0 &&
+        rect.bottom <= (window.innerHeight || document.documentElement.clientHeight) && 
+        rect.right <= (window.innerWidth || document.documentElement.clientWidth) 
+    );
+}
 

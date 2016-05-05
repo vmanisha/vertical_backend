@@ -40,7 +40,6 @@ hammer_body.on("tap swipeup swipedown swipeleft swiperight pinchin pinchout doub
 				visibleElements = visibleElements + obj.id + " ";
 		});
 		visibleElements = visibleElements.trim(); // Removing extra space at the end		
-		alert(visibleElements);
 	}
   
 	// For taps send the data right away.
@@ -63,25 +62,4 @@ hammer_body.on("tap swipeup swipedown swipeleft swiperight pinchin pinchout doub
 	
 
 });
-
-
-function IsElementInViewport (el) {
-    if (typeof jQuery === "function" && el instanceof jQuery) {
-        el = el[0];
-    }
-
-    var rect = el.getBoundingClientRect();
-
-    return (
-        rect.top >= 0 &&
-        rect.left >= 0 &&
-        rect.bottom <= (window.innerHeight || document.documentElement.clientHeight) && 
-        rect.right <= (window.innerWidth || document.documentElement.clientWidth) 
-    );
-}
-
-
-
-
-
 

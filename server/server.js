@@ -111,6 +111,7 @@ app.get('/registerUser', function(req, res){
 	// Return the list of tasks not finished. 
 	for (var task_id in task_desc_dict)
 	{
+		console.log(task_id +' '+ user_name+' '+ tasks_completed.length+' '+ (task_id in tasks_completed));
 		if(!(task_id in tasks_completed))
 			task_dict[task_id] = [task_desc_dict[task_id]['task_query'],
 								  task_desc_dict[task_id]['task_desc']] ;
