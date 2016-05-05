@@ -29,11 +29,24 @@ hammer_body.on("tap swipeup swipedown swipeleft swiperight pinchin pinchout doub
 	var deventsMeta = " "+timestamp+" "+deltaTime+" "+deltaX+
 					  " "+deltaY+" "+velocityX+" "+velocityY+" "
 					  +direction+" "+distance+" "+newtag+ " "+ height;
+
+	// Check if elements are in viewport 
+	// for pan events
+	// and send the status to server
+	if(type=="panup" || type=="pandown" || type=="panleft" || type=="panright"){
+		var visibleElements = "";
+		$('.card').each(function(i,obj){
+			if(IsElementInViewport(obj))
+				visibleElements = visibleElements + obj.id + " ";
+		});
+		visibleElements = visibleElements.trim(); // Removing extra space at the end		
+		alert(visibleElements);
+	}
   
 	// For taps send the data right away.
 	var touchHtml = devent.target.innerHTML;	
 	touchHtml = touchHtml.replace(/\s\s+/g, ' ');
-	var event_value = {"html" : touchHtml, "prop" : deventsMeta};
+	var event_value = {"html" : touchHtml, "prop" : deventsMeta, "visible_elements" : visibleElements};
 
 	// Make an ajax call and submit the data.
 	$.ajax ( { url : '/submitPageEvent',
@@ -51,6 +64,21 @@ hammer_body.on("tap swipeup swipedown swipeleft swiperight pinchin pinchout doub
 
 });
 
+
+function IsElementInViewport (el) {
+    if (typeof jQuery === "function" && el instanceof jQuery) {
+        el = el[0];
+    }
+
+    var rect = el.getBoundingClientRect();
+
+    return (
+        rect.top >= 0 &&
+        rect.left >= 0 &&
+        rect.bottom <= (window.innerHeight || document.documentElement.clientHeight) && 
+        rect.right <= (window.innerWidth || document.documentElement.clientWidth) 
+    );
+}
 
 
 
