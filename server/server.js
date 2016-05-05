@@ -326,7 +326,7 @@ app.get('/viewPage', function (req, res) {
 			// $('body').append('<script src="./js/hammer_events.js"></script>');
 			// $('body').append('<script src="https://code.jquery.com/jquery-1.9.1.min.js"></script>');
   	    		// Save the html to a file.
-			var filename = "pages/"+(saved_pages_count) + ".html";
+			var filename = "pages/"+req.query.user+'_'+(saved_pages_count) + ".html";
 			saved_pages_count++;
 			fs.writeFile(filename, $.html(), function(err) {
 					  console.log('Written html to ' + filename);
