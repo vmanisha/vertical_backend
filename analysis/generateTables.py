@@ -41,30 +41,61 @@ import re
 #   each task given a vertical was shown on top. 
 #------------------------------------------------------------------------------
 
+# TODO:
+# remove test users
 
 # Query pattern to extract from server url.
 query_id_pattern = 'queryid=(.*?)&'
 query_id_regex = re.compile(query_id_pattern)
 
 # Query pattern to extract from server url.
-page_id_pattern = 'pageid=(.*?)&'
+page_id_pattern = 'page=(.*?)&'
 page_id_regex = re.compile(page_id_pattern)
 
 
 # Query pattern to extract from server url.
-docurl_pattern = 'docurl=(.*?)&'
+docurl_pattern = 'docurl=(.*)'
 docurl_regex = re.compile(docurl_pattern)
+
+
+# Page response table header
+page_response_header = ['time','user_id','task_id','query_id','page_id',\
+	'doc_url','response_type','response_value']
+# Page response table sortkeys
+page_reponse_sortkeys = ['time','task_id','query_id']
+
+# Task response table header
+task_response_header = ['time','user_id','task_id','response_type','response_value']
+# Task response table sortkeys
+task_response_sortkeys = ['time','task_id']
 
 def ReadDB(event_file):
     event_db = json.load(event_file)
     return event_db
 
-
+# TODO
+# Some doc_url does not have queryid and pageid (e.g., https://m.youtube.com/watch?v=RZ_YOAlPJNY)
+# We use empty strings if we do not find any match
 def BreakServerUrl(url):
-	query_id = re.match(query_id_regex, url) 
-	page_id = re.match(page_id_regex, url) 
-	docurl_id = re.match(docurl_regex, url) 
-	return query_id, page_id, docurl_id
+	query_id = re.search(query_id_regex,url)
+	if not query_id:
+		query_id = ""
+	else:
+		query_id = query_id.group(1)
+
+	page_id = re.search(page_id_regex, url)
+	if not page_id:
+		page_id = ""
+	else:
+		page_id = page_id.group(1)
+
+	doc_url = re.search(docurl_regex,url)
+	if not doc_url:
+		doc_url = ""
+	else:
+		doc_url = doc_url.group(1)
+
+	return query_id, page_id, doc_url
 
 
 '''
@@ -83,10 +114,30 @@ def FormatPageResponseDB(databases, dbcolumns, sort_keys ):
 			# "response_type":"relevance","response_value":"5.0"},
 			query_id, page_id, doc_url = BreakServerUrl(values['doc_url'])
 			new_entry = [entry , values['user_id'] , values['task_id'],\
-				query_id, page_id, url,
+				query_id, page_id, doc_url,
                 values['response_type'], \
                 values['response_value']]
-           tsv_data.append(new_entry)
+			tsv_data.append(new_entry)
+
+    # create a new data frame 
+    tsv_frame = pd.DataFrame(tsv_data, columns= dbcolumns)
+    # sort by time key
+    tsv_frame = tsv_frame.sort(sort_keys)
+
+    return tsv_frame 
+
+def FormatTaskResponseDB(databases, dbcolumns, sort_keys ):
+    tsv_data = []
+    for database in databases:
+        for entry , values in database.items():
+			# Format of Task Response db
+			# "time_stamp":{"user_id":"marzipan","task_id":"8",
+			# "response_type":"preferred_verticals",
+			# "response_value":"Images , Wiki , General Web"}
+			new_entry = [entry , values['user_id'] , values['task_id'],\
+                values['response_type'], \
+                values['response_value']]
+			tsv_data.append(new_entry)
 
     # create a new data frame 
     tsv_frame = pd.DataFrame(tsv_data, columns= dbcolumns)
@@ -97,29 +148,62 @@ def FormatPageResponseDB(databases, dbcolumns, sort_keys ):
 
 
 
+
 def main():
     parser = argparse.ArgumentParser(description='Find and plot statistics\
             about vertical search related data.')
     parser.add_argument('-p','--pageResponseDB', help='Page response db from the\
+            interface',required=True)
+    parser.add_argument('-t','--taskResponseDB', help='Task response db from the\
             interface',required=True)
     parser.add_argument('-f','--isFolder', help='Indicate whether database\
     is in one file or files in one folder',action='store_true')
 
     arg = parser.parse_args()
     page_response_db = []
+    task_response_db = []
+
     # If a single event and response db file
-    print arg.isFolder
     if not arg.isFolder:
         p_db = ReadDB(open(arg.pageResponseDB,'r'))
-		page_response_db.append(p_db)
+        page_response_db.append(p_db)
 
+        t_db = ReadDB(open(arg.taskResponseDB,'r'))
+        task_response_db.append(t_db)
     else:
         for pfile in os.listdir(arg.pageResponseDB):
-            p_db = ReadDB(open(arg.pageResponseDB+'/'+efile,'r'))
-			page_response_db.append(p_db)
+        	p_db = ReadDB(open(arg.pageResponseDB+'/'+pfile,'r'))
+        	page_response_db.append(p_db)
+
+        for tfile in os.listdir(arg.taskResponseDB):
+        	t_db = ReadDB(open(arg.taskResponseDB+'/'+tfile,'r'))
+        	task_response_db.append(t_db)
+
             
 	# Format page response db
-    page_response_data_tsv = FormatPageResponseDB(page_response_db, ['time','user_id',\
-			'task_id','query_id','page_id','url','response_type',\
-			'response_value' ], ['time'])
+    page_response_table = FormatPageResponseDB(page_response_db, page_response_header, page_reponse_sortkeys)
 
+    # Format task response db
+    task_response_table = FormatTaskResponseDB(task_response_db,task_response_header,task_response_sortkeys)
+
+    # Remove test users
+    page_response_table = page_response_table[~page_response_table['user_id'].str.contains('test')]
+    task_response_table = task_response_table[~task_response_table['user_id'].str.contains('test')]
+
+    # a. task : users. Compute the number of users who provided task feedback
+    # Print number of users for every task
+    task_response_table[['task_id','user_id']].to_csv('task.csv')
+    print task_response_table.groupby(['task_id']).agg({'user_id':pd.Series.nunique})
+
+    # b. task : user_impressions. Compute the number of users who executed a task.
+    # Print number of users for every task
+    page_response_table[['task_id','user_id']].to_csv('page.csv')
+    print page_response_table.groupby(['task_id']).agg({'user_id':pd.Series.nunique})
+
+	
+
+# query result - doc_pos, doc_type, doc_title, doc_dispurl, doc_prop - image will have multiple urls (array of dict)
+# query_id, task_id and query_text
+
+if __name__ == "__main__":
+    main()
