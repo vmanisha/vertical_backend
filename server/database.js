@@ -85,7 +85,9 @@ module.exports = {
  
 	  // If the user_name and task_id exist return the query
 	  // and page_id.
-	  if( (user_name in last_query_search_results) && (task_id in last_query_search_results[user_name]))
+	  if ( (user_name !== null && task_id !== null) && 
+	       (user_name in last_query_search_results) && 
+	       (task_id in last_query_search_results[user_name]))
 	  {
 		  console.log("Found user and task searches "+last_query_search_results[user_name][task_id].length);
 		  var search_result_array = last_query_search_results[user_name][task_id];
@@ -185,7 +187,8 @@ module.exports = {
 	  event_database.flush();
 
 	  // Given that task is finished, remove the session from session array.
-	  delete last_query_search_results[user_name][task_id];
+	  if (user_name in last_query_search_results && task_id in last_query_search_results[user_name])
+		  delete last_query_search_results[user_name][task_id];
 	  return true;
 	},
 

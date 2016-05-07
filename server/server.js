@@ -23,9 +23,6 @@ var global_query_id = 0;
 // Contains url to page location mapping
 var global_page_location_dict = {}
 var saved_pages_count = 0;
-// User task completion dictionary
-// user_id : [task_id,..,task_id]
-var user_task_complete_dict = {};
 
 // Task list dictionary
 // task_id : [task_pref, task_desc]
@@ -97,25 +94,11 @@ app.get('/begin', function(req, res) {
 app.get('/registerUser', function(req, res){
 
 	var task_dict = {};
-	var tasks_completed = [];
 	var user_name = req.query.user;
-	// Check if user already exists in use
-	if (user_name in user_task_complete_dict)
-		// User has used the app before
-		tasks_completed = user_task_complete_dict[user_name];
-	else
-		// User is visiting the app first time. 
-		user_task_complete_dict[user_name] = [];
-
-	console.log("Registering "+user_name+", has completed "+user_task_complete_dict[user_name].length);
 	// Return the list of tasks not finished. 
 	for (var task_id in task_desc_dict)
-	{
-		console.log(task_id +' '+ user_name+' '+ tasks_completed.length+' '+ (task_id in tasks_completed));
-		if(!(task_id in tasks_completed))
-			task_dict[task_id] = [task_desc_dict[task_id]['task_query'],
+		task_dict[task_id] = [task_desc_dict[task_id]['task_query'],
 								  task_desc_dict[task_id]['task_desc']] ;
-	}
 	res.json(task_dict);
 });
 
@@ -241,8 +224,6 @@ app.post('/submitTaskResponse', function(req, res){
 		  rkey,response_array[i][rkey],time.getTime());
 	  }
     }
-  // finished the task. Update the user task complete dictionary.
-  user_task_complete_dict[req.body.user].push(req.body.task);
   res.json({"success":true});
 });
 
