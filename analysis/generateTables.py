@@ -16,7 +16,7 @@ import re
 #   d. task : queries. Compute the number of queries fired for the task.
 #   e. task : clicks. Compute the number of clicks for the task. 
 #   f. task : time . Compute the time spent on doing each task.
-#   g. task : click_ranks. Compute the number of times a document was clicked
+#   g. task : click_ranks. Compute the number of times a position was clicked
 #   on a rank (remember to take page_number into account). 
 #   h. task : time_to_first_click. Compute the time to first click for each
 #   task. Compute mean and standard deviation. 
@@ -42,7 +42,7 @@ import re
 #------------------------------------------------------------------------------
 
 # TODO:
-# remove test users
+# Remove repeated clicks for the same document
 
 # Query pattern to extract from server url.
 query_id_pattern = 'queryid=(.*?)&'
@@ -73,6 +73,10 @@ query_result_header = ['time','user_id','task_id','query_id','query_text','page_
 # Query result table sortkeys
 query_result_sortkeys = ['time','task_id','query_text','doc_pos']
 
+# Click result table header
+click_result_header = ['time','user_id','task_id','query_id','page_id','doc_id','doc_url']
+# Click result table sortkeys
+click_result_sortkeys = ['time','task_id']
 
 def ReadDB(event_file):
     event_db = json.load(event_file)
@@ -153,7 +157,7 @@ def FormatQueryResultDB(databases, dbcolumns, sort_keys ):
     for database in databases:
         for entry , values in database.items():
             # Format of Query Result db
-            # "1462466899610":{"user_id":"","query_id":4,"task_id":"4","query_text":"","page_id":1,"search_results":[["i",[{"title":"","external_url":"","display_url":"","thumbnail":""},{"title":"","external_url":"","display_url":"","thumbnail":""}...]],["o",{"title":"","desc":"","display_url":"","external_url":""}],["o",{"title":"","desc":"","display_url":"","external_url":""}]...]}
+            # "time_stamp":{"user_id":"","query_id":4,"task_id":"4","query_text":"","page_id":1,"search_results":[["i",[{"title":"","external_url":"","display_url":"","thumbnail":""},{"title":"","external_url":"","display_url":"","thumbnail":""}...]],["o",{"title":"","desc":"","display_url":"","external_url":""}],["o",{"title":"","desc":"","display_url":"","external_url":""}]...]}
             search_results = values['search_results']
 
             # The documents are stored in the order in which
@@ -185,6 +189,25 @@ def FormatQueryResultDB(databases, dbcolumns, sort_keys ):
     tsv_frame = tsv_frame.sort(sort_keys)
     return tsv_frame 
 
+def FormatClickResultDB(databases, dbcolumns, sort_keys ):
+    tsv_data = []
+    for database in databases:
+        for entry , values in database.items():
+            # Format of Click Result db
+            #{"time_stamp":{"user_id":"marzipan","query_id":"0",
+            #"page_id":"1","task_id":"8","doc_id":"aid_1",
+            #"doc_url":"http://www.theplunge.com/bachelorparty/bachelor-party-ideas-2/"}
+            new_entry = [entry , values['user_id'] , int(values['task_id']),\
+                    int(values['query_id']),int(values['page_id']), \
+                    values['doc_id'],values['doc_url']]
+            tsv_data.append(new_entry)
+
+    # create a new data frame 
+    tsv_frame = pd.DataFrame(tsv_data, columns= dbcolumns)
+    # sort by time key
+    tsv_frame = tsv_frame.sort(sort_keys)
+
+    return tsv_frame 
 
 def main():
     parser = argparse.ArgumentParser(description='Find and plot statistics\
@@ -195,6 +218,8 @@ def main():
             interface',required=True)
     parser.add_argument('-q','--queryResultDB', help='Query result db from the\
             interface',required=True)
+    parser.add_argument('-c','--clickResultDB', help='Click result db from the\
+            interface',required=True)
     parser.add_argument('-f','--isFolder', help='Indicate whether database\
     is in one file or files in one folder',action='store_true')
 
@@ -202,6 +227,7 @@ def main():
     page_response_db = []
     task_response_db = []
     query_result_db = []
+    click_result_db = []
 
     # If a single event and response db file
     if not arg.isFolder:
@@ -213,6 +239,9 @@ def main():
 
         q_db = ReadDB(open(arg.queryResultDB,'r'))
         query_result_db.append(q_db)
+
+        c_db = ReadDB(open(arg.clickResultDB,'r'))
+        click_result_db.append(c_db)
     else:
         for pfile in os.listdir(arg.pageResponseDB):
             p_db = ReadDB(open(arg.pageResponseDB+'/'+pfile,'r'))
@@ -226,6 +255,10 @@ def main():
             q_db = ReadDB(open(arg.queryResultDB+'/'+qfile,'r'))
             query_result_db.append(q_db)
 
+        for cfile in os.listdir(arg.clickResultDB):
+            c_db = ReadDB(open(arg.clickResultDB+'/'+cfile,'r'))
+            click_result_db.append(c_db)            
+
     # Format page response db
     page_response_table = FormatPageResponseDB(page_response_db, page_response_header, page_reponse_sortkeys)
 
@@ -235,26 +268,54 @@ def main():
     # Format query result db
     query_result_table = FormatQueryResultDB(query_result_db,query_result_header,query_result_sortkeys)
 
+    # Format click result db
+    click_result_table = FormatClickResultDB(click_result_db,click_result_header,click_result_sortkeys)
+
     # Remove test users
     page_response_table = page_response_table[~page_response_table['user_id'].str.contains('test')]
     task_response_table = task_response_table[~task_response_table['user_id'].str.contains('test')]
     query_result_table = query_result_table[~query_result_table['user_id'].str.contains('test')]
+    click_result_table = click_result_table[~click_result_table['user_id'].str.contains('test')]
 
     # a. task : users. Compute the number of users who provided task feedback
-    #task_response_table[['task_id','user_id']].to_csv('task.csv')
+    # task_id, #users_who_gave_feedback
     task_response_table.groupby(['task_id']).agg({'user_id':pd.Series.nunique}).to_csv('task_feedback.csv')
 
     # b. task : user_impressions. Compute the number of users who executed a task.
-    #page_response_table[['task_id','user_id']].to_csv('page.csv')
+    # task_id, #users_who_executed_task
     page_response_table.groupby(['task_id']).agg({'user_id':pd.Series.nunique}).to_csv('task_execute.csv')
 
     # c. task : vertical_views. Compute the number of times each vertical was shown as top result. 
-    #query_result_table[['task_id','user_id']].to_csv('query.csv')
+    # Only consider query results in the first page (page_id==1)
+    # Here we output counts for all the doc position in the first page
+    # task_id, doc_type, doc_pos, #occurances
     query_results = query_result_table[query_result_table['page_id']==1]
     query_results.groupby(['task_id','doc_type','doc_pos']).count().to_csv('vertical_pos.csv')
 
     # d. task : queries. Compute the number of queries fired for the task.
+    # task_id, #unique_queries
     query_result_table.groupby(['task_id']).agg({'query_text':pd.Series.nunique}).to_csv('task_queries.csv')
+
+    # e. task : clicks. Compute the number of clicks for the task. 
+    # task_id, click_url, #clicks
+    click_result_table.groupby(['task_id','doc_url']).count().to_csv('task_clicks.csv',encoding='utf-8',sep='\t')
+
+    # f. task : time . Compute the time spent on doing each task.
+
+    # g. task : click_ranks. Compute the number of times a position was clicked
+    # ignore positions with double digits as they are nested clicks
+    # doc_pos = (page_id - 1) * 10 + doc_id
+    # task_id, doc_pos, #clicks
+
+    # h. task : time_to_first_click. Compute the time to first click for each
+    # task. Compute mean and standard deviation. 
+
+    # j. task : first_click_position. Compute the list of ranks that were clicked first for task. 
+    # task_id, doc_pos, #first_clicks
+
+    # k. task : last_click_position. Compute the ranks that were clicked last for
+    # each task. 
+    # task_id, doc_pos, #last_clicks
 
 if __name__ == "__main__":
     main()
