@@ -331,10 +331,10 @@ def main():
     # Replace multiple columns with one. 
 
     # Merge click and results.
-    merged_result_and_click = pd.merge(query_result_table, click_result_table,\
+    merged_result_and_click = pd.merge(query_result_table[['time','user_id','task_id',\
+            'query_id','page_id', 'doc_url','doc_pos','doc_type']], click_result_table,\
             left_on = ['user_id','task_id','query_id','page_id', 'doc_url'], \
             right_on =['user_id','task_id','query_id','page_id', 'doc_url'])
-    merged_result_and_click.to_csv('check_merged.csv');
     # Take the time difference of times.  
 
     
