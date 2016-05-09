@@ -82,6 +82,17 @@ def ReadDB(event_file):
     event_db = json.load(event_file)
     return event_db
 
+def FormatUrl(url):
+    # Just remove the last char /
+    if url[-1] == '/':
+        url = url[: -1]
+    if url.find('http://') == 0:
+        url = url[7:]
+    if url.find('https://') == 0:
+        url = url[8:]
+
+    return url
+
 # TODO
 # Some doc_url does not have queryid and pageid (e.g., https://m.youtube.com/watch?v=RZ_YOAlPJNY)
 # We use empty strings if we do not find any match
@@ -100,11 +111,11 @@ def BreakServerUrl(url):
 
 	doc_url = re.search(docurl_regex,url)
 	if not doc_url:
-		doc_url = ""
+		doc_url = url
 	else:
 		doc_url = doc_url.group(1)
 
-	return query_id, page_id, doc_url
+	return query_id, page_id, FormatUrl(doc_url)
 
 '''
 Convert an array of databases to a tsv. 
@@ -176,7 +187,7 @@ def FormatQueryResultDB(databases, dbcolumns, sort_keys ):
                     doc_prop = result[1]
 
                 doc_title = doc_prop['title']
-                doc_url = doc_prop['display_url']
+                doc_url = FormatUrl(doc_prop['external_url'])
                 new_entry = [entry , values['user_id'] , int(values['task_id']),\
                     int(values['query_id']), values['query_text'], int(values['page_id']), \
                     doc_pos, doc_type, doc_title, doc_url]
@@ -200,7 +211,7 @@ def FormatClickResultDB(databases, dbcolumns, sort_keys ):
             #"doc_url":"http://www.theplunge.com/bachelorparty/bachelor-party-ideas-2/"}
             new_entry = [entry , values['user_id'] , int(values['task_id']),\
                     int(values['query_id']),int(values['page_id']), \
-                    values['doc_id'],values['doc_url']]
+                    values['doc_id'],FormatUrl(values['doc_url'])]
             tsv_data.append(new_entry)
 
     # create a new data frame 
@@ -263,15 +274,18 @@ def main():
 
     # Format page response db
     page_response_table = FormatPageResponseDB(page_response_db, page_response_header, page_reponse_sortkeys)
-
+    
     # Format task response db
     task_response_table = FormatTaskResponseDB(task_response_db,task_response_header,task_response_sortkeys)
 
     # Format query result db
     query_result_table = FormatQueryResultDB(query_result_db,query_result_header,query_result_sortkeys)
-
+    #query_result_table.to_csv('query_result_table.csv', index = False,\
+    #        encoding='utf-8', sep='\t');
+    
     # Format click result db
     click_result_table = FormatClickResultDB(click_result_db,click_result_header,click_result_sortkeys)
+    
 
     # Remove test users
     page_response_table = page_response_table[~page_response_table['user_id'].str.contains('test')]
@@ -331,13 +345,20 @@ def main():
     # Replace multiple columns with one. 
 
     # Merge click and results.
+    query_result_table['doc_url'] = query_result_table['doc_url'].str.strip();
+    mod_click = click_result_table.groupby(['user_id', 'task_id',\
+        'query_id','page_id', 'doc_id' ,\
+        'doc_url']).min().reset_index().sort('time')
+    mod_click['doc_url'] = mod_click['doc_url'].str.strip();
+
     merged_result_and_click = pd.merge(query_result_table[['time','user_id','task_id',\
-            'query_id','page_id', 'doc_url','doc_pos','doc_type']], click_result_table,\
+            'query_id','page_id', 'doc_url','doc_pos','doc_type']],mod_click, \
             left_on = ['user_id','task_id','query_id','page_id', 'doc_url'], \
             right_on =['user_id','task_id','query_id','page_id', 'doc_url'])
-    # Take the time difference of times.  
 
-    
+    # Take the time difference of times.  
+    merged_result_and_click['time_diff']= merged_result_and_click['time_y']-\
+            merged_result_and_click['time_x']
 
     # j. task : first_click_position. Compute the list of ranks that were clicked first for task. 
     # task_id, doc_pos, #first_clicks
