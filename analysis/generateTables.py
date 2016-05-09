@@ -131,7 +131,8 @@ def FormatPageResponseDB(databases, dbcolumns, sort_keys ):
     # sort by time key
     tsv_frame = tsv_frame.sort(sort_keys)
 
-    return tsv_frame 
+    # Remove duplicate rows
+    return tsv_frame.drop_duplicates()
 
 def FormatTaskResponseDB(databases, dbcolumns, sort_keys ):
     tsv_data = []
@@ -150,7 +151,7 @@ def FormatTaskResponseDB(databases, dbcolumns, sort_keys ):
     # sort by time key
     tsv_frame = tsv_frame.sort(sort_keys)
 
-    return tsv_frame 
+    return tsv_frame.drop_duplicates()
 
 def FormatQueryResultDB(databases, dbcolumns, sort_keys ):
     tsv_data = []
@@ -187,7 +188,7 @@ def FormatQueryResultDB(databases, dbcolumns, sort_keys ):
     tsv_frame = pd.DataFrame(tsv_data, columns= dbcolumns)
     # sort by time key
     tsv_frame = tsv_frame.sort(sort_keys)
-    return tsv_frame 
+    return tsv_frame.drop_duplicates()
 
 def FormatClickResultDB(databases, dbcolumns, sort_keys ):
     tsv_data = []
@@ -207,7 +208,8 @@ def FormatClickResultDB(databases, dbcolumns, sort_keys ):
     # sort by time key
     tsv_frame = tsv_frame.sort(sort_keys)
 
-    return tsv_frame 
+    return tsv_frame.drop_duplicates()
+
 
 def main():
     parser = argparse.ArgumentParser(description='Find and plot statistics\
@@ -279,26 +281,35 @@ def main():
 
     # a. task : users. Compute the number of users who provided task feedback
     # task_id, #users_who_gave_feedback
-    task_response_table.groupby(['task_id']).agg({'user_id':pd.Series.nunique}).to_csv('task_feedback.csv')
+    task_response_table[['task_id','user_id']].groupby(['task_id']).\
+            agg({'user_id':pd.Series.nunique}).to_csv('task_feedback.csv')
 
     # b. task : user_impressions. Compute the number of users who executed a task.
     # task_id, #users_who_executed_task
-    page_response_table.groupby(['task_id']).agg({'user_id':pd.Series.nunique}).to_csv('task_execute.csv')
+    page_response_table[['task_id','user_id']].groupby(['task_id']).\
+            agg({'user_id':pd.Series.nunique}).to_csv('task_execute.csv')
 
     # c. task : vertical_views. Compute the number of times each vertical was shown as top result. 
     # Only consider query results in the first page (page_id==1)
     # Here we output counts for all the doc position in the first page
     # task_id, doc_type, doc_pos, #occurances
     query_results = query_result_table[query_result_table['page_id']==1]
-    query_results.groupby(['task_id','doc_type','doc_pos']).count().to_csv('vertical_pos.csv')
+    query_results[['task_id','doc_type','doc_pos']].groupby(\
+            ['task_id','doc_type','doc_pos']).\
+            count().to_csv('vertical_pos.csv')
 
     # d. task : queries. Compute the number of queries fired for the task.
     # task_id, #unique_queries
-    query_result_table.groupby(['task_id']).agg({'query_text':pd.Series.nunique}).to_csv('task_queries.csv')
+    queries_with_time= query_result_table[\
+            ['time','task_id','query_text']].drop_duplicates();
+    
+    queries_with_time.groupby(['task_id','query_text']).agg(\
+            {'query_text':pd.Series.count}).to_csv('task_queries.csv')
 
     # e. task : clicks. Compute the number of clicks for the task. 
     # task_id, click_url, #clicks
-    click_result_table.groupby(['task_id','doc_url']).count().to_csv('task_clicks.csv',encoding='utf-8',sep='\t')
+    click_result_table[['task_id','doc_url']].groupby(['task_id','doc_url']).\
+            count().to_csv('task_clicks.csv',encoding='utf-8',sep='\t')
 
     # f. task : time . Compute the time spent on doing each task.
 
@@ -306,9 +317,27 @@ def main():
     # ignore positions with double digits as they are nested clicks
     # doc_pos = (page_id - 1) * 10 + doc_id
     # task_id, doc_pos, #clicks
+    click_filtered = click_result_table[click_result_table['doc_id'].str.len()\
+            == 5]
+    click_filtered['doc_pos'] = (click_filtered['page_id'].astype(float) -\
+            1.0) + (click_filtered['doc_id'].str[4]).astype(float)    
+    # Filter the columns for count.
+    click_filtered[['task_id','doc_pos']].groupby(['task_id','doc_pos'])['doc_pos'].\
+            count().to_csv('task_rank_click_counts.csv', encoding = 'utf-8',\
+            sep = '\t')
 
     # h. task : time_to_first_click. Compute the time to first click for each
     # task. Compute mean and standard deviation. 
+    # Replace multiple columns with one. 
+
+    # Merge click and results.
+    merged_result_and_click = pd.merge(query_result_table, click_result_table,\
+            left_on = ['user_id','task_id','query_id','page_id', 'doc_url'], \
+            right_on =['user_id','task_id','query_id','page_id', 'doc_url'])
+    merged_result_and_click.to_csv('check_merged.csv');
+    # Take the time difference of times.  
+
+    
 
     # j. task : first_click_position. Compute the list of ranks that were clicked first for task. 
     # task_id, doc_pos, #first_clicks
