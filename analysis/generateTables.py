@@ -2,8 +2,9 @@ import argparse
 import pandas as pd
 import numpy as np
 import json
+import os
 import re
-
+from datetime import datetime
 # Construct several tables. 
 #               Find the distribution of following variables:
 #
@@ -127,6 +128,7 @@ def FormatPageResponseDB(databases, dbcolumns, sort_keys ):
     tsv_data = []
     for database in databases:
         for entry , values in database.items():
+            entry = datetime.fromtimestamp(float(entry)/1000)
 	    # Format of Page Response db
 	    # "time_stamp":{"user_id":"marzipan","task_id":"8",
 	    # "doc_url":"page=1&docid=aid_2&queryid=0&user=marzipan&task=8&docurl=url",
@@ -161,13 +163,13 @@ def FormatTaskResponseDB(databases, dbcolumns, sort_keys ):
     tsv_frame = pd.DataFrame(tsv_data, columns= dbcolumns)
     # sort by time key
     tsv_frame = tsv_frame.sort(sort_keys)
-
     return tsv_frame.drop_duplicates()
 
 def FormatQueryResultDB(databases, dbcolumns, sort_keys ):
     tsv_data = []
     for database in databases:
         for entry , values in database.items():
+            entry = datetime.fromtimestamp(float(entry)/1000)
             # Format of Query Result db
             # "time_stamp":{"user_id":"","query_id":4,"task_id":"4","query_text":"","page_id":1,"search_results":[["i",[{"title":"","external_url":"","display_url":"","thumbnail":""},{"title":"","external_url":"","display_url":"","thumbnail":""}...]],["o",{"title":"","desc":"","display_url":"","external_url":""}],["o",{"title":"","desc":"","display_url":"","external_url":""}]...]}
             search_results = values['search_results']
@@ -205,6 +207,7 @@ def FormatClickResultDB(databases, dbcolumns, sort_keys ):
     tsv_data = []
     for database in databases:
         for entry , values in database.items():
+            entry = datetime.fromtimestamp(float(entry)/1000)
             # Format of Click Result db
             #{"time_stamp":{"user_id":"marzipan","query_id":"0",
             #"page_id":"1","task_id":"8","doc_id":"aid_1",
@@ -221,6 +224,48 @@ def FormatClickResultDB(databases, dbcolumns, sort_keys ):
 
     return tsv_frame.drop_duplicates()
 
+
+def FindTimeToFirstClick(click_table, result_table):
+
+    # Find the first-result type for each tuple (query_id, task_id, user_id,
+    # page_id)
+    first_result_type =  result_table[result_table['doc_pos'] == 0]
+    first_result_type = first_result_type[['query_id','user_id','task_id',\
+            'page_id', 'doc_pos','doc_type']]
+
+    # Merge click and results. Will filter clicks whose origin was not serp. 
+    result_table['doc_url'] = result_table['doc_url'].str.strip();
+    click_table['doc_url'] = click_table['doc_url'].str.strip();
+
+    merged_result_and_click = pd.merge(result_table[['time','user_id','task_id',\
+            'query_id','page_id', 'doc_url','doc_pos','doc_type',]],click_table, \
+            left_on = ['user_id','task_id','query_id','page_id', 'doc_url'], \
+            right_on =['user_id','task_id','query_id','page_id', 'doc_url'])
+
+    # Take the time difference of times.  
+    merged_result_and_click['time_x'] =  pd.to_datetime(merged_result_and_click['time_x'],unit='s')
+    merged_result_and_click['time_y'] =  pd.to_datetime(merged_result_and_click['time_y'],unit='s')
+
+    merged_result_and_click['time_diff']= merged_result_and_click['time_y']-\
+            merged_result_and_click['time_x']
+
+    # Drop the times 
+    merged_result_and_click = merged_result_and_click.drop(['time_x'], axis = 1)
+
+    # Take the intersection.
+    all_clicks_with_result_type = pd.merge(merged_result_and_click,\
+            first_result_type, left_on = ['user_id','task_id','query_id',\
+            'page_id'], right_on = ['user_id','task_id','query_id',\
+            'page_id'])
+
+    # sort by time, task-id, user-id and query-id
+    all_clicks_with_result_type = all_clicks_with_result_type.sort(\
+            ['time_y','user_id','task_id','query_id']);
+    all_clicks_with_result_type.to_csv('all_clicks_with_result_type.csv',
+            encoding = 'utf-8', sep = '\t', index = False)
+
+    # Just select the first and last entry for each combination (task_id,
+    # query_id, user_id, and page_id)
 
 def main():
     parser = argparse.ArgumentParser(description='Find and plot statistics\
@@ -279,50 +324,53 @@ def main():
     task_response_table = FormatTaskResponseDB(task_response_db,task_response_header,task_response_sortkeys)
 
     # Format query result db
-    query_result_table = FormatQueryResultDB(query_result_db,query_result_header,query_result_sortkeys)
-    #query_result_table.to_csv('query_result_table.csv', index = False,\
-    #        encoding='utf-8', sep='\t');
+    query_table = FormatQueryResultDB(query_result_db,query_result_header,query_result_sortkeys)
+    query_table.to_csv('query_table.csv', index = False,\
+            encoding='utf-8', sep='\t');
     
     # Format click result db
-    click_result_table = FormatClickResultDB(click_result_db,click_result_header,click_result_sortkeys)
+    click_table = FormatClickResultDB(click_result_db,click_result_header,click_result_sortkeys)
+    click_table.to_csv('click_table.csv', index = False,\
+            encoding='utf-8', sep='\t');
     
 
     # Remove test users
     page_response_table = page_response_table[~page_response_table['user_id'].str.contains('test')]
     task_response_table = task_response_table[~task_response_table['user_id'].str.contains('test')]
-    query_result_table = query_result_table[~query_result_table['user_id'].str.contains('test')]
-    click_result_table = click_result_table[~click_result_table['user_id'].str.contains('test')]
+    query_table = query_table[~query_table['user_id'].str.contains('test')]
+    click_table = click_table[~click_table['user_id'].str.contains('test')]
 
     # a. task : users. Compute the number of users who provided task feedback
     # task_id, #users_who_gave_feedback
     task_response_table[['task_id','user_id']].groupby(['task_id']).\
-            agg({'user_id':pd.Series.nunique}).to_csv('task_feedback.csv')
+            agg({'user_id': pd.Series.nunique}).to_csv('task_feedback.csv')
 
     # b. task : user_impressions. Compute the number of users who executed a task.
     # task_id, #users_who_executed_task
     page_response_table[['task_id','user_id']].groupby(['task_id']).\
-            agg({'user_id':pd.Series.nunique}).to_csv('task_execute.csv')
+            agg({'user_id': pd.Series.nunique}).to_csv('task_execute.csv')
 
     # c. task : vertical_views. Compute the number of times each vertical was shown as top result. 
     # Only consider query results in the first page (page_id==1)
     # Here we output counts for all the doc position in the first page
     # task_id, doc_type, doc_pos, #occurances
-    query_results = query_result_table[query_result_table['page_id']==1]
-    query_results[['task_id','doc_type','doc_pos']].groupby(\
-            ['task_id','doc_type','doc_pos']).\
+    query_results = query_table[(query_table['page_id']==1) & \
+            (query_table['doc_pos'] == 0)]
+    query_results[['task_id','doc_type']].groupby(\
+            ['task_id','doc_type']).\
             count().to_csv('vertical_pos.csv')
 
     # d. task : queries. Compute the number of queries fired for the task.
     # task_id, #unique_queries
-    queries_with_time= query_result_table[\
+    queries_with_time= query_table[\
             ['time','task_id','query_text']].drop_duplicates();
     
     queries_with_time.groupby(['task_id','query_text']).agg(\
-            {'query_text':pd.Series.count}).to_csv('task_queries.csv')
+            {'query_text': pd.Series.count}).to_csv('task_queries.csv')
 
     # e. task : clicks. Compute the number of clicks for the task. 
     # task_id, click_url, #clicks
-    click_result_table[['task_id','doc_url']].groupby(['task_id','doc_url']).\
+    click_table[['task_id','doc_url']].groupby(['task_id','doc_url']).\
             count().to_csv('task_clicks.csv',encoding='utf-8',sep='\t')
 
     # f. task : time . Compute the time spent on doing each task.
@@ -331,7 +379,7 @@ def main():
     # ignore positions with double digits as they are nested clicks
     # doc_pos = (page_id - 1) * 10 + doc_id
     # task_id, doc_pos, #clicks
-    click_filtered = click_result_table[click_result_table['doc_id'].str.len()\
+    click_filtered = click_table[click_table['doc_id'].str.len()\
             == 5]
     click_filtered['doc_pos'] = (click_filtered['page_id'].astype(float) -\
             1.0) + (click_filtered['doc_id'].str[4]).astype(float)    
@@ -340,26 +388,12 @@ def main():
             count().to_csv('task_rank_click_counts.csv', encoding = 'utf-8',\
             sep = '\t')
 
+    FindTimeToFirstClick(click_table, query_table);
+
     # h. task : time_to_first_click. Compute the time to first click for each
     # task. Compute mean and standard deviation. 
     # Replace multiple columns with one. 
-
-    # Merge click and results.
-    query_result_table['doc_url'] = query_result_table['doc_url'].str.strip();
-    mod_click = click_result_table.groupby(['user_id', 'task_id',\
-        'query_id','page_id', 'doc_id' ,\
-        'doc_url']).min().reset_index().sort('time')
-    mod_click['doc_url'] = mod_click['doc_url'].str.strip();
-
-    merged_result_and_click = pd.merge(query_result_table[['time','user_id','task_id',\
-            'query_id','page_id', 'doc_url','doc_pos','doc_type']],mod_click, \
-            left_on = ['user_id','task_id','query_id','page_id', 'doc_url'], \
-            right_on =['user_id','task_id','query_id','page_id', 'doc_url'])
-
-    # Take the time difference of times.  
-    merged_result_and_click['time_diff']= merged_result_and_click['time_y']-\
-            merged_result_and_click['time_x']
-
+    
     # j. task : first_click_position. Compute the list of ranks that were clicked first for task. 
     # task_id, doc_pos, #first_clicks
 
