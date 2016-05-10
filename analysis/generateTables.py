@@ -266,6 +266,14 @@ def FindTimeToFirstClick(click_table, result_table):
 
     # Just select the first and last entry for each combination (task_id,
     # query_id, user_id, and page_id)
+    first_clicks_with_result_type = all_clicks_with_result_type.groupby(['task_id',\
+        'user_id','query_id','page_id','doc_pos_x']).agg({'time_y':min})
+    first_clicks_with_result_type.to_csv('first_clicks.csv')
+
+    last_clicks_with_result_type = all_clicks_with_result_type.groupby(['task_id',\
+        'user_id','query_id','page_id','doc_pos_x']).agg({'time_y':max})
+    last_clicks_with_result_type.to_csv('last_clicks.csv')
+
 
 def main():
     parser = argparse.ArgumentParser(description='Find and plot statistics\
@@ -396,6 +404,7 @@ def main():
     
     # j. task : first_click_position. Compute the list of ranks that were clicked first for task. 
     # task_id, doc_pos, #first_clicks
+
 
     # k. task : last_click_position. Compute the ranks that were clicked last for
     # each task. 
