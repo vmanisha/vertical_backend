@@ -65,6 +65,7 @@ click_result_header = ['time','user_id','task_id','query_id','page_id','doc_id',
 # Click result table sortkeys
 click_result_sortkeys = ['time','task_id']
 
+TASKMAP = {'Somewhat Satisfied': 2.0, 'Highly Satisfied': 3.0, 'Not Satisfied' : 1.0}
 
 def FindTimeToFirstClick(click_table, result_table):
 
@@ -119,9 +120,16 @@ def FindDescriptiveStatsPerVertical(result_table, click_table, page_table,\
     page_table['type'] = 'page_response'
     task_table['type'] = 'task_response'
     user_stats = {}
-    vertical_stats = {'Image' : {'sess':0.0, 'queries': [], 'clicks':[]}, \
-                      'Video' : {'sess':0.0, 'queries': [], 'clicks':[]}, \
-                      'Wiki' :  {'sess':0.0, 'queries': [], 'clicks':[]}, }
+    vertical_stats = {
+            'i' : {'sess':0.0, 'query': [], 'clicks':[], 'page_rel':[],\
+                'page_sat':[], 'task_sat':[]}, \
+            'v' : {'sess':0.0, 'query': [], 'clicks':[], 'page_rel': [],\
+                'page_sat':[], 'task_sat':[]}, \
+            'o' : {'sess':0.0, 'query': [], 'clicks':[], 'page_rel':[],\
+                'page_sat':[], 'task_sat':[]}, \
+            'w' :  {'sess':0.0, 'query': [], 'clicks':[],'page_sat':[],\
+                'page_rel':[],'task_sat':[]}
+    }
     
     # Concatinate all tables. Keep only the first result. 
     # values not present will be N/A
@@ -138,23 +146,69 @@ def FindDescriptiveStatsPerVertical(result_table, click_table, page_table,\
             user_stats[user] = []
         if task not in user_stats[user]:
             user_stats[user].append(task)
+
         last_time = None
+        sess = 0.0
+        queries = 0.0
+        clicks = {}
+        page_sat = {}
+        page_rel = {}
+        task_sat = []
+        doc_type = None
+        n_task_response = 0.0
+
         for index, row in group.iterrows():
-            print row['type']
             if row['type'] == 'results':
                 if last_time == None:
                     # First query for task
                     last_time = row['time']
-                else:
-                    # check the difference between last session time.
-                    time_diff = row['time'] - last_time
-                    print time_diff.total_minutes()
-                    break
-        break
-                    
-            # Count sessions, queries and clicks.
-    # Count mean and std-dev of page responses and task responses.
+                    # Increment sessions.
+                    sess+=1.0
+                    doc_type = str(row['doc_type']).strip()
+                # Record queries. 
+                queries +=1.0
+            
+            if row['type'] == 'click':
+                # Record only one click per url. 
+                clicks[row['doc_url']] = 1.0
 
+            # Not serp. 
+            if (row['type'] == 'page_response') and ('128.16.12.66' not in\
+                    row['doc_url']):
+                if row['response_type'] == 'relevance':
+                    # Record only last relevance label. 
+                    page_rel[row['doc_url']] = float(row['response_value'])
+                    # Record only one click per url. 
+                    clicks[row['doc_url']] = 1.0
+                
+                if row['response_type'] == 'satisfaction':
+                    page_sat[row['doc_url']] = float(row['response_value'])
+            
+            # Add to database 
+            if (row['type'] == 'task_response') and (row['response_type'] ==\
+                    'satisfaction'):
+                if doc_type:
+                    if n_task_response > 0:
+                        print 'ERROR :',user, 'did task more than once?', task
+                    vertical_stats[doc_type]['sess'] += sess
+                    vertical_stats[doc_type]['query'].append(queries)
+                    vertical_stats[doc_type]['clicks'].append(sum(clicks.values()))
+                    vertical_stats[doc_type]['page_sat'].extend(page_sat.values())
+                    vertical_stats[doc_type]['page_rel'].extend(page_rel.values())
+                    vertical_stats[doc_type]['task_sat'].append(TASKMAP[row['response_value']])
+                else:
+                    print 'There was no search in the beginning!', task,user,\
+                    index
+                n_task_response+=1.0
+   
+    # Count mean and std-dev of page responses and task responses.
+    for vertical_type, stat_dict in vertical_stats.items():
+        print vertical_type , stat_dict['sess'], np.mean(stat_dict['query']),\
+            round(np.std(stat_dict['query']),2), np.mean(stat_dict['clicks']),\
+            round(np.std(stat_dict['clicks']),2),np.mean(stat_dict['page_rel']),\
+            round(np.std(stat_dict['page_rel']),2),np.mean(stat_dict['page_sat']),\
+            round(np.std(stat_dict['page_sat']),2),np.mean(stat_dict['task_sat']),\
+            round(np.std(stat_dict['task_sat']),2)
 
 
 
