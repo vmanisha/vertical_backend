@@ -5,6 +5,8 @@ import json
 import os
 import re
 from datetime import datetime
+from formatTables import *
+
 # Construct several tables. 
 #               Find the distribution of following variables:
 #
@@ -42,22 +44,6 @@ from datetime import datetime
 #   each task given a vertical was shown on top. 
 #------------------------------------------------------------------------------
 
-# TODO:
-# Remove repeated clicks for the same document
-
-# Query pattern to extract from server url.
-query_id_pattern = 'queryid=(.*?)&'
-query_id_regex = re.compile(query_id_pattern)
-
-# Query pattern to extract from server url.
-page_id_pattern = 'page=(.*?)&'
-page_id_regex = re.compile(page_id_pattern)
-
-# Query pattern to extract from server url.
-docurl_pattern = 'docurl=(.*)'
-docurl_regex = re.compile(docurl_pattern)
-
-
 # Page response table header
 page_response_header = ['time','user_id','task_id','query_id','page_id',\
 	'doc_url','response_type','response_value']
@@ -78,151 +64,6 @@ query_result_sortkeys = ['time','task_id','query_text','doc_pos']
 click_result_header = ['time','user_id','task_id','query_id','page_id','doc_id','doc_url']
 # Click result table sortkeys
 click_result_sortkeys = ['time','task_id']
-
-def ReadDB(event_file):
-    event_db = json.load(event_file)
-    return event_db
-
-def FormatUrl(url):
-    # Just remove the last char /
-    if url[-1] == '/':
-        url = url[: -1]
-    if url.find('http://') == 0:
-        url = url[7:]
-    if url.find('https://') == 0:
-        url = url[8:]
-
-    return url
-
-# TODO
-# Some doc_url does not have queryid and pageid (e.g., https://m.youtube.com/watch?v=RZ_YOAlPJNY)
-# We use empty strings if we do not find any match
-def BreakServerUrl(url):
-	query_id = re.search(query_id_regex,url)
-	if not query_id:
-		query_id = -1
-	else:
-		query_id = query_id.group(1)
-
-	page_id = re.search(page_id_regex, url)
-	if not page_id:
-		page_id = -1
-	else:
-		page_id = page_id.group(1)
-
-	doc_url = re.search(docurl_regex,url)
-	if not doc_url:
-		doc_url = url
-	else:
-		doc_url = doc_url.group(1)
-
-	return query_id, page_id, FormatUrl(doc_url)
-
-'''
-Convert an array of databases to a tsv. 
-@databases can be an array of Json objects.
-@columns is the column header to assign to pandas object.
-
-'''
-def FormatPageResponseDB(databases, dbcolumns, sort_keys ):
-    tsv_data = []
-    for database in databases:
-        for entry , values in database.items():
-            entry = datetime.fromtimestamp(float(entry)/1000)
-	    # Format of Page Response db
-	    # "time_stamp":{"user_id":"marzipan","task_id":"8",
-	    # "doc_url":"page=1&docid=aid_2&queryid=0&user=marzipan&task=8&docurl=url",
-	    # "response_type":"relevance","response_value":"5.0"},
-	    query_id, page_id, doc_url = BreakServerUrl(values['doc_url'])
-	    new_entry = [entry , values['user_id'] , int(values['task_id']),\
-		int(query_id), int(page_id), doc_url, values['response_type'], \
-                values['response_value']]
-	    tsv_data.append(new_entry)
-
-    # create a new data frame 
-    tsv_frame = pd.DataFrame(tsv_data, columns= dbcolumns)
-    # sort by time key
-    tsv_frame = tsv_frame.sort(sort_keys)
-
-    # Remove duplicate rows
-    return tsv_frame.drop_duplicates()
-
-def FormatTaskResponseDB(databases, dbcolumns, sort_keys ):
-    tsv_data = []
-    for database in databases:
-        for entry , values in database.items():
-	    # Format of Task Response db
-	    # "time_stamp":{"user_id":"marzipan","task_id":"8",
-	    # "response_type":"preferred_verticals",
-	    # "response_value":"Images , Wiki , General Web"}
-	    new_entry = [entry , values['user_id'] , int(values['task_id']),\
-                values['response_type'],values['response_value']]
-	    tsv_data.append(new_entry)
-
-    # create a new data frame 
-    tsv_frame = pd.DataFrame(tsv_data, columns= dbcolumns)
-    # sort by time key
-    tsv_frame = tsv_frame.sort(sort_keys)
-    return tsv_frame.drop_duplicates()
-
-def FormatQueryResultDB(databases, dbcolumns, sort_keys ):
-    tsv_data = []
-    for database in databases:
-        for entry , values in database.items():
-            entry = datetime.fromtimestamp(float(entry)/1000)
-            # Format of Query Result db
-            # "time_stamp":{"user_id":"","query_id":4,"task_id":"4","query_text":"","page_id":1,"search_results":[["i",[{"title":"","external_url":"","display_url":"","thumbnail":""},{"title":"","external_url":"","display_url":"","thumbnail":""}...]],["o",{"title":"","desc":"","display_url":"","external_url":""}],["o",{"title":"","desc":"","display_url":"","external_url":""}]...]}
-            search_results = values['search_results']
-
-            # The documents are stored in the order in which
-            # they are displayed on the search results page.
-            doc_pos = 0
-            for result in search_results:
-                doc_type = result[0]
-
-                # All verticals have only one result except image
-                # In case of image vertical we show multiple images
-                # so pick the first image and ignore the rest
-                if (doc_type == 'i'):
-                    doc_prop = result[1][0]
-                else:
-                    doc_prop = result[1]
-
-                doc_title = doc_prop['title']
-                doc_url = FormatUrl(doc_prop['external_url'])
-                new_entry = [entry , values['user_id'] , int(values['task_id']),\
-                    int(values['query_id']), values['query_text'], int(values['page_id']), \
-                    doc_pos, doc_type, doc_title, doc_url]
-                tsv_data.append(new_entry)
-
-                # Document position starts with zero
-                doc_pos = doc_pos + 1
-    # create a new data frame 
-    tsv_frame = pd.DataFrame(tsv_data, columns= dbcolumns)
-    # sort by time key
-    tsv_frame = tsv_frame.sort(sort_keys)
-    return tsv_frame.drop_duplicates()
-
-def FormatClickResultDB(databases, dbcolumns, sort_keys ):
-    tsv_data = []
-    for database in databases:
-        for entry , values in database.items():
-            entry = datetime.fromtimestamp(float(entry)/1000)
-            # Format of Click Result db
-            #{"time_stamp":{"user_id":"marzipan","query_id":"0",
-            #"page_id":"1","task_id":"8","doc_id":"aid_1",
-            #"doc_url":"http://www.theplunge.com/bachelorparty/bachelor-party-ideas-2/"}
-            new_entry = [entry , values['user_id'] , int(values['task_id']),\
-                    int(values['query_id']),int(values['page_id']), \
-                    values['doc_id'],FormatUrl(values['doc_url'])]
-            tsv_data.append(new_entry)
-
-    # create a new data frame 
-    tsv_frame = pd.DataFrame(tsv_data, columns= dbcolumns)
-    # sort by time key
-    tsv_frame = tsv_frame.sort(sort_keys)
-
-    return tsv_frame.drop_duplicates()
 
 
 def FindTimeToFirstClick(click_table, result_table):
@@ -266,13 +107,71 @@ def FindTimeToFirstClick(click_table, result_table):
 
     # Just select the first and last entry for each combination (task_id,
     # query_id, user_id, and page_id)
-    first_clicks_with_result_type = all_clicks_with_result_type.groupby(['task_id',\
-        'user_id','query_id','page_id','doc_pos_x']).agg({'time_y':min})
-    first_clicks_with_result_type.to_csv('first_clicks.csv')
 
-    last_clicks_with_result_type = all_clicks_with_result_type.groupby(['task_id',\
-        'user_id','query_id','page_id','doc_pos_x']).agg({'time_y':max})
-    last_clicks_with_result_type.to_csv('last_clicks.csv')
+def FindDescriptiveStatsPerVertical(result_table, click_table, page_table,\
+        task_table):
+    # Find the following stats per vertical: 
+    # Image Video Wiki : sess, queries, clicks, page-response and
+    # task-responses.
+
+    result_table['type'] = 'results'
+    click_table['type'] = 'click'
+    page_table['type'] = 'page_response'
+    task_table['type'] = 'task_response'
+    user_stats = {}
+    vertical_stats = {'Image' : {'sess':0.0, 'queries': [], 'clicks':[]}, \
+                      'Video' : {'sess':0.0, 'queries': [], 'clicks':[]}, \
+                      'Wiki' :  {'sess':0.0, 'queries': [], 'clicks':[]}, }
+    
+    # Concatinate all tables. Keep only the first result. 
+    # values not present will be N/A
+    result_first = result_table[result_table['doc_pos'] == 0]
+    concat_table = pd.concat([result_first, click_table, page_table,\
+        task_table], ignore_index = True)
+   
+    # Group by task_id and query_id and Sort by time within each group. 
+    grouped_table = concat_table.sort(['time']).groupby(['task_id','user_id'])
+    for name, group in grouped_table:
+        user = name[1]
+        task = name[0]
+        if user not in user_stats:
+            user_stats[user] = []
+        if task not in user_stats[user]:
+            user_stats[user].append(task)
+        last_time = None
+        for index, row in group.iterrows():
+            print row['type']
+            if row['type'] == 'results':
+                if last_time == None:
+                    # First query for task
+                    last_time = row['time']
+                else:
+                    # check the difference between last session time.
+                    time_diff = row['time'] - last_time
+                    print time_diff.total_minutes()
+                    break
+        break
+                    
+            # Count sessions, queries and clicks.
+    # Count mean and std-dev of page responses and task responses.
+
+
+
+
+
+def LoadDatabase(filename, isFolder):
+    database = []
+
+    if not isFolder:
+        db = json.load(open(filename,'r'))
+        database.append(p_db)
+
+    else:
+        for ifile in os.listdir(filename):
+            db = json.load(open(filename+'/'+ifile,'r'))
+            database.append(db)
+        
+    return database
 
 
 def main():
@@ -290,40 +189,10 @@ def main():
     is in one file or files in one folder',action='store_true')
 
     arg = parser.parse_args()
-    page_response_db = []
-    task_response_db = []
-    query_result_db = []
-    click_result_db = []
-
-    # If a single event and response db file
-    if not arg.isFolder:
-        p_db = ReadDB(open(arg.pageResponseDB,'r'))
-        page_response_db.append(p_db)
-
-        t_db = ReadDB(open(arg.taskResponseDB,'r'))
-        task_response_db.append(t_db)
-
-        q_db = ReadDB(open(arg.queryResultDB,'r'))
-        query_result_db.append(q_db)
-
-        c_db = ReadDB(open(arg.clickResultDB,'r'))
-        click_result_db.append(c_db)
-    else:
-        for pfile in os.listdir(arg.pageResponseDB):
-            p_db = ReadDB(open(arg.pageResponseDB+'/'+pfile,'r'))
-            page_response_db.append(p_db)
-        
-        for tfile in os.listdir(arg.taskResponseDB):
-            t_db = ReadDB(open(arg.taskResponseDB+'/'+tfile,'r'))
-            task_response_db.append(t_db)
-
-        for qfile in os.listdir(arg.queryResultDB):
-            q_db = ReadDB(open(arg.queryResultDB+'/'+qfile,'r'))
-            query_result_db.append(q_db)
-
-        for cfile in os.listdir(arg.clickResultDB):
-            c_db = ReadDB(open(arg.clickResultDB+'/'+cfile,'r'))
-            click_result_db.append(c_db)            
+    page_response_db =  LoadDatabase(arg.pageResponseDB, arg.isFolder)
+    task_response_db = LoadDatabase(arg.taskResponseDB,arg.isFolder)
+    query_result_db = LoadDatabase(arg.queryResultDB,arg.isFolder)
+    click_result_db = LoadDatabase(arg.clickResultDB,arg.isFolder)
 
     # Format page response db
     page_response_table = FormatPageResponseDB(page_response_db, page_response_header, page_reponse_sortkeys)
@@ -333,14 +202,9 @@ def main():
 
     # Format query result db
     query_table = FormatQueryResultDB(query_result_db,query_result_header,query_result_sortkeys)
-    query_table.to_csv('query_table.csv', index = False,\
-            encoding='utf-8', sep='\t');
     
     # Format click result db
     click_table = FormatClickResultDB(click_result_db,click_result_header,click_result_sortkeys)
-    click_table.to_csv('click_table.csv', index = False,\
-            encoding='utf-8', sep='\t');
-    
 
     # Remove test users
     page_response_table = page_response_table[~page_response_table['user_id'].str.contains('test')]
@@ -397,6 +261,11 @@ def main():
             sep = '\t')
 
     FindTimeToFirstClick(click_table, query_table);
+    FindDescriptiveStatsPerVertical(query_table, click_table,\
+            page_response_table, task_response_table)
+
+
+    
 
     # h. task : time_to_first_click. Compute the time to first click for each
     # task. Compute mean and standard deviation. 
@@ -404,7 +273,6 @@ def main():
     
     # j. task : first_click_position. Compute the list of ranks that were clicked first for task. 
     # task_id, doc_pos, #first_clicks
-
 
     # k. task : last_click_position. Compute the ranks that were clicked last for
     # each task. 
