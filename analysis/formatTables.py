@@ -6,7 +6,7 @@ import json
 import os
 import re
 from datetime import datetime
-
+import urllib
 # Query pattern to extract from server url.
 query_id_pattern = 'queryid=(.*?)&'
 query_id_regex = re.compile(query_id_pattern)
@@ -29,6 +29,20 @@ def FormatUrl(url):
         url = url[8:]
 
     return url
+
+# Always on serp
+def BreakEventUrl(url):
+        url_split = url.split('&')
+        query = None
+        user = None
+        task = None
+        page = None
+        if len(url_split) == 4:
+            query = url_split[0][url_split[0].rfind('=')+1:].replace('+',' ')
+            user =  url_split[1][url_split[1].rfind('=')+1:]  
+            task =  url_split[2][url_split[2].rfind('=')+1:]  
+            page =  url_split[3][url_split[3].rfind('=')+1:]  
+	return user, task, page, query
 
 # Some doc_url does not have queryid and pageid 
 # (e.g., https://m.youtube.com/watch?v=RZ_YOAlPJNY)
@@ -69,6 +83,7 @@ def FormatPageResponseDB(databases, dbcolumns, sort_keys ):
 	    # "doc_url":"page=1&docid=aid_2&queryid=0&user=marzipan&task=8&docurl=url",
 	    # "response_type":"relevance","response_value":"5.0"},
 	    query_id, page_id, doc_url = BreakServerUrl(values['doc_url'])
+            doc_url = urllib.unquote(urllib.unquote(doc_url))
 	    new_entry = [entry , values['user_id'] , int(values['task_id']),\
 		int(query_id), int(page_id), doc_url, values['response_type'], \
                 values['response_value']]
@@ -86,14 +101,14 @@ def FormatTaskResponseDB(databases, dbcolumns, sort_keys ):
     tsv_data = []
     for database in databases:
         for entry , values in database.items():
-			entry = datetime.fromtimestamp(float(entry)/1000)
-			# Format of Task Response db
-	    	# "time_stamp":{"user_id":"marzipan","task_id":"8",
-	    	# "response_type":"preferred_verticals",
-	    	# "response_value":"Images , Wiki , General Web"}
-			new_entry = [entry , values['user_id'] , int(values['task_id']),\
-                values['response_type'],values['response_value']]
-			tsv_data.append(new_entry)
+            entry = datetime.fromtimestamp(float(entry)/1000)
+            # Format of Task Response db
+            # "time_stamp":{"user_id":"marzipan","task_id":"8",
+            # "response_type":"preferred_verticals",
+            # "response_value":"Images , Wiki , General Web"}
+            new_entry = [entry , values['user_id'] , int(values['task_id']),\
+            values['response_type'],values['response_value']]
+            tsv_data.append(new_entry)
 
     # create a new data frame 
     tsv_frame = pd.DataFrame(tsv_data, columns= dbcolumns)
@@ -153,6 +168,33 @@ def FormatClickResultDB(databases, dbcolumns, sort_keys ):
                     values['doc_id'],FormatUrl(values['doc_url'])]
             tsv_data.append(new_entry)
 
+    # create a new data frame 
+    tsv_frame = pd.DataFrame(tsv_data, columns= dbcolumns)
+    # sort by time key
+    tsv_frame = tsv_frame.sort(sort_keys)
+
+    return tsv_frame.drop_duplicates()
+
+
+def ProcessEventValueDict(event_value):
+    # Contains html, prop and visible elements
+    # Leave the html for now. 
+    split = event_value['prop'].split(' ')
+    return  split[9]
+
+def FormatEventDB(databases, dbcolumns, sort_keys):
+    tsv_data= []
+    for database in databases:
+        for entry , values in database.items():
+            entry = datetime.fromtimestamp(float(entry)/1000)
+	    user, task, page, query = BreakEventUrl(values['doc_url'])
+            if (query and user and task and page) and (values['event_type'] == 'tap'):
+                element_tap = ProcessEventValueDict(values['event_value'])
+                new_entry = [entry , user , int(task), query, int(page), \
+                    values['event_type'], element_tap ]
+            
+                tsv_data.append(new_entry)
+             
     # create a new data frame 
     tsv_frame = pd.DataFrame(tsv_data, columns= dbcolumns)
     # sort by time key
