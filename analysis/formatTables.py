@@ -23,11 +23,15 @@ def FormatUrl(url):
     # Just remove the last char /
     if url[-1] == '/':
         url = url[: -1]
+    '''
     if url.find('http://') == 0:
         url = url[7:]
     if url.find('https://') == 0:
         url = url[8:]
-
+    '''
+    print url
+    url = url[url.find('.')+1:]
+    print url
     return url
 
 # Always on serp
@@ -83,7 +87,7 @@ def FormatPageResponseDB(databases, dbcolumns, sort_keys ):
 	    # "doc_url":"page=1&docid=aid_2&queryid=0&user=marzipan&task=8&docurl=url",
 	    # "response_type":"relevance","response_value":"5.0"},
 	    query_id, page_id, doc_url = BreakServerUrl(values['doc_url'])
-            doc_url = urllib.unquote(urllib.unquote(doc_url))
+            doc_url = FormatUrl(urllib.unquote(urllib.unquote(doc_url)))
 	    new_entry = [entry , values['user_id'] , int(values['task_id']),\
 		int(query_id), int(page_id), doc_url, values['response_type'], \
                 values['response_value']]
@@ -142,7 +146,7 @@ def FormatQueryResultDB(databases, dbcolumns, sort_keys ):
                 doc_title = doc_prop['title']
                 doc_url = FormatUrl(doc_prop['external_url'])
                 new_entry = [entry , values['user_id'] , int(values['task_id']),\
-                    int(values['query_id']), values['query_text'], int(values['page_id']), \
+                    int(values['query_id']), values['query_text'].strip(), int(values['page_id']), \
                     doc_pos, doc_type, doc_title, doc_url]
                 tsv_data.append(new_entry)
 
@@ -215,7 +219,7 @@ def ProcessEventValueDict(event_value):
     # Contains html, prop and visible elements
     # Leave the html for now. 
     split = event_value['prop'].split(' ')
-    return  split[9]
+    return  int(split[9][split[9].rfind('_')+1:])
 
 def FormatEventDB(databases, dbcolumns, sort_keys):
     tsv_data= []
@@ -225,9 +229,8 @@ def FormatEventDB(databases, dbcolumns, sort_keys):
 	    user, task, page, query = BreakEventUrl(values['doc_url'])
             if (query and user and task and page) and (values['event_type'] == 'tap'):
                 element_tap = ProcessEventValueDict(values['event_value'])
-                new_entry = [entry , user , int(task), query, int(page), \
+                new_entry = [entry , user , int(task), query.strip(), int(page), \
                     values['event_type'], element_tap ]
-            
                 tsv_data.append(new_entry)
              
     # create a new data frame 
