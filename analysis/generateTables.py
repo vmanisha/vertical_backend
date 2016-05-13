@@ -7,25 +7,25 @@ import re
 from datetime import datetime
 from formatTables import *
 
-# Construct several tables. 
+# Construct several tables.
 #               Find the distribution of following variables:
 #
 #   a. task : users. Compute the number of users who provided task feedback
 #   b. task : user_impressions. Compute the number of users who executed task.
 #-----------------------------------------------------------------------------
-#   c. vertical_type : vertical_views. Compute the number of times each vertical 
-#       was shown as top result. 
+#   c. vertical_type : vertical_views. Compute the number of times each vertical
+#       was shown as top result.
 #   d. vertical_type : queries. Compute the number of queries fired for the vertical_type.
-#   e. vertical_type : clicks. Compute the number of clicks for the vertical_type. 
+#   e. vertical_type : clicks. Compute the number of clicks for the vertical_type.
 #   f. vertical_type : time . Compute the time spent on doing each vertical_type.
 #   g. vertical_type : click_ranks. Compute the number of times a position was clicked
-#   on a rank (remember to take page_number into account). 
+#   on a rank (remember to take page_number into account).
 #   h. vertical_type : time_to_first_click. Compute the time to first click for each
-#   vertical_type. Compute mean and standard deviation. 
+#   vertical_type. Compute mean and standard deviation.
 #   j. vertical_type : first_click_position. Compute the list of ranks that were clicked
-#   first for vertical_type. 
+#   first for vertical_type.
 #   k. vertical_type : last_click_position. Compute the ranks that were clicked last for
-#   each vertical_type. 
+#   each vertical_type.
 #------------------------------------------------------------------------------
 
 # Page response table header
@@ -40,7 +40,7 @@ task_response_header = ['time','user_id','task_id','response_type','response_val
 task_response_sortkeys = ['time','task_id']
 
 # Query result table header
-query_result_header = ['time','user_id','task_id','query_id','query_text','page_id','doc_pos','doc_type','doc_title','doc_url']
+query_result_header =['time','user_id','task_id','query_id','query_text','page_id','doc_pos','doc_type','doc_url']
 # Query result table sortkeys
 query_result_sortkeys = ['time','task_id','query_text','doc_pos']
 
@@ -63,121 +63,138 @@ def MergeAllTables(result_table, click_table, event_table, page_table, task_tabl
     page_table['type'] = 'page_response'
     task_table['type'] = 'task_response'
     event_table['type'] = 'event_response'
-    
-    # Concatinate all tables. Keep only the first result. 
+
+    # Concatinate all tables. Keep only the first result.
     # values not present will be N/A
     # result_first = result_table[result_table['doc_pos'] == 0]
-    concat_table = pd.concat([result_first, click_table,event_table, page_table,\
+    concat_table = pd.concat([result_table, click_table,event_table, page_table,\
         task_table], ignore_index = True)
-    concat_table = concat_table.drop(['doc_title'], axis = 1)
+    concat_table.to_csv('concat_tables.csv', index = False, encoding = 'utf-8')
     return concat_table
 
-'''
+
 def FindFirstAndLastClickInfo(concat_table):
-    # Groupby task_id, user_id. 
-    # For each result type:
-    # Record time to first click
-    # Record time to last click 
-    # (Image and video clicks would not have been recorded !) 
-    # Can we use page response proxy?
-    user_stats = {}
-    not_registered_clicks = 0.0
+    # For each result type: Record time to first click, Record time to last click
+    # (Image and video clicks would not have been recorded ! Use taps. 
+
     vertical_stats = {
             'i' : { 'first_click': [], 'first_rank':[], 'last_click':[],\
                    'last_rank':[], 'total_clicks':0.0, 'off_vert_click':0.0,\
-                   'off_vert_rank':[] }, \
+                   'off_vert_rank':[], 'on_vert_click':0.0 }, \
             'v' : { 'first_click': [], 'first_rank':[], 'last_click':[],\
                    'last_rank':[], 'total_clicks':0.0, 'off_vert_click':0.0,\
-                   'off_vert_rank':[] }, \
+                   'off_vert_rank':[],'on_vert_click':0.0 }, \
             'w' : { 'first_click': [], 'first_rank':[], 'last_click':[],\
                    'last_rank':[], 'total_clicks':0.0, 'off_vert_click':0.0,\
-                   'off_vert_rank':[]  }, \
+                   'off_vert_rank':[], 'on_vert_click':0.0  }, \
             'o' : { 'first_click': [], 'first_rank':[], 'last_click':[],\
                    'last_rank':[], 'total_clicks':0.0, 'off_vert_click':0.0,\
-                   'off_vert_rank':[]  }, \
+                   'off_vert_rank':[] , 'on_vert_click':0.0 }, \
     }
-    
+
     # Remove task responses.
-    concat_table = concat_table[~concat_table['type'] == 'task_response']
-    #concat_table = concat_table.drop(['doc_title','doc_pos'], axis = 1)
-    
-    # Group by task_id and query_id and Sort by time within each group. 
+    concat_table = concat_table[~concat_table['type'].str.contains('task_response')]
+
+    # Group by task_id and query_id and Sort by time within each group.
     grouped_table = concat_table.sort(['time']).groupby(['task_id','user_id'])
     for name, group in grouped_table:
-		vert_type = None
-		first_click = None
-		first_time = None
-		last_time = None
-		last_click = None
-		result_time = None
-		rows = []
-		results = {}
-		for index, row in group.iterrows():
+	vert_type = None
+	first_click = None
+	first_time = None
+	last_time = None
+	last_click = None
+	result_time = None
+	rows = []
+	results = {}
+        recorded_clicks = {}
+	for index, row in group.iterrows():
             rows.append(row)
-		
-		for i in range(len(rows)):
-			row = rows[i]
-			# Store results.
-			if row['type'] == 'results':
-				results[row['doc_pos']] = row
+	
+	for i in range(len(rows)):
+	    row = rows[i]
+	    # Store results.
+	    if row['type'] == 'results':
+	    	results[row['doc_pos']] = row
 
-			if row['type'] == 'results' and row['doc_pos'] == 0:
-				# check prev result data. 
-				if vert_type and first_click and last_click:
-					vertical_stats[vert_type]['first_rank'].append(first_click)
-					vertical_stats[vert_type]['last_rank'].append(last_click)
-					vertical_stats[vert_type]['first_click'].append(first_time)
-					vertical_stats[vert_type]['last_click'].append(last_time)
-					# Set everything to null.
-					first_click = None
-					first_time = None
-					last_time = None
-					last_click = None
-					result_time = None
-					vert_type = None
-				# Set vertical type for this page and request time. 
-				vert_type = str(row['doc_type']).strip()
-				result_time = row['time']
+	    if row['type'] == 'results' and row['doc_pos'] == 0:
+	    	# check prev result data.
+	    	if vert_type and first_click and last_click:
+	    	    vertical_stats[vert_type]['first_rank'].append(first_click)
+	    	    vertical_stats[vert_type]['last_rank'].append(last_click)
+	    	    vertical_stats[vert_type]['first_click'].append(first_time)
+	    	    vertical_stats[vert_type]['last_click'].append(last_time)
+	    	    # Set everything to null.
+	    	    first_click = None
+	    	    first_time = None
+	    	    last_time = None
+	    	    last_click = None
+	    	    result_time = None
+	    	    vert_type = None
+                    recorded_clicks = {}
+	    	# Set vertical type for this page and request time.
+	    	vert_type = str(row['doc_type']).strip()
+	    	result_time = row['time']
 
-			# Found a tap or a click 
-			start_time  = row['time']
-			etype = None
-			click_rank = None
-			found = False
-			if (row['type'] == 'event_response'):
-				click_url = results[row['event_value']]['doc_url']
-				click_rank = int(row['event_value'])
-				etype = 'tap'
-				# Check if page response for this url has been submitted. 
-				j = i+1
-				while (rows[j]['type'] != 'results') and j < len(rows):
-					if rows[j]['type'] == 'page_response' and \
-							rows[j]['doc_url'] == click_url:
-								found = True
-								break
-					else:
-					   print tap_url, rows[j]['doc_url'], 'dont match'
-					j+=1
-			else:
-				click_rank = int(row['doc_id'][row['doc_id'].find('_')+1:])
-				etype = 'click'
+	    # Found a tap or a click
+	    start_time  = row['time']
+            etype = None
+            click_rank = None
+	    found = False
+	    if (row['type'] == 'event_response'):
+	    	click_url = results[row['event_value']]['doc_url']
+                # check if in clicks.
+                if click_url not in recorded_clicks:
+	    	    click_rank = int(row['event_value'])+1
+	    	    etype = 'tap'
+	    	    # Check if page response for this url has been submitted.
+	    	    j = i+1
+	    	    while j < len(rows) and (rows[j]['type'] != 'results') :
+	    	        if rows[j]['type'] == 'page_response' and \
+	    	            (rows[j]['doc_url'] in click_url):
+	    	        	found = True
+                                recorded_clicks[click_url] = 1.0
+	    	                break
+	    	        j+=1
+            if (row['type'] == 'click') and (row['doc_url'] not in\
+                    recorded_clicks):
+                # check if in taps. 
+	    	click_rank = int(row['doc_id'][row['doc_id'].find('_')+1:])+1
+	    	etype = 'click'
+                recorded_clicks[row['doc_url']] = 1.0
 
-			# Found the page score or click
-			if  etype == 'click' or (etype == 'tap' and found):
-				if click_rank > 0:
-					vertical_stats[vert_type]['total_clicks']+=1.0
-					vertical_stats[vert_type]['off_vert_click']+=1.0
-					vertical_stats[vert_type]['off_vert_rank'].append(click_rank)
+	    # Found the page score or click
+	    if  etype == 'click' or (etype == 'tap' and found):
+	    	if click_rank > 0:
+	            vertical_stats[vert_type]['total_clicks']+=1.0
+                    if click_rank > 1:
+	                vertical_stats[vert_type]['off_vert_click']+=1.0
+	                vertical_stats[vert_type]['off_vert_rank'].append(click_rank)
+                    else:
+	                vertical_stats[vert_type]['on_vert_click']+=1.0
 
-				if not first_click:
-					first_click = click_rank
-					first_time  = result_time - start_time
-				last_click = click_rank
-				last_time = result_time - start_time
-'''
+	    	if not first_click:
+	            first_time  = (start_time - result_time).total_seconds()
+                    if (first_time < 50):
+	                first_click = click_rank
+	    	last_click = click_rank
+	    	last_time = (start_time - result_time ).total_seconds()
+                # Set everything to null
+                etype = None
+                found = False
+
+    for vertical_type, stats in vertical_stats.items():
+        print vertical_type, stats['total_clicks'],\
+        'off-click',stats['off_vert_click']/stats['total_clicks'],\
+        'on-click',stats['on_vert_click']/stats['total_clicks'],\
+        'off-rank',np.mean(stats['off_vert_rank']),np.std(stats['off_vert_rank']),\
+        'first-rank',np.mean(stats['first_rank']),np.std(stats['first_rank']),\
+        'last-rank',np.mean(stats['last_rank']),np.std(stats['last_rank']),\
+        'first-time',np.mean(stats['first_click']),np.std(stats['first_click']),\
+        'last-time',np.mean(stats['last_click']),np.std(stats['last_click'])
+        
 
 def FindDescriptiveStatsPerVertical(concat_table):
-    # Find the following stats per vertical: 
+    # Find the following stats per vertical:
     # Image Video Wiki : sess, queries, clicks, page-response and
     # task-responses.
     user_stats = {}
@@ -192,8 +209,8 @@ def FindDescriptiveStatsPerVertical(concat_table):
             'w' :  {'sess':0.0, 'query': [], 'clicks':[],'page_sat':[],\
                 'page_rel':[],'task_sat':[], 'time': []}
     }
-    
-    # Group by task_id and query_id and Sort by time within each group. 
+
+    # Group by task_id and query_id and Sort by time within each group.
     grouped_table = concat_table.sort(['time']).groupby(['task_id','user_id'])
     for name, group in grouped_table:
         user = name[1]
@@ -209,8 +226,6 @@ def FindDescriptiveStatsPerVertical(concat_table):
         clicks = {}
         page_sat = {}
         page_rel = {}
-        task_sat = []
-        time = []
         doc_type = None
         n_task_response = 0.0
 
@@ -222,30 +237,30 @@ def FindDescriptiveStatsPerVertical(concat_table):
                     # Increment sessions.
                     sess+=1.0
                     doc_type = str(row['doc_type']).strip()
-                # Record queries. 
+                # Record queries.
                 queries +=1.0
-            
+
             if row['type'] == 'click':
-                # Record only one click per url. 
+                # Record only one click per url.
                 clicks[row['doc_url']] = 1.0
 
-            # Not serp. 
+            # Not serp.
             if (row['type'] == 'page_response') and ('128.16.12.66' not in\
                     row['doc_url']):
                 if row['response_type'] == 'relevance':
-                    # Record only last relevance label. 
+                    # Record only last relevance label.
                     page_rel[row['doc_url']] = float(row['response_value'])
-                    
+
                     if row['doc_url'] not in clicks:
                         not_registered_clicks+=1.0
- 
+
                     # Record only one click per url.
                     clicks[row['doc_url']] = 1.0
-                
+
                 if row['response_type'] == 'satisfaction':
                     page_sat[row['doc_url']] = float(row['response_value'])
-            
-            # Add to database 
+
+            # Add to database
             if (row['type'] == 'task_response') and (row['response_type'] ==\
                     'satisfaction'):
                 if doc_type:
@@ -266,7 +281,7 @@ def FindDescriptiveStatsPerVertical(concat_table):
                     print 'There was no search in the beginning!', task,user,\
                     index
                 n_task_response+=1.0
-   
+
     # Count mean and std-dev of page responses and task responses.
     for vertical_type, stat_dict in vertical_stats.items():
         print vertical_type , stat_dict['sess'], np.mean(stat_dict['query']),\
@@ -282,15 +297,8 @@ def FindDescriptiveStatsPerVertical(concat_table):
 def IsSerpPage(url):
     return url.find('128.16.12.66:4730') > -1
 
-def MatchURL(url1,url2):
-    url1 = FormatUrl(url1)
-    url2 = FormatUrl(url2)
-    url1 = url1[url1.find('.')+1:]
-    url2 = url2[url2.find('.')+1:]
-    return (url1 == url2)
+def FindPageMetricsPerVertical(result_table, page_table):
 
-def FindDocPosForPageResponse(result_table, page_table):
-    
     # Concat result and page tables
     result_table['type'] = 'results'
     page_table['type'] = 'page_response'
@@ -299,6 +307,9 @@ def FindDocPosForPageResponse(result_table, page_table):
 
     # Group by user_id and task_id and sort by time within each group
     grouped_table = concat_table.sort(['time']).groupby(['user_id','task_id'])
+    # Set vertical type for each serp. 
+    vert_type = None
+    concat_table['first_result_type'] = ''
 
     # Iterate over all users and tasks
     for name, group in grouped_table:
@@ -307,39 +318,59 @@ def FindDocPosForPageResponse(result_table, page_table):
         # for a specific user and a task
         for pindex, prow in group.iterrows():
 
+            if prow['type'] == 'results' and prow['doc_pos'] == 0:
+                vert_type = prow['doc_type']
             # Skip if the row is not a page_response
-            if prow['type'] != 'page_response':
-                continue
-
             # Skip if its an invalid page
             # serp pages are invalid pages
-            # because no doc_pos for serp   
-            if IsSerpPage(prow['doc_url']):
+            # because no doc_pos for serp
+            if prow['type'] != 'page_response' or IsSerpPage(prow['doc_url']):
                 continue
 
             ptime = prow['time']
             purl = prow['doc_url']
             ppos = -1
-            
+
             # Find the doc_pos from result entry
             for rindex, rrow in group.iterrows():
 
                 # Get the doc_pos from the result entry
                 # whose url matches with the page response url
-                if rrow['type'] == 'results' and MatchURL(purl,rrow['doc_url']):
+                if rrow['type'] == 'results' and (purl in rrow['doc_url']):
                     ppos = rrow['doc_pos']
 
-                # Search only those result entries which 
+                # Search only those result entries which
                 # has timestamp lower than the page response time
                 if rrow['time'] > ptime:
-                    break    
+                    break
 
             # if ppos = -1 that means we did not find the match
             # TODO: handle ppos=-1 case
             #prow['doc_pos'] = ppos
             concat_table.set_value(pindex,'doc_pos',ppos)
-
-    concat_table.to_csv('concat_result_page_dpos',encoding='utf-8', index = False)    
+            concat_table.set_value(pindex,'first_result_type',vert_type)
+    
+    # Filter rows with page responses. 
+    page_responses = concat_table[concat_table['type'] == 'page_response']
+    page_responses = page_responses[page_responses['first_result_type'].str.len() == 1]
+    print page_responses[page_responses['doc_pos'] ==0].groupby(\
+            ['first_result_type', 'response_type']).agg({
+                # Find the mean and std rel and satisfaction.
+                'response_value' : {
+                    'mean': 'mean',
+                    'std-dev' : 'std',
+                    'count' : 'count'
+                }
+            })
+    print page_responses[page_responses['doc_pos']>0].groupby(\
+            ['first_result_type','response_type']).agg({
+                # Find the mean and std rel and satisfaction.
+                'response_value' : {
+                    'mean': 'mean',
+                    'std-dev' : 'std',
+                    'count' : 'count'
+                }
+            })
 
 def LoadDatabase(filename, isFolder):
     database = []
@@ -350,10 +381,9 @@ def LoadDatabase(filename, isFolder):
 
     else:
         for ifile in os.listdir(filename):
-            print ifile
             db = json.load(open(filename+'/'+ifile,'r'))
             database.append(db)
-        
+
     return database
 
 
@@ -382,30 +412,30 @@ def main():
 
     # Format page response db
     page_response_table = FormatPageResponseDB(page_response_db, page_response_header, page_reponse_sortkeys)
-    
+
     # Format task response db
     task_response_table = FormatTaskResponseDB(task_response_db,task_response_header,task_response_sortkeys)
 
     # Format query result db
     query_table = FormatQueryResultDB(query_result_db,query_result_header,query_result_sortkeys)
-    
+
     # Format click result db
     click_table = FormatClickResultDB(click_result_db,click_result_header,click_result_sortkeys)
 
     # Format click result db
-    #event_table = FormatEventDB(event_db,event_header, event_sortkeys)
-    
+    event_table = FormatEventDB(event_db,event_header, event_sortkeys)
+
     # a. task : users. Compute the number of users who provided task feedback
     # task_id, #users_who_gave_feedback
-    task_response_table[['task_id','user_id']].groupby(['task_id']).\
-            agg({'user_id': pd.Series.nunique}).to_csv('task_feedback.csv')
+    #task_response_table[['task_id','user_id']].groupby(['task_id']).\
+    #        agg({'user_id': pd.Series.nunique}).to_csv('task_feedback.csv')
 
     # b. task : user_impressions. Compute the number of users who executed a task.
     # task_id, #users_who_executed_task
-    page_response_table[['task_id','user_id']].groupby(['task_id']).\
-            agg({'user_id': pd.Series.nunique}).to_csv('task_execute.csv')
+    #page_response_table[['task_id','user_id']].groupby(['task_id']).\
+    #        agg({'user_id': pd.Series.nunique}).to_csv('task_execute.csv')
 
-    # c. vertical_type : vertical_SERPs. Compute the number of times each vertical was shown as top result. 
+    # c. vertical_type : vertical_SERPs. Compute the number of times each vertical was shown as top result.
     # Only consider query results in the first page (page_id==1)
     # Here we output counts for all the doc position in the first page
     # doc_type, #occurances
@@ -415,9 +445,9 @@ def main():
 
     # d. vertical_type : queries. Compute the number of queries fired for each vertical.
     # task_id, #unique_queries
-    queries_with_time= query_results[['time','doc_type','query_text']].drop_duplicates();
-    queries_with_time.groupby(['doc_type','query_text']).agg(\
-            {'query_text': pd.Series.count}).to_csv('vert_queries.csv')
+    #queries_with_time= query_results[['time','doc_type','query_text']].drop_duplicates();
+    #queries_with_time.groupby(['doc_type','query_text']).agg(\
+    #        {'query_text': pd.Series.count}).to_csv('vert_queries.csv')
 
     # f. task : time . Compute the time spent on doing each task.
 
@@ -427,29 +457,31 @@ def main():
     # task_id, doc_pos, #clicks
     click_filtered = click_table[click_table['doc_id'].str.len()\
             == 5]
-    click_filtered['doc_pos'] = (click_filtered['page_id'].astype(float) -\
-            1.0) + (click_filtered['doc_id'].str[4]).astype(float)    
+    #click_filtered['doc_pos'] = (click_filtered['page_id'].astype(float) -\
+    #        1.0) + (click_filtered['doc_id'].str[4]).astype(float)
     # Filter the columns for count.
-    click_filtered[['task_id','doc_pos']].groupby(['task_id','doc_pos'])['doc_pos'].\
-            count().to_csv('task_rank_click_counts.csv', encoding = 'utf-8',\
-            sep = '\t')
+    #click_filtered[['task_id','doc_pos']].groupby(['task_id','doc_pos'])['doc_pos'].\
+    #        count().to_csv('task_rank_click_counts.csv', encoding = 'utf-8',\
+    #        sep = '\t')
+    #click_filtered = click_table[click_table['doc_id'].str.len()\
+    #        == 5]
 
-    click_filtered = click_table[click_table['doc_id'].str.len()\
-            == 5]
-    #merged_tables = MergeAllTables(query_table, click_filtered, event_table, page_response_table, task_response_table)
+    merged_tables = MergeAllTables(query_table, click_filtered, event_table,\
+    	 page_response_table, task_response_table)
     
     # Find the vertical_type stats: sessions, queries, clicks a
-    # nd average satisfaction/rel values. 
+    # nd average satisfaction/rel values.
     #FindDescriptiveStatsPerVertical(merged_tables)
-
-    # h. vertical_type : time_to_first_click. Compute the time to first click for each
-    # j. vertical_type : first_click_position. Compute the list of ranks that were clicked first for task. 
+    
+    # h. vertical_type : time_to_first_click_and_position. Compute the time to first click for each
     # k. vertical_type : last_click_position. Compute the ranks that were clicked last for
-        
+    FindFirstAndLastClickInfo(merged_tables)
+    
     # For every page whose response is available find its doc_pos on serp
     # We ignore the pages who are serp since they do not have any doc_pos
-    complete_query_table = FormatQueryResultCompleteDB(query_result_db,query_result_header,query_result_sortkeys)
-    FindDocPosForPageResponse(complete_query_table,page_response_table)
+    FindPageMetricsPerVertical(query_table,page_response_table)
+
+
 
 if __name__ == "__main__":
     main()

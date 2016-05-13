@@ -23,32 +23,39 @@ docurl_regex = re.compile(docurl_pattern)
 #FIX: Format URLs removing some initial part of the url (e.g., wikipedia.org)
 def FormatUrl(url):
     # Just remove the last char /
+    url = urllib.unquote(urllib.unquote(url))
     if url[-1] == '/':
         url = url[: -1]
-    '''
     if url.find('http://') == 0:
         url = url[7:]
     if url.find('https://') == 0:
         url = url[8:]
-    '''
-    url = url[url.find('.')+1:]
+    if url.find('www.') == 0:
+        url = url[4:]
+    if url.find('en.m.') == 0:
+        url = url[5:]
+    if url.find('en.') == 0:
+        url = url[3:]
+    if url.find('m.') == 0:
+        url = url[2:]
     return url
+
 
 # Always on serp
 def BreakEventUrl(url):
-        url_split = url.split('&')
-        query = None
-        user = None
-        task = None
-        page = None
-        if len(url_split) == 4:
-            query = url_split[0][url_split[0].rfind('=')+1:].replace('+',' ')
-            user =  url_split[1][url_split[1].rfind('=')+1:]  
-            task =  url_split[2][url_split[2].rfind('=')+1:]  
-            page =  url_split[3][url_split[3].rfind('=')+1:]  
-	return user, task, page, query
+  url_split = url.split('&')
+  query = None
+  user = None
+  task = None
+  page = None
+  if len(url_split) == 4:
+      query = url_split[0][url_split[0].rfind('=')+1:].replace('+',' ')
+      user =  url_split[1][url_split[1].rfind('=')+1:]
+      task =  url_split[2][url_split[2].rfind('=')+1:]
+      page =  url_split[3][url_split[3].rfind('=')+1:]
+  return user, task, page, query
 
-# Some doc_url does not have queryid and pageid 
+# Some doc_url does not have queryid and pageid
 # (e.g., https://m.youtube.com/watch?v=RZ_YOAlPJNY)
 # We use empty strings if we do not find any match
 def BreakServerUrl(url):
@@ -72,7 +79,7 @@ def BreakServerUrl(url):
 
 	return query_id, page_id, FormatUrl(doc_url)
 '''
-Convert an array of databases to a tsv. 
+Convert an array of databases to a tsv.
 @databases can be an array of Json objects.
 @columns is the column header to assign to pandas object.
 
@@ -87,13 +94,14 @@ def FormatPageResponseDB(databases, dbcolumns, sort_keys ):
 	    # "doc_url":"page=1&docid=aid_2&queryid=0&user=marzipan&task=8&docurl=url",
 	    # "response_type":"relevance","response_value":"5.0"},
 	    query_id, page_id, doc_url = BreakServerUrl(values['doc_url'])
-            doc_url = FormatUrl(urllib.unquote(urllib.unquote(doc_url)))
+	    if doc_url:
+	    	doc_url = FormatUrl(doc_url)
 	    new_entry = [entry , values['user_id'] , int(values['task_id']),\
 		int(query_id), int(page_id), doc_url, values['response_type'], \
-                values['response_value']]
+                float(values['response_value'])]
 	    tsv_data.append(new_entry)
 
-    # create a new data frame 
+    # create a new data frame
     tsv_frame = pd.DataFrame(tsv_data, columns= dbcolumns)
 
     # Remove test users
@@ -118,7 +126,7 @@ def FormatTaskResponseDB(databases, dbcolumns, sort_keys ):
             values['response_type'],values['response_value']]
             tsv_data.append(new_entry)
 
-    # create a new data frame 
+    # create a new data frame
     tsv_frame = pd.DataFrame(tsv_data, columns= dbcolumns)
 
     # Remove test users
@@ -149,20 +157,19 @@ def FormatQueryResultDB(databases, dbcolumns, sort_keys ):
                 # In case of image vertical we show multiple images
                 # so pick the first image and ignore the rest
                 if (doc_type == 'i'):
-                    doc_prop = result[1][0]
+                    doc_url = ''
+                    for image in result[1]:
+                        doc_url += ' '+FormatUrl(image['external_url'])
                 else:
-                    doc_prop = result[1]
-
-                doc_title = doc_prop['title']
-                doc_url = FormatUrl(doc_prop['external_url'])
+                    doc_url = FormatUrl(result[1]['external_url'])
                 new_entry = [entry , values['user_id'] , int(values['task_id']),\
                     int(values['query_id']), values['query_text'].strip(), int(values['page_id']), \
-                    doc_pos, doc_type, doc_title, doc_url]
+                    doc_pos, doc_type, doc_url]
                 tsv_data.append(new_entry)
 
                 # Document position starts with zero
                 doc_pos = doc_pos + 1
-    # create a new data frame 
+    # create a new data frame
     tsv_frame = pd.DataFrame(tsv_data, columns= dbcolumns)
 
     # Remove test users
@@ -183,12 +190,14 @@ def FormatClickResultDB(databases, dbcolumns, sort_keys ):
             #{"time_stamp":{"user_id":"marzipan","query_id":"0",
             #"page_id":"1","task_id":"8","doc_id":"aid_1",
             #"doc_url":"http://www.theplunge.com/bachelorparty/bachelor-party-ideas-2/"}
+            if not FormatUrl(values['doc_url']):
+                print values['doc_url'], FormatUrl(values['doc_url'])
             new_entry = [entry , values['user_id'] , int(values['task_id']),\
                     int(values['query_id']),int(values['page_id']), \
                     values['doc_id'],FormatUrl(values['doc_url'])]
             tsv_data.append(new_entry)
 
-    # create a new data frame 
+    # create a new data frame
     tsv_frame = pd.DataFrame(tsv_data, columns= dbcolumns)
 
     # Remove test users
@@ -202,9 +211,13 @@ def FormatClickResultDB(databases, dbcolumns, sort_keys ):
 
 def ProcessEventValueDict(event_value):
     # Contains html, prop and visible elements
-    # Leave the html for now. 
+    # Leave the html for now.
     split = event_value['prop'].split(' ')
-    return  int(split[9][split[9].rfind('_')+1:])
+    try :
+		index = int(split[9][split[9].rfind('_')+1:])
+    except:
+		index = -1
+    return index
 
 def FormatEventDB(databases, dbcolumns, sort_keys):
     tsv_data= []
@@ -214,11 +227,12 @@ def FormatEventDB(databases, dbcolumns, sort_keys):
 	    user, task, page, query = BreakEventUrl(values['doc_url'])
             if (query and user and task and page) and (values['event_type'] == 'tap'):
                 element_tap = ProcessEventValueDict(values['event_value'])
-                new_entry = [entry , user , int(task), query.strip(), int(page), \
-                    values['event_type'], element_tap ]
+                if element_tap > -1:
+					new_entry = [entry , user , int(task), query.strip(), int(page), \
+                        values['event_type'], element_tap ]
                 tsv_data.append(new_entry)
-             
-    # create a new data frame 
+
+    # create a new data frame
     tsv_frame = pd.DataFrame(tsv_data, columns= dbcolumns)
 
     # Remove test users
@@ -255,7 +269,7 @@ def FormatQueryResultCompleteDB(databases, dbcolumns, sort_keys ):
                         new_entry = [entry , values['user_id'] , int(values['task_id']),\
                             int(values['query_id']), values['query_text'].strip(), int(values['page_id']), \
                             doc_pos, doc_type, doc_title, doc_url]
-                        tsv_data.append(new_entry)                        
+                        tsv_data.append(new_entry)
                 else:
                     doc_prop = result[1]
                     doc_title = doc_prop['title']
@@ -267,7 +281,7 @@ def FormatQueryResultCompleteDB(databases, dbcolumns, sort_keys ):
 
                 # Document position starts with zero
                 doc_pos = doc_pos + 1
-    # create a new data frame 
+    # create a new data frame
     tsv_frame = pd.DataFrame(tsv_data, columns= dbcolumns)
 
     # Remove test users
@@ -275,6 +289,6 @@ def FormatQueryResultCompleteDB(databases, dbcolumns, sort_keys ):
 
     # sort by time key
     tsv_frame = tsv_frame.sort(sort_keys)
-    
+
     # Remove duplicate rows
     return tsv_frame.drop_duplicates()
