@@ -175,6 +175,41 @@ def FormatClickResultDB(databases, dbcolumns, sort_keys ):
 
     return tsv_frame.drop_duplicates()
 
+def FormatQueryResultCompleteDB(databases, dbcolumns, sort_keys ):
+    tsv_data = []
+    for database in databases:
+        for entry , values in database.items():
+            entry = datetime.fromtimestamp(float(entry)/1000)
+            # Format of Query Result db
+            # "time_stamp":{"user_id":"","query_id":4,"task_id":"4","query_text":"","page_id":1,"search_results":[["i",[{"title":"","external_url":"","display_url":"","thumbnail":""},{"title":"","external_url":"","display_url":"","thumbnail":""}...]],["o",{"title":"","desc":"","display_url":"","external_url":""}],["o",{"title":"","desc":"","display_url":"","external_url":""}]...]}
+            search_results = values['search_results']
+
+            # The documents are stored in the order in which
+            # they are displayed on the search results page.
+            doc_pos = 0
+            for result in search_results:
+                doc_type = result[0]
+
+                for doc_prop in result[1]:
+                    doc_title = doc_prop['title']
+                    doc_url = FormatUrl(doc_prop['external_url'])
+                    new_entry = [entry , values['user_id'] , int(values['task_id']),\
+                        int(values['query_id']), values['query_text'], int(values['page_id']), \
+                        doc_pos, doc_type, doc_title, doc_url]
+                    tsv_data.append(new_entry)
+
+                # Document position starts with zero
+                doc_pos = doc_pos + 1
+    # create a new data frame 
+    tsv_frame = pd.DataFrame(tsv_data, columns= dbcolumns)
+    # sort by time key
+    tsv_frame = tsv_frame.sort(sort_keys)
+
+    # Remove test users
+    tsv_frame = tsv_frame[~tsv_frame['user_id'].str.contains('test')]
+    
+    return tsv_frame.drop_duplicates()
+
 
 def ProcessEventValueDict(event_value):
     # Contains html, prop and visible elements
