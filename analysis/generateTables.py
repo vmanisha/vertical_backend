@@ -72,7 +72,7 @@ def MergeAllTables(result_table, click_table, event_table, page_table, task_tabl
     concat_table = concat_table.drop(['doc_title'], axis = 1)
     return concat_table
 
-
+'''
 def FindFirstAndLastClickInfo(concat_table):
     # Groupby task_id, user_id. 
     # For each result type:
@@ -174,7 +174,7 @@ def FindFirstAndLastClickInfo(concat_table):
 					first_time  = result_time - start_time
 				last_click = click_rank
 				last_time = result_time - start_time
-
+'''
 
 def FindDescriptiveStatsPerVertical(concat_table):
     # Find the following stats per vertical: 
@@ -393,15 +393,8 @@ def main():
     click_table = FormatClickResultDB(click_result_db,click_result_header,click_result_sortkeys)
 
     # Format click result db
-    event_table = FormatEventDB(event_db,event_header, event_sortkeys)
+    #event_table = FormatEventDB(event_db,event_header, event_sortkeys)
     
-    # Remove test users
-    page_response_table = page_response_table[~page_response_table['user_id'].str.contains('test')]
-    task_response_table = task_response_table[~task_response_table['user_id'].str.contains('test')]
-    query_table = query_table[~query_table['user_id'].str.contains('test')]
-    click_table = click_table[~click_table['user_id'].str.contains('test')]
-    event_table = event_table[~event_table['user_id'].str.contains('test')]
-
     # a. task : users. Compute the number of users who provided task feedback
     # task_id, #users_who_gave_feedback
     task_response_table[['task_id','user_id']].groupby(['task_id']).\
@@ -443,11 +436,11 @@ def main():
 
     click_filtered = click_table[click_table['doc_id'].str.len()\
             == 5]
-    merged_tables = MergeAllTables(query_table, click_filtered, event_table, page_response_table, task_response_table)
+    #merged_tables = MergeAllTables(query_table, click_filtered, event_table, page_response_table, task_response_table)
     
     # Find the vertical_type stats: sessions, queries, clicks a
     # nd average satisfaction/rel values. 
-    FindDescriptiveStatsPerVertical(merged_tables)
+    #FindDescriptiveStatsPerVertical(merged_tables)
 
     # h. vertical_type : time_to_first_click. Compute the time to first click for each
     # j. vertical_type : first_click_position. Compute the list of ranks that were clicked first for task. 
@@ -455,8 +448,8 @@ def main():
         
     # For every page whose response is available find its doc_pos on serp
     # We ignore the pages who are serp since they do not have any doc_pos
-    # TODO: Load the result page with all images
-    FindDocPosForPageResponse(query_table,page_response_table)
+    complete_query_table = FormatQueryResultCompleteDB(query_result_db,query_result_header,query_result_sortkeys)
+    FindDocPosForPageResponse(complete_query_table,page_response_table)
 
 if __name__ == "__main__":
     main()

@@ -19,6 +19,8 @@ page_id_regex = re.compile(page_id_pattern)
 docurl_pattern = 'docurl=(.*)'
 docurl_regex = re.compile(docurl_pattern)
 
+#TODO: Format URLs while loading all the db
+#FIX: Format URLs removing some initial part of the url (e.g., wikipedia.org)
 def FormatUrl(url):
     # Just remove the last char /
     if url[-1] == '/':
@@ -29,9 +31,7 @@ def FormatUrl(url):
     if url.find('https://') == 0:
         url = url[8:]
     '''
-    print url
     url = url[url.find('.')+1:]
-    print url
     return url
 
 # Always on serp
@@ -95,6 +95,10 @@ def FormatPageResponseDB(databases, dbcolumns, sort_keys ):
 
     # create a new data frame 
     tsv_frame = pd.DataFrame(tsv_data, columns= dbcolumns)
+
+    # Remove test users
+    tsv_frame = tsv_frame[~tsv_frame['user_id'].str.contains('test')]
+
     # sort by time key
     tsv_frame = tsv_frame.sort(sort_keys)
 
@@ -116,8 +120,14 @@ def FormatTaskResponseDB(databases, dbcolumns, sort_keys ):
 
     # create a new data frame 
     tsv_frame = pd.DataFrame(tsv_data, columns= dbcolumns)
+
+    # Remove test users
+    tsv_frame = tsv_frame[~tsv_frame['user_id'].str.contains('test')]
+
     # sort by time key
     tsv_frame = tsv_frame.sort(sort_keys)
+
+    # Remove duplicate rows
     return tsv_frame.drop_duplicates()
 
 def FormatQueryResultDB(databases, dbcolumns, sort_keys ):
@@ -154,8 +164,14 @@ def FormatQueryResultDB(databases, dbcolumns, sort_keys ):
                 doc_pos = doc_pos + 1
     # create a new data frame 
     tsv_frame = pd.DataFrame(tsv_data, columns= dbcolumns)
+
+    # Remove test users
+    tsv_frame = tsv_frame[~tsv_frame['user_id'].str.contains('test')]
+
     # sort by time key
     tsv_frame = tsv_frame.sort(sort_keys)
+
+    # Remove duplicate rows
     return tsv_frame.drop_duplicates()
 
 def FormatClickResultDB(databases, dbcolumns, sort_keys ):
@@ -174,46 +190,15 @@ def FormatClickResultDB(databases, dbcolumns, sort_keys ):
 
     # create a new data frame 
     tsv_frame = pd.DataFrame(tsv_data, columns= dbcolumns)
-    # sort by time key
-    tsv_frame = tsv_frame.sort(sort_keys)
-
-    return tsv_frame.drop_duplicates()
-
-def FormatQueryResultCompleteDB(databases, dbcolumns, sort_keys ):
-    tsv_data = []
-    for database in databases:
-        for entry , values in database.items():
-            entry = datetime.fromtimestamp(float(entry)/1000)
-            # Format of Query Result db
-            # "time_stamp":{"user_id":"","query_id":4,"task_id":"4","query_text":"","page_id":1,"search_results":[["i",[{"title":"","external_url":"","display_url":"","thumbnail":""},{"title":"","external_url":"","display_url":"","thumbnail":""}...]],["o",{"title":"","desc":"","display_url":"","external_url":""}],["o",{"title":"","desc":"","display_url":"","external_url":""}]...]}
-            search_results = values['search_results']
-
-            # The documents are stored in the order in which
-            # they are displayed on the search results page.
-            doc_pos = 0
-            for result in search_results:
-                doc_type = result[0]
-
-                for doc_prop in result[1]:
-                    doc_title = doc_prop['title']
-                    doc_url = FormatUrl(doc_prop['external_url'])
-                    new_entry = [entry , values['user_id'] , int(values['task_id']),\
-                        int(values['query_id']), values['query_text'], int(values['page_id']), \
-                        doc_pos, doc_type, doc_title, doc_url]
-                    tsv_data.append(new_entry)
-
-                # Document position starts with zero
-                doc_pos = doc_pos + 1
-    # create a new data frame 
-    tsv_frame = pd.DataFrame(tsv_data, columns= dbcolumns)
-    # sort by time key
-    tsv_frame = tsv_frame.sort(sort_keys)
 
     # Remove test users
     tsv_frame = tsv_frame[~tsv_frame['user_id'].str.contains('test')]
-    
-    return tsv_frame.drop_duplicates()
 
+    # sort by time key
+    tsv_frame = tsv_frame.sort(sort_keys)
+
+    # Remove duplicate rows
+    return tsv_frame.drop_duplicates()
 
 def ProcessEventValueDict(event_value):
     # Contains html, prop and visible elements
@@ -235,8 +220,61 @@ def FormatEventDB(databases, dbcolumns, sort_keys):
              
     # create a new data frame 
     tsv_frame = pd.DataFrame(tsv_data, columns= dbcolumns)
+
+    # Remove test users
+    tsv_frame = tsv_frame[~tsv_frame['user_id'].str.contains('test')]
+
     # sort by time key
     tsv_frame = tsv_frame.sort(sort_keys)
 
+    # Remove duplicate rows
     return tsv_frame.drop_duplicates()
 
+def FormatQueryResultCompleteDB(databases, dbcolumns, sort_keys ):
+    tsv_data = []
+    for database in databases:
+        for entry , values in database.items():
+            entry = datetime.fromtimestamp(float(entry)/1000)
+            # Format of Query Result db
+            # "time_stamp":{"user_id":"","query_id":4,"task_id":"4","query_text":"","page_id":1,"search_results":[["i",[{"title":"","external_url":"","display_url":"","thumbnail":""},{"title":"","external_url":"","display_url":"","thumbnail":""}...]],["o",{"title":"","desc":"","display_url":"","external_url":""}],["o",{"title":"","desc":"","display_url":"","external_url":""}]...]}
+            search_results = values['search_results']
+
+            # The documents are stored in the order in which
+            # they are displayed on the search results page.
+            doc_pos = 0
+            for result in search_results:
+                doc_type = result[0]
+
+                # All verticals have only one result except image
+                # In case of image vertical we show multiple images
+                # so pick the first image and ignore the rest
+                if (doc_type == 'i'):
+                    for doc_prop in result[1]:
+                        doc_title = doc_prop['title']
+                        doc_url = FormatUrl(doc_prop['external_url'])
+                        new_entry = [entry , values['user_id'] , int(values['task_id']),\
+                            int(values['query_id']), values['query_text'].strip(), int(values['page_id']), \
+                            doc_pos, doc_type, doc_title, doc_url]
+                        tsv_data.append(new_entry)                        
+                else:
+                    doc_prop = result[1]
+                    doc_title = doc_prop['title']
+                    doc_url = FormatUrl(doc_prop['external_url'])
+                    new_entry = [entry , values['user_id'] , int(values['task_id']),\
+                        int(values['query_id']), values['query_text'].strip(), int(values['page_id']), \
+                        doc_pos, doc_type, doc_title, doc_url]
+                    tsv_data.append(new_entry)
+
+                # Document position starts with zero
+                doc_pos = doc_pos + 1
+    # create a new data frame 
+    tsv_frame = pd.DataFrame(tsv_data, columns= dbcolumns)
+
+    # Remove test users
+    tsv_frame = tsv_frame[~tsv_frame['user_id'].str.contains('test')]
+
+    # sort by time key
+    tsv_frame = tsv_frame.sort(sort_keys)
+    
+    # Remove duplicate rows
+    return tsv_frame.drop_duplicates()
