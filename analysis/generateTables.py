@@ -66,13 +66,13 @@ def MergeAllTables(result_table, click_table, event_table, page_table, task_tabl
     
     # Concatinate all tables. Keep only the first result. 
     # values not present will be N/A
-    result_first = result_table[result_table['doc_pos'] == 0]
+    # result_first = result_table[result_table['doc_pos'] == 0]
     concat_table = pd.concat([result_first, click_table,event_table, page_table,\
         task_table], ignore_index = True)
-    concat_table.to_csv('concat_all',encoding='utf-8', index = False)
-    concat_table = concat_table.drop(['doc_title','doc_pos'], axis = 1)
+    concat_table = concat_table.drop(['doc_title'], axis = 1)
     return concat_table
-'''
+
+
 def FindFirstAndLastClickInfo(concat_table):
     # Groupby task_id, user_id. 
     # For each result type:
@@ -83,45 +83,98 @@ def FindFirstAndLastClickInfo(concat_table):
     user_stats = {}
     not_registered_clicks = 0.0
     vertical_stats = {
-            'i' : {'dwell':[], 'first_click': [], 'first_rank':[], 'last_click':[],\
+            'i' : { 'first_click': [], 'first_rank':[], 'last_click':[],\
                    'last_rank':[], 'total_clicks':0.0, 'off_vert_click':0.0,\
-                   'off_vert_rank':[], 'on_vert_rank':[] }, \
-            'v' : {'dwell':[], 'first_click': [], 'first_rank':[], 'last_click':[],\
+                   'off_vert_rank':[] }, \
+            'v' : { 'first_click': [], 'first_rank':[], 'last_click':[],\
                    'last_rank':[], 'total_clicks':0.0, 'off_vert_click':0.0,\
-                   'off_vert_rank':[], 'on_vert_rank':[] }, \
-            'w' : {'dwell':[], 'first_click': [], 'first_rank':[], 'last_click':[],\
+                   'off_vert_rank':[] }, \
+            'w' : { 'first_click': [], 'first_rank':[], 'last_click':[],\
                    'last_rank':[], 'total_clicks':0.0, 'off_vert_click':0.0,\
-                   'off_vert_rank':[], 'on_vert_rank':[] }, \
-            'o' : {'dwell':[], 'first_click': [], 'first_rank':[], 'last_click':[],\
+                   'off_vert_rank':[]  }, \
+            'o' : { 'first_click': [], 'first_rank':[], 'last_click':[],\
                    'last_rank':[], 'total_clicks':0.0, 'off_vert_click':0.0,\
-                   'off_vert_rank':[], 'on_vert_rank':[] }, \
+                   'off_vert_rank':[]  }, \
     }
     
     # Remove task responses.
     concat_table = concat_table[~concat_table['type'] == 'task_response']
     #concat_table = concat_table.drop(['doc_title','doc_pos'], axis = 1)
     
-    
     # Group by task_id and query_id and Sort by time within each group. 
     grouped_table = concat_table.sort(['time']).groupby(['task_id','user_id'])
     for name, group in grouped_table:
-        user = name[1]
-        task = name[0]
+		vert_type = None
+		first_click = None
+		first_time = None
+		last_time = None
+		last_click = None
+		result_time = None
+		rows = []
+		results = {}
+		for index, row in group.iterrows():
+            rows.append(row)
+		
+		for i in range(len(rows)):
+			row = rows[i]
+			# Store results.
+			if row['type'] == 'results':
+				results[row['doc_pos']] = row
 
-        vert_type = None
-        tap_time = None
-        
-        for index, row in group.iterrows():
-            if row['type'] == 'results':
-                vert_type = str(row['doc_type']).strip()  
-            if (row['type'] == 'event_response'):
-                tap_time = row['time'] 
-            if (row['type'] == 'page_response'):
-                tap_time = row['time'] 
-                 
-    # For dwell times you need to take the followig: Taps in events
-    # and page resoonses. 
-'''
+			if row['type'] == 'results' and row['doc_pos'] == 0:
+				# check prev result data. 
+				if vert_type and first_click and last_click:
+					vertical_stats[vert_type]['first_rank'].append(first_click)
+					vertical_stats[vert_type]['last_rank'].append(last_click)
+					vertical_stats[vert_type]['first_click'].append(first_time)
+					vertical_stats[vert_type]['last_click'].append(last_time)
+					# Set everything to null.
+					first_click = None
+					first_time = None
+					last_time = None
+					last_click = None
+					result_time = None
+					vert_type = None
+				# Set vertical type for this page and request time. 
+				vert_type = str(row['doc_type']).strip()
+				result_time = row['time']
+
+			# Found a tap or a click 
+			start_time  = row['time']
+			etype = None
+			click_rank = None
+			found = False
+			if (row['type'] == 'event_response'):
+				click_url = results[row['event_value']]['doc_url']
+				click_rank = int(row['event_value'])
+				etype = 'tap'
+				# Check if page response for this url has been submitted. 
+				j = i+1
+				while (rows[j]['type'] != 'results') and j < len(rows):
+					if rows[j]['type'] == 'page_response' and \
+							rows[j]['doc_url'] == click_url:
+								found = True
+								break
+					else:
+					   print tap_url, rows[j]['doc_url'], 'dont match'
+					j+=1
+			else:
+				click_rank = int(row['doc_id'][row['doc_id'].find('_')+1:])
+				etype = 'click'
+
+			# Found the page score or click
+			if  etype == 'click' or (etype == 'tap' and found):
+				if click_rank > 0:
+					vertical_stats[vert_type]['total_clicks']+=1.0
+					vertical_stats[vert_type]['off_vert_click']+=1.0
+					vertical_stats[vert_type]['off_vert_rank'].append(click_rank)
+
+				if not first_click:
+					first_click = click_rank
+					first_time  = result_time - start_time
+				last_click = click_rank
+				last_time = result_time - start_time
+
 
 def FindDescriptiveStatsPerVertical(concat_table):
     # Find the following stats per vertical: 
@@ -325,7 +378,9 @@ def main():
             count().to_csv('task_rank_click_counts.csv', encoding = 'utf-8',\
             sep = '\t')
 
-    merged_tables = MergeAllTables(query_table, click_table, event_table, page_response_table, task_response_table)
+    click_filtered = click_table[click_table['doc_id'].str.len()\
+            == 5]
+    merged_tables = MergeAllTables(query_table, click_filtered, event_table, page_response_table, task_response_table)
     
     # Find the vertical_type stats: sessions, queries, clicks a
     # nd average satisfaction/rel values. 
