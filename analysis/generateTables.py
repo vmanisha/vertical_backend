@@ -278,6 +278,69 @@ def FindDescriptiveStatsPerVertical(concat_table):
             round(np.std(stat_dict['time']),2)
     print 'Not registered clicks ', not_registered_clicks
 
+
+def IsSerpPage(url):
+    return url.find('128.16.12.66:4730') > -1
+
+def MatchURL(url1,url2):
+    url1 = FormatUrl(url1)
+    url2 = FormatUrl(url2)
+    url1 = url1[url1.find('.')+1:]
+    url2 = url2[url2.find('.')+1:]
+    return (url1 == url2)
+
+def FindDocPosForPageResponse(result_table, page_table):
+    
+    # Concat result and page tables
+    result_table['type'] = 'results'
+    page_table['type'] = 'page_response'
+    concat_table = pd.concat([result_table, page_table], ignore_index = True)
+    concat_table.to_csv('concat_result_page',encoding='utf-8', index = False)
+
+    # Group by user_id and task_id and sort by time within each group
+    grouped_table = concat_table.sort(['time']).groupby(['user_id','task_id'])
+
+    # Iterate over all users and tasks
+    for name, group in grouped_table:
+
+        # Iterate over all page response results
+        # for a specific user and a task
+        for pindex, prow in group.iterrows():
+
+            # Skip if the row is not a page_response
+            if prow['type'] != 'page_response':
+                continue
+
+            # Skip if its an invalid page
+            # serp pages are invalid pages
+            # because no doc_pos for serp   
+            if IsSerpPage(prow['doc_url']):
+                continue
+
+            ptime = prow['time']
+            purl = prow['doc_url']
+            ppos = -1
+            
+            # Find the doc_pos from result entry
+            for rindex, rrow in group.iterrows():
+
+                # Get the doc_pos from the result entry
+                # whose url matches with the page response url
+                if rrow['type'] == 'results' and MatchURL(purl,rrow['doc_url']):
+                    ppos = rrow['doc_pos']
+
+                # Search only those result entries which 
+                # has timestamp lower than the page response time
+                if rrow['time'] > ptime:
+                    break    
+
+            # if ppos = -1 that means we did not find the match
+            # TODO: handle ppos=-1 case
+            #prow['doc_pos'] = ppos
+            concat_table.set_value(pindex,'doc_pos',ppos)
+
+    concat_table.to_csv('concat_result_page_dpos',encoding='utf-8', index = False)    
+
 def LoadDatabase(filename, isFolder):
     database = []
 
@@ -389,8 +452,11 @@ def main():
     # h. vertical_type : time_to_first_click. Compute the time to first click for each
     # j. vertical_type : first_click_position. Compute the list of ranks that were clicked first for task. 
     # k. vertical_type : last_click_position. Compute the ranks that were clicked last for
-    
-
+        
+    # For every page whose response is available find its doc_pos on serp
+    # We ignore the pages who are serp since they do not have any doc_pos
+    # TODO: Load the result page with all images
+    FindDocPosForPageResponse(query_table,page_response_table)
 
 if __name__ == "__main__":
     main()
