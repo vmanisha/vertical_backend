@@ -7,13 +7,15 @@ import re
 from datetime import datetime
 from formatTables import *
 import editdistance 
+from plotStats import *
+
 TASKMAP = {'Somewhat Satisfied': 2.0, 'Highly Satisfied': 3.0, 'Not Satisfied' : 1.0}
 
 # default dwell time of the card in seconds
 DEFAULT_CARD_DWELL_TIME = 1
 
 # max card dwell time in seconds
-MAX_CARD_DWELL_TIME = 150
+MAX_CARD_DWELL_TIME = 100
 
 # Find mean and std dwell time per vertical. 
 def FindDwellTimes(concat_table):
@@ -560,3 +562,14 @@ def FindVisiblityMetricsPerVertical(result_table,vis_event_table):
       visible_time['w'].values()])
     print 'organic',' '.join([str(round(sum(card_times)/visibility['o'][0],3)) for card_times in
       visible_time['o'].values()])
+
+    print 'image',' '.join([str(round(np.median(card_times),3)) for card_times in
+      visible_time['i'].values()])
+    print 'video',' '.join([ str(round(np.median(card_times),3)) for card_times in
+      visible_time['v'].values()])
+    print 'wiki',' '.join([ str(round(np.median(card_times),3)) for card_times in
+      visible_time['w'].values()])
+    print 'organic',' '.join([str(round(np.median(card_times),3)) for card_times in
+      visible_time['o'].values()])
+
+    PlotVisiblityStats(visibility,visible_time)
