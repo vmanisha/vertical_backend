@@ -7,6 +7,7 @@ import os
 import re
 from datetime import datetime
 import urllib
+
 # Query pattern to extract from server url.
 query_id_pattern = 'queryid=(.*?)&'
 query_id_regex = re.compile(query_id_pattern)
@@ -19,12 +20,14 @@ page_id_regex = re.compile(page_id_pattern)
 docurl_pattern = 'docurl=(.*)'
 docurl_regex = re.compile(docurl_pattern)
 
+visibility_events = ['initial_state','panleft','panright','panup','pandown']
+
 #TODO: Format URLs while loading all the db
 #FIX: Format URLs removing some initial part of the url (e.g., wikipedia.org)
 def FormatUrl(url):
-    # Just remove the last char /
+    # Just remove the last char / and #
     url = urllib.unquote(urllib.unquote(url))
-    if url[-1] == '/':
+    if url[-1] == '/' or url[-1] == '#':
         url = url[: -1]
     if url.find('http://') == 0:
         url = url[7:]
@@ -42,6 +45,7 @@ def FormatUrl(url):
 
 
 # Always on serp
+# TODO: Should we call FormatUrl here as well?
 def BreakEventUrl(url):
   url_split = url.split('&')
   query = None
@@ -78,6 +82,8 @@ def BreakServerUrl(url):
 		doc_url = doc_url.group(1)
 
 	return query_id, page_id, FormatUrl(doc_url)
+
+
 '''
 Convert an array of databases to a tsv.
 @databases can be an array of Json objects.
@@ -219,12 +225,12 @@ def ProcessEventValueDict(event_value):
 		index = -1
     return index
 
-def FormatEventDB(databases, dbcolumns, sort_keys):
+def FormatEventDBForTap(databases, dbcolumns, sort_keys):
     tsv_data= []
     for database in databases:
         for entry , values in database.items():
             entry = datetime.fromtimestamp(float(entry)/1000)
-	    user, task, page, query = BreakEventUrl(values['doc_url'])
+            user, task, page, query = BreakEventUrl(values['doc_url'])
             if (query and user and task and page) and (values['event_type'] == 'tap'):
                 element_tap = ProcessEventValueDict(values['event_value'])
                 if element_tap > -1:
@@ -243,6 +249,34 @@ def FormatEventDB(databases, dbcolumns, sort_keys):
 
     # Remove duplicate rows
     return tsv_frame.drop_duplicates()
+
+def FormatEventDBForVisibility(databases, dbcolumns, sort_keys):
+    tsv_data= []
+    for database in databases:
+        for entry , values in database.items():
+            entry = datetime.fromtimestamp(float(entry)/1000)
+            user, task, page, query = BreakEventUrl(FormatUrl(values['doc_url']))
+            # Track visibility only on first page and for events listed in visibility_events
+            if (query and user and task) and (int(page) == 1) and (values['event_type'] in visibility_events):
+                event_value = values['event_value']
+                # Only consider entries that have visible_elements
+                if 'visible_elements' in event_value:
+                    new_entry = [entry , user , int(task), query.strip(), \
+                        values['event_type'], event_value['visible_elements']]
+                    tsv_data.append(new_entry)
+
+    # create a new data frame
+    tsv_frame = pd.DataFrame(tsv_data, columns= dbcolumns)
+
+    # Remove test users
+    tsv_frame = tsv_frame[~tsv_frame['user_id'].str.contains('test')]
+
+    # sort by time key
+    tsv_frame = tsv_frame.sort(sort_keys)
+
+    # Remove duplicate rows
+    return tsv_frame.drop_duplicates()
+
 
 def FormatQueryResultCompleteDB(databases, dbcolumns, sort_keys ):
     tsv_data = []

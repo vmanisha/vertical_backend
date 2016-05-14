@@ -49,13 +49,17 @@ click_result_header = ['time','user_id','task_id','query_id','page_id','doc_id',
 # Click result table sortkeys
 click_result_sortkeys = ['time','task_id']
 
-# Event table header
-event_header = ['time','user_id','task_id','query_text','page_id','event_type','event_value']
-# Task response table sortkeys
-event_sortkeys = ['time','task_id', 'user_id']
+# tap event table header
+tap_event_header = ['time','user_id','task_id','query_text','page_id','event_type','event_value']
+# Tap event sortkeys
+tap_event_sortkeys = ['time','task_id', 'user_id']
+
+# Visibility event table header
+vis_event_header = ['time','user_id','task_id','query_text','event_type','event_value']
+# Visibility event table sortkeys
+vis_event_sortkeys = ['time','task_id', 'user_id']
 
 TASKMAP = {'Somewhat Satisfied': 2.0, 'Highly Satisfied': 3.0, 'Not Satisfied' : 1.0}
-
 
 def MergeAllTables(result_table, click_table, event_table, page_table, task_table):
     result_table['type'] = 'results'
@@ -372,6 +376,114 @@ def FindPageMetricsPerVertical(result_table, page_table):
                 }
             })
 
+# Update card visibility based on visible_elements
+# 1: visible 0: invisible
+def UpdateCardVisibility(visible_elements,card_vis):
+    card_list = visible_elements.split(' ')
+    for card in card_list:
+        c = card.split('_')
+        if len(c) > 2:
+            card_vis[int(c[2])] = 1
+
+    return card_vis
+
+def UpdateCardStatus(visible_elements,card_status,card_time,time):
+    inv_cards = range(0,10)
+    card_list = visible_elements.split(' ')
+    for card in card_list:
+        c = card.split('_')
+        if len(c) > 2:
+            cid = int(c[2])
+
+            # Note the time if the card became visible
+            if card_status[cid] == None:
+                card_status[cid] = time
+
+            # Remove the card from invisible card list
+            inv_cards.remove(cid)
+
+    # Update the time for cards that became invisible
+    for cid in inv_cards:
+        if card_status[cid] != None:
+            card_time[cid] = card_time[cid] + (time-card_status[cid]).total_seconds()
+            card_status[cid] = None
+
+    return [card_status, card_time]
+
+
+def FindVisiblityMetricsPerVertical(result_table,vis_event_table):
+    # Consider only top position
+    result_table = result_table[result_table['doc_pos']==0]
+    # Consider only first page
+    result_table = result_table[result_table['page_id']==1]
+    merge_table = pd.merge(result_table,vis_event_table,left_on=['user_id','task_id','query_text'],right_on=['user_id','task_id','query_text'])
+    merge_table.to_csv('merge_result_vis_event.csv',encoding = 'utf-8',sep = '\t')
+
+    # Initialize visiblity metric
+    # Stores #sessions in which 
+    # each card was visible
+    visibility = {}
+    visibility['i'] = np.zeros(10)
+    visibility['v'] = np.zeros(10)
+    visibility['w'] = np.zeros(10)
+    visibility['o'] = np.zeros(10)
+
+    # Initialize time metric
+    # Stores the total time 
+    # for which each card was visible
+    visible_time = {}
+    visible_time['i'] = np.zeros(10)
+    visible_time['v'] = np.zeros(10)
+    visible_time['w'] = np.zeros(10)
+    visible_time['o'] = np.zeros(10)
+
+    grouped_table = merge_table.sort(['time_y']).groupby(['user_id','task_id','query_text'])
+
+    for name, group in grouped_table:
+        # card visibility for this session
+        # 1: visible 0: invisible
+        card_vis = np.zeros(10)
+
+        # card status and time for this session
+        # card_status stores time when it became visible or 0 if its invisible
+        # card_time stores time in seconds
+        card_status = 10*[None]
+        card_time = np.zeros(10)        
+        last_time = 0
+        for index, row in group.iterrows():
+            card_vis = UpdateCardVisibility(row['event_value'],card_vis)
+            top_vert = row['doc_type']
+
+            [card_status, card_time] = UpdateCardStatus(row['event_value'],card_status,card_time,row['time_y'])
+
+            # Stores the time of the last event in this session
+            last_time = row['time_y']
+
+        # Update visibility of the vertical
+        if sum(card_vis) > 0:
+            visibility[top_vert] = visibility[top_vert] + card_vis
+
+            # For now we assume all cards become invisible in the last event
+            # So use that time to compute the dwell time of cards that 
+            # were visible at the end of the sessions
+            # TODO: Ideally we would like to use the time of the first event
+            # of the next session
+            for cid in range(0,10):
+                if card_status[cid] != None:
+                    card_time[cid] = card_time[cid] + (last_time - card_status[cid]).total_seconds()
+            visible_time[top_vert] = visible_time[top_vert] + card_time
+
+    print 'image',visibility['i']
+    print 'video',visibility['v']
+    print 'wiki',visibility['w']
+    print 'organic',visibility['o']
+
+    print 'image',visible_time['i']
+    print 'video',visible_time['v']
+    print 'wiki',visible_time['w']
+    print 'organic',visible_time['o']
+
+
 def LoadDatabase(filename, isFolder):
     database = []
 
@@ -422,8 +534,11 @@ def main():
     # Format click result db
     click_table = FormatClickResultDB(click_result_db,click_result_header,click_result_sortkeys)
 
-    # Format click result db
-    event_table = FormatEventDB(event_db,event_header, event_sortkeys)
+    # Format tap event db
+    tap_event_table = FormatEventDBForTap(event_db,tap_event_header,tap_event_sortkeys)
+
+    # Format visibility event db
+    vis_event_table = FormatEventDBForVisibility(event_db,vis_event_header,vis_event_sortkeys)
 
     # a. task : users. Compute the number of users who provided task feedback
     # task_id, #users_who_gave_feedback
@@ -466,7 +581,7 @@ def main():
     #click_filtered = click_table[click_table['doc_id'].str.len()\
     #        == 5]
 
-    merged_tables = MergeAllTables(query_table, click_filtered, event_table,\
+    merged_tables = MergeAllTables(query_table, click_filtered, tap_event_table,\
     	 page_response_table, task_response_table)
     
     # Find the vertical_type stats: sessions, queries, clicks a
@@ -482,6 +597,8 @@ def main():
     FindPageMetricsPerVertical(query_table,page_response_table)
 
 
+    # Generate visibility statistics
+    FindVisiblityMetricsPerVertical(query_table,vis_event_table)
 
 if __name__ == "__main__":
     main()
