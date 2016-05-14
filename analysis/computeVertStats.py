@@ -425,10 +425,14 @@ def UpdateCardStatus(visible_elements,card_status,card_time,time):
     # Update the time for cards that became invisible
     for cid in inv_cards:
         if card_status[cid] != None:
-            card_time[cid] = card_time[cid] + (time-card_status[cid]).total_seconds()
+            time_diff = (time-card_status[cid]).total_seconds()
+            if time_diff < 150:
+                card_time[cid].append(time_diff)
+            else:
+                print 'Time diff > 150', time_diff
             card_status[cid] = None
 
-    return [card_status, card_time]
+    return card_status, card_time
 
 
 def FindVisiblityMetricsPerVertical(result_table,vis_event_table):
@@ -452,14 +456,15 @@ def FindVisiblityMetricsPerVertical(result_table,vis_event_table):
     # Stores the total time 
     # for which each card was visible
     visible_time = {}
-    visible_time['i'] = np.zeros(10)
-    visible_time['v'] = np.zeros(10)
-    visible_time['w'] = np.zeros(10)
-    visible_time['o'] = np.zeros(10)
+    visible_time['i'] ={ 0: [], 1: [] , 2: [], 3: [], 4: [] ,5:[], 6:[], 7:[], 8:[],9:[]} 
+    visible_time['v'] ={ 0: [], 1: [] , 2: [], 3: [], 4: [] ,5:[], 6:[], 7:[], 8:[],9:[]} 
+    visible_time['w'] ={ 0: [], 1: [] , 2: [], 3: [], 4: [] ,5:[], 6:[], 7:[], 8:[],9:[]} 
+    visible_time['o'] ={ 0: [], 1: [] , 2: [], 3: [], 4: [] ,5:[], 6:[], 7:[], 8:[],9:[]}
 
-    grouped_table = merge_table.sort(['time_y']).groupby(['user_id','task_id','query_text'])
+    grouped_table = merge_table.groupby(['user_id','task_id','query_text'])
 
     for name, group in grouped_table:
+        group = group.sort('time_y')
         # card visibility for this session
         # 1: visible 0: invisible
         card_vis = np.zeros(10)
@@ -468,14 +473,13 @@ def FindVisiblityMetricsPerVertical(result_table,vis_event_table):
         # card_status stores time when it became visible or 0 if its invisible
         # card_time stores time in seconds
         card_status = 10*[None]
-        card_time = np.zeros(10)        
+        card_time = { 0: [], 1: [] , 2: [], 3: [], 4: [] ,5:[], 6:[], 7:[], 8:[],9:[]}
         last_time = 0
         for index, row in group.iterrows():
             card_vis = UpdateCardVisibility(row['event_value'],card_vis)
             top_vert = row['doc_type']
 
-            [card_status, card_time] = UpdateCardStatus(row['event_value'],card_status,card_time,row['time_y'])
-
+            card_status, card_time = UpdateCardStatus(row['event_value'],card_status,card_time,row['time_y'])
             # Stores the time of the last event in this session
             last_time = row['time_y']
 
@@ -490,15 +494,23 @@ def FindVisiblityMetricsPerVertical(result_table,vis_event_table):
             # of the next session
             for cid in range(0,10):
                 if card_status[cid] != None:
-                    card_time[cid] = card_time[cid] + (last_time - card_status[cid]).total_seconds()
-            visible_time[top_vert] = visible_time[top_vert] + card_time
-
+                    time_diff = (last_time-card_status[cid]).total_seconds()
+                    if time_diff < 150:
+                        card_time[cid].append(time_diff)
+                    else:
+                        print 'Time diff > 150', time_diff
+            for card_id in card_time.keys():
+                visible_time[top_vert][card_id].extend(card_time[card_id])
     print 'image',visibility['i']
     print 'video',visibility['v']
     print 'wiki',visibility['w']
     print 'organic',visibility['o']
 
-    print 'image',visible_time['i']
-    print 'video',visible_time['v']
-    print 'wiki',visible_time['w']
-    print 'organic',visible_time['o']
+    print 'image',' '.join([str(round(sum(card_times)/visibility['i'][0],3)) for card_times in
+      visible_time['i'].values()])
+    print 'video',' '.join([ str(round(sum(card_times)/visibility['v'][0],3)) for card_times in
+      visible_time['v'].values()])
+    print 'wiki',' '.join([ str(round(sum(card_times)/visibility['w'][0],3)) for card_times in
+      visible_time['w'].values()])
+    print 'organic',' '.join([str(round(sum(card_times)/visibility['o'][0],3)) for card_times in
+      visible_time['o'].values()])
