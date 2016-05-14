@@ -23,15 +23,14 @@ def FindDwellTimes(concat_table):
 
     # Group by task_id and query_id and Sort by time within each group.
     grouped_table = concat_table.groupby(['user_id','task_id'])
+    recorded_clicks = {}
+    vert_type = None
     for name, group in grouped_table:
         group = group.sort('time')
-        vert_type = None
         rows = []
         results = {}
-        recorded_clicks = {}
         for index, row in group.iterrows():
             rows.append(row)
-        print 'Looking at ',name
         for i in range(len(rows)):
             row = rows[i]
             # Store results.
@@ -41,7 +40,6 @@ def FindDwellTimes(concat_table):
             if row['type'] == 'results' and row['doc_pos'] == 0:
                 # For each page find time it was tapped or clicked. 
                 # Take the min for dwell time.
-                print len(recorded_clicks)
                 for curl, stats in recorded_clicks.items():
                     if stats['rank'] == 0:
                         vertical_stats[stats['type']]['on_dwell'].append(min(stats['time']))
@@ -67,7 +65,7 @@ def FindDwellTimes(concat_table):
                     click_url = row['doc_url']
                 # Check if page response for this url has been submitted.
                 j = i+1
-                while j < len(rows) and (rows[j]['type'] != 'results') :
+                while (j < len(rows)) and (not (rows[j]['type'] == 'results')):
                     if rows[j]['type'] == 'page_response':
                         if (rows[j]['doc_url'] in click_url) or\
                         editdistance.eval(click_url, rows[j]['doc_url']) < 20:
@@ -79,9 +77,8 @@ def FindDwellTimes(concat_table):
                         found = True
                         end_time = rows[j]['time']
                         break
-                    if 'imdb' in click_url:
-                        print 'Check imdb ',j, len(rows) ,click_url,\
-                        rows[j]['doc_url']
+                    if found :
+                        break
                     j+=1
                 if found and end_time:
                     if click_url not in recorded_clicks:
@@ -95,9 +92,8 @@ def FindDwellTimes(concat_table):
                         row['user_id'], row['task_id'], row['type']
 
     for vertical, val_dict in vertical_stats.items():
-        print vertical, val_dict
-        print vertical, np.mean(val_dict['on_dwell']),\
-        np.std(val_dict['on_dwell']), np.mean(val_dict['off_dwell']), \
+        print vertical, 'on-dwell',np.mean(val_dict['on_dwell']),\
+        np.std(val_dict['on_dwell']),'off-dwell', np.mean(val_dict['off_dwell']), \
         np.std(val_dict['off_dwell']), val_dict['on_count'],\
         val_dict['off_count']
 

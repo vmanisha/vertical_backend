@@ -126,13 +126,13 @@ def main():
 
     # a. task : users. Compute the number of users who provided task feedback
     # task_id, #users_who_gave_feedback
-    #task_response_table[['task_id','user_id']].groupby(['task_id']).\
-    #        agg({'user_id': pd.Series.nunique}).to_csv('task_feedback.csv')
+    task_response_table[['task_id','user_id']].groupby(['task_id']).\
+            agg({'user_id': pd.Series.nunique}).to_csv('task_feedback.csv')
 
     # b. task : user_impressions. Compute the number of users who executed a task.
     # task_id, #users_who_executed_task
-    #page_response_table[['task_id','user_id']].groupby(['task_id']).\
-    #        agg({'user_id': pd.Series.nunique}).to_csv('task_execute.csv')
+    page_response_table[['task_id','user_id']].groupby(['task_id']).\
+            agg({'user_id': pd.Series.nunique}).to_csv('task_execute.csv')
 
     # c. vertical_type : vertical_SERPs. Compute the number of times each vertical was shown as top result.
     # Only consider query results in the first page (page_id==1)
@@ -144,9 +144,9 @@ def main():
 
     # d. vertical_type : queries. Compute the number of queries fired for each vertical.
     # task_id, #unique_queries
-    #queries_with_time= query_results[['time','doc_type','query_text']].drop_duplicates();
-    #queries_with_time.groupby(['doc_type','query_text']).agg(\
-    #        {'query_text': pd.Series.count}).to_csv('vert_queries.csv')
+    queries_with_time= query_results[['time','doc_type','query_text']].drop_duplicates();
+    queries_with_time.groupby(['doc_type','query_text']).agg(\
+            {'query_text': pd.Series.count}).to_csv('vert_queries.csv')
 
     # f. task : time . Compute the time spent on doing each task.
 
@@ -170,15 +170,15 @@ def main():
     
     # Find the vertical_type stats: sessions, queries, clicks a
     # nd average satisfaction/rel values.
-    #FindDescriptiveStatsPerVertical(merged_tables)
+    FindDescriptiveStatsPerVertical(merged_tables)
     
     # h. vertical_type : time_to_first_click_and_position. Compute the time to first click for each
     # k. vertical_type : last_click_position. Compute the ranks that were clicked last for
-    #FindFirstAndLastClickInfo(merged_tables)
+    FindFirstAndLastClickInfo(merged_tables)
     
     # For every page whose response is available find its doc_pos on serp
     # We ignore the pages who are serp since they do not have any doc_pos
-    #FindPageMetricsPerVertical(query_table,page_response_table)
+    FindPageMetricsPerVertical(query_table,page_response_table)
 
     # Find dwell time information for each vertical for on-vert and off-vert
     # click. 
