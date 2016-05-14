@@ -9,6 +9,12 @@ from formatTables import *
 import editdistance 
 TASKMAP = {'Somewhat Satisfied': 2.0, 'Highly Satisfied': 3.0, 'Not Satisfied' : 1.0}
 
+# default dwell time of the card in seconds
+DEFAULT_CARD_DWELL_TIME = 1
+
+# max card dwell time in seconds
+MAX_CARD_DWELL_TIME = 150
+
 # Find mean and std dwell time per vertical. 
 def FindDwellTimes(concat_table):
     vertical_stats = { 'i' : { 'on_dwell': [], 'off_dwell':[] ,\
@@ -407,7 +413,7 @@ def UpdateCardVisibility(visible_elements,card_vis):
 
     return card_vis
 
-def UpdateCardStatus(visible_elements,card_status,card_time,time):
+def UpdateCardTime(visible_elements,card_status,card_time,time):
     inv_cards = range(0,10)
     card_list = visible_elements.split(' ')
     for card in card_list:
@@ -426,22 +432,24 @@ def UpdateCardStatus(visible_elements,card_status,card_time,time):
     for cid in inv_cards:
         if card_status[cid] != None:
             time_diff = (time-card_status[cid]).total_seconds()
-            if time_diff < 150:
-                card_time[cid].append(time_diff)
+            if time_diff < MAX_CARD_DWELL_TIME:
+                card_time[cid] = card_time[cid] + time_diff
             else:
                 print 'Time diff > 150', time_diff
+                # Something went wrong so setting the dwell time to default
+                card_time[cid] = card_time[cid] + DEFAULT_CARD_DWELL_TIME
             card_status[cid] = None
 
     return card_status, card_time
-
 
 def FindVisiblityMetricsPerVertical(result_table,vis_event_table):
     # Consider only top position
     result_table = result_table[result_table['doc_pos']==0]
     # Consider only first page
     result_table = result_table[result_table['page_id']==1]
-    merge_table = pd.merge(result_table,vis_event_table,left_on=['user_id','task_id','query_text'],right_on=['user_id','task_id','query_text'])
-    merge_table.to_csv('merge_result_vis_event.csv',encoding = 'utf-8',sep = '\t')
+
+    concat_table = pd.concat([result_table, vis_event_table], ignore_index = True)
+    # concat_table.to_csv('concat_result_vis_event',encoding='utf-8', index = False)
 
     # Initialize visiblity metric
     # Stores #sessions in which 
@@ -461,46 +469,84 @@ def FindVisiblityMetricsPerVertical(result_table,vis_event_table):
     visible_time['w'] ={ 0: [], 1: [] , 2: [], 3: [], 4: [] ,5:[], 6:[], 7:[], 8:[],9:[]} 
     visible_time['o'] ={ 0: [], 1: [] , 2: [], 3: [], 4: [] ,5:[], 6:[], 7:[], 8:[],9:[]}
 
-    grouped_table = merge_table.groupby(['user_id','task_id','query_text'])
-
+    grouped_table = concat_table.groupby(['user_id'])
+    
     for name, group in grouped_table:
-        group = group.sort('time_y')
-        # card visibility for this session
+        group = group.sort('time')
+
+        # Top vertical in the session
+        top_vert = None
+
+        # time of the previous event in the session
+        prev_time = None
+
+        # card visibility for the session
         # 1: visible 0: invisible
         card_vis = np.zeros(10)
-
-        # card status and time for this session
+    
+        # card status and time for the session
         # card_status stores time when it became visible or 0 if its invisible
         # card_time stores time in seconds
         card_status = 10*[None]
-        card_time = { 0: [], 1: [] , 2: [], 3: [], 4: [] ,5:[], 6:[], 7:[], 8:[],9:[]}
-        last_time = 0
+        card_time = np.zeros(10)
+
+        # Process sessions for this user
         for index, row in group.iterrows():
-            card_vis = UpdateCardVisibility(row['event_value'],card_vis)
-            top_vert = row['doc_type']
 
-            card_status, card_time = UpdateCardStatus(row['event_value'],card_status,card_time,row['time_y'])
-            # Stores the time of the last event in this session
-            last_time = row['time_y']
+            # Row type 'result' indicates the start of a new session
+            if row['type'] == 'results':
+                
+                # Save results of a previous session
+                if top_vert != None:
+                    visibility[top_vert] = visibility[top_vert] + card_vis
+                    card_vis = np.zeros(10)
 
-        # Update visibility of the vertical
-        if sum(card_vis) > 0:
+                    # Compute the time for cards that were visible 
+                    # at the end of the previous session
+                    for cid in range(0,10):
+                        if card_status[cid] != None:
+                            time_diff = (row['time']-card_status[cid]).total_seconds()
+
+                            if time_diff < MAX_CARD_DWELL_TIME:
+                                card_time[cid] = card_time[cid] + time_diff
+                            else:
+                                time_diff = (prev_time-card_status[cid]).total_seconds()
+                                if time_diff < MAX_CARD_DWELL_TIME:
+                                    card_time[cid] = card_time[cid] + time_diff
+                                else:
+                                    # setting the dwell time to default
+                                    card_time[cid] = card_time[cid] + DEFAULT_CARD_DWELL_TIME
+
+                        visible_time[top_vert][cid].append(card_time[cid])
+
+                    card_status = 10*[None]
+                    card_time = np.zeros(10)
+                    
+                top_vert = row['doc_type']
+
+            # Otherwise it is the event row
+            # Update stats of the current session
+            else:
+                card_vis = UpdateCardVisibility(row['event_value'],card_vis)
+                card_status, card_time = UpdateCardTime(row['event_value'],card_status,card_time,row['time'])
+
+            prev_time = row['time']
+
+        # Save results of the last session of this user
+        if top_vert != None:
             visibility[top_vert] = visibility[top_vert] + card_vis
 
-            # For now we assume all cards become invisible in the last event
-            # So use that time to compute the dwell time of cards that 
-            # were visible at the end of the sessions
-            # TODO: Ideally we would like to use the time of the first event
-            # of the next session
+            # This is the last session of this user
+            # so we do not have enough information
+            # to compute dwell time for the cards
+            # that were visible at the end of the session
+            # We simply add default card dwell time
             for cid in range(0,10):
                 if card_status[cid] != None:
-                    time_diff = (last_time-card_status[cid]).total_seconds()
-                    if time_diff < 150:
-                        card_time[cid].append(time_diff)
-                    else:
-                        print 'Time diff > 150', time_diff
-            for card_id in card_time.keys():
-                visible_time[top_vert][card_id].extend(card_time[card_id])
+                    card_time[cid] = card_time[cid] + DEFAULT_CARD_DWELL_TIME
+                visible_time[top_vert][cid].append(card_time[cid])
+
+
     print 'image',visibility['i']
     print 'video',visibility['v']
     print 'wiki',visibility['w']
