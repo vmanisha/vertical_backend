@@ -38,6 +38,9 @@ def FormatUrl(url):
         url = url[3:]
     if url.find('m.') == 0:
         url = url[2:]
+    url = url.strip()
+    # Fix ebay errors
+    url = url.replace(' ','+')
     return url
 
 
@@ -228,8 +231,8 @@ def FormatEventDB(databases, dbcolumns, sort_keys):
             if (query and user and task and page) and (values['event_type'] == 'tap'):
                 element_tap = ProcessEventValueDict(values['event_value'])
                 if element_tap > -1:
-					new_entry = [entry , user , int(task), query.strip(), int(page), \
-                        values['event_type'], element_tap ]
+		    new_entry = [entry , user , int(task), query.strip(), int(page), \
+                    values['event_type'], element_tap ]
                 tsv_data.append(new_entry)
 
     # create a new data frame
