@@ -383,19 +383,17 @@ def FindTaskPrefPerVertical(result_table,task_table):
     print vert_preference
 
 
+# TODO: fix clicks by adding data from response or tap db
 def FindClickDistributionPerVertical(result_table,click_filtered):
     concat_table = pd.concat([result_table, click_filtered], ignore_index = True)
 
     grouped_table = concat_table.groupby(['user_id'])
 
-    # Store sthe clicks per positions per top vertical
-    clicks_pos = {'i':np.zeros(10), 'v':np.zeros(10), 'w':np.zeros(10), 'o': np.zeros(10)}
+    # Stores the #clicks per positions per vertical
+    click_pos = {'i':np.zeros(10), 'v':np.zeros(10), 'w':np.zeros(10), 'o': np.zeros(10)}
 
-    # Store sthe clicks per vertical per top vertical
-    clicks_vert = {'i': {'i':0,'v':0,'w':0,'o':0}, \
-        'v': {'i':0,'v':0,'w':0,'o':0},\
-        'w': {'i':0,'v':0,'w':0,'o':0},\
-        'o': {'i':0,'v':0,'w':0,'o':0},} 
+    # Stores the click distribution per vertical
+    click_dist = {'i':[], 'v':[], 'w':[], 'o': []}
 
     # Stores the number of times a vertical was shown
     vert_count = {'i':0,'v':0,'w':0,'o':0}
@@ -416,24 +414,22 @@ def FindClickDistributionPerVertical(result_table,click_filtered):
                 # Get the position of the clicked doc
                 doc_id = row['doc_id']
                 pos = int(doc_id.split('_')[1])
-                clicks_pos[vert][pos] = clicks_pos[vert][pos] + 1
+                click_pos[vert][pos] = click_pos[vert][pos] + 1
+                click_dist[vert].append(pos+1)
 
-                # TODO: Compute the type of url
+    PlotClickDistPerVertical(click_dist)
 
-    print clicks_pos
-    print vert_count
-
-    print 'image',' '.join([str(x) for x in clicks_pos['i']])
-    print 'video',' '.join([str(x) for x in clicks_pos['v']])
-    print 'wiki',' '.join([str(x) for x in clicks_pos['w']])
-    print 'organic',' '.join([str(x) for x in clicks_pos['o']])
+    print 'image',' '.join([str(x) for x in click_pos['i']])
+    print 'video',' '.join([str(x) for x in click_pos['v']])
+    print 'wiki',' '.join([str(x) for x in click_pos['w']])
+    print 'organic',' '.join([str(x) for x in click_pos['o']])
 
     print 'image',' '.join([str(round(float(clicks)/float(vert_count['i']),3)) \
-        for clicks in clicks_pos['i']])
+        for clicks in click_pos['i']])
     print 'video',' '.join([str(round(float(clicks)/float(vert_count['v']),3)) \
-        for clicks in clicks_pos['v']])
+        for clicks in click_pos['v']])
     print 'wiki',' '.join([str(round(float(clicks)/float(vert_count['w']),3)) \
-        for clicks in clicks_pos['w']])
+        for clicks in click_pos['w']])
     print 'organic',' '.join([str(round(float(clicks)/float(vert_count['o']),3)) \
-        for clicks in clicks_pos['o']])
+        for clicks in click_pos['o']])
 

@@ -199,6 +199,7 @@ def main():
     query_filtered = query_table[query_table['doc_pos']==0]
     query_filtered = query_filtered[query_filtered['page_id']==1]
     
+    '''
     # Find the vertical_type stats: sessions, queries, clicks a
     # nd average satisfaction/rel values.
     FindDescriptiveStatsPerVertical(merged_tables)
@@ -226,7 +227,7 @@ def main():
 
     # Generate task preference distribution per task_id
     FindTaskPrefDistribution(task_response_table)
-    
+    '''
 
     # Generate click distribution for every vertical
     FindClickDistributionPerVertical(query_filtered,click_filtered)

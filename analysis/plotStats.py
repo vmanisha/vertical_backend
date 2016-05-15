@@ -1,7 +1,7 @@
 import matplotlib.pyplot as plt
 import numpy as np
 
-Verticals = ['image','video','wiki','organic']
+verticals = ['image','video','wiki','organic']
 vert_color = ['blue','black','cyan','green']
 
 def SetVisBox(bp):
@@ -22,6 +22,7 @@ def PlotVisiblityStats(visibility,visible_time):
 		time_data = [visible_time['i'][cid], visible_time['v'][cid], visible_time['w'][cid], visible_time['o'][cid]]
 		sp = (cid*4)+cid+1
 		pos = [sp, sp+1, sp+2, sp+3]
+		# sym='' for not showing outliers
 		bp = plt.boxplot(time_data,positions=pos,widths=0.5,sym='')
 		# means = [np.mean(data) for data in time_data]
 		# ax.plot(pos,means,'rs')
@@ -63,6 +64,28 @@ def PlotTaskSat(satisfaction):
 	plt.ylim(0,4)
 	plt.ylabel('Satisfaction Ratings')
 	plt.xlabel('Verticals')
+	plt.xticks([1,2,3,4],verticals)
 
 	plt.savefig('task_sat_per_vert.png')
+	plt.show()
+
+
+def PlotClickDistPerVertical(click_dist):
+	plt.figure()
+
+	click_data = []
+	click_data.append(click_dist['i'])
+	click_data.append(click_dist['v'])
+	click_data.append(click_dist['w'])
+	click_data.append(click_dist['o'])
+
+	# sym='' for not showing outliers
+	plt.boxplot(click_data,sym='')
+	plt.ylim(0,11)
+	plt.yticks(range(1,11))
+	plt.ylabel('Document Positions')
+	plt.xlabel('Verticals')
+	plt.xticks([1,2,3,4],verticals)
+
+	plt.savefig('click_dist_per_vert.png')
 	plt.show()
