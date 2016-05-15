@@ -201,13 +201,7 @@ def UpdateCardTime(visible_elements,card_status,card_time,time):
     return card_status, card_time
 
 def FindVisiblityMetricsPerVertical(result_table,vis_event_table):
-    # Consider only top position
-    result_table = result_table[result_table['doc_pos']==0]
-    # Consider only first page
-    result_table = result_table[result_table['page_id']==1]
-
     concat_table = pd.concat([result_table, vis_event_table], ignore_index = True)
-    # concat_table.to_csv('concat_result_vis_event',encoding='utf-8', index = False)
 
     # Initialize visiblity metric
     # Stores #sessions in which 

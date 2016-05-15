@@ -1,7 +1,7 @@
 import matplotlib.pyplot as plt
 import numpy as np
 
-vert = ['image','video','wiki','organic']
+Verticals = ['image','video','wiki','organic']
 vert_color = ['blue','black','cyan','green']
 
 def SetVisBox(bp):
@@ -41,11 +41,28 @@ def PlotVisiblityStats(visibility,visible_time):
 	h2, = plt.plot([1,1],color=vert_color[1])
 	h3, = plt.plot([1,1],color=vert_color[2])
 	h4, = plt.plot([1,1],color=vert_color[3])
-	plt.legend((h1,h2,h3,h4),vert)
+	plt.legend((h1,h2,h3,h4),Verticals)
 	h1.set_visible(False)
 	h2.set_visible(False)
 	h3.set_visible(False)
 	h4.set_visible(False)
 
-	# savefig('boxcompare.png')
+	plt.savefig('card_time_per_vert.png')
+	plt.show()
+
+def PlotTaskSat(satisfaction):
+	plt.figure()
+
+	sat_data = []
+	sat_data.append(satisfaction['i'])
+	sat_data.append(satisfaction['v'])
+	sat_data.append(satisfaction['w'])
+	sat_data.append(satisfaction['o'])
+
+	plt.boxplot(sat_data)
+	plt.ylim(0,4)
+	plt.ylabel('Satisfaction Ratings')
+	plt.xlabel('Verticals')
+
+	plt.savefig('task_sat_per_vert.png')
 	plt.show()
