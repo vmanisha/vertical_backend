@@ -359,13 +359,21 @@ def FindVisiblityMetricsPerVertical(result_table,vis_event_table):
 # Find mean and std dwell time per vertical. 
 def FindDwellTimes(concat_table):
     vertical_stats = { 'i' : { 'on_dwell': [], 'off_dwell':[] ,\
-                  'on_count':0.0, 'off_count':0.0}, \
+                  'on_count':0.0, 'off_count':0.0, \
+                  'pos_dwell' : {0:[],1:[], 2:[], 3:[], 4:[]},\
+                  'clicks':{0:0.0,1:0.0, 2: 0.0, 3:0.0, 4:0.0}}, \
             'w' : { 'on_dwell': [], 'off_dwell':[],'on_count':0.0,\
-                  'off_count':0.0}, \
+                    'off_count':0.0 ,\
+                    'pos_dwell' : {0:[],1:[], 2:[], 3:[], 4:[]} ,\
+                    'clicks':{0:0.0,1:0.0, 2: 0.0, 3:0.0, 4:0.0} } , \
             'o' : { 'on_dwell': [], 'off_dwell':[],'on_count':0.0,\
-                  'off_count':0.0}, \
+                    'off_count':0.0,\
+                    'pos_dwell' : {0:[],1:[], 2:[], 3:[], 4:[]},\
+                    'clicks':{0:0.0,1:0.0, 2: 0.0, 3:0.0, 4:0.0}  }, \
             'v' : { 'on_dwell': [], 'off_dwell':[],'on_count':0.0,\
-                  'off_count':0.0}, \
+                    'off_count':0.0 ,\
+                    'pos_dwell' : {0:[],1:[], 2:[], 3:[], 4:[]},\
+                    'clicks':{0:0.0,1:0.0, 2: 0.0, 3:0.0, 4:0.0} }, \
     }
 
     # Group by task_id and query_id and Sort by time within each group.
@@ -388,6 +396,10 @@ def FindDwellTimes(concat_table):
                 # For each page find time it was tapped or clicked. 
                 # Take the min for dwell time.
                 for curl, stats in recorded_clicks.items():
+                    if stats['rank'] < 5:
+                        vertical_stats[stats['type']]['pos_dwell'][stats['rank']].append(min(stats['time']))
+                        vertical_stats[stats['type']]['clicks'][stats['rank']]+=1
+
                     if stats['rank'] == 0:
                         vertical_stats[stats['type']]['on_dwell'].append(min(stats['time']))
                         vertical_stats[stats['type']]['on_count']+=1.0
@@ -432,8 +444,8 @@ def FindDwellTimes(concat_table):
                         recorded_clicks[click_url] ={'rank':None, 'type':None,
                                'time':[]}
                     recorded_clicks[click_url]['time'].append((end_time-start_time).total_seconds())
-                    recorded_clicks[click_url]['rank'] = click_rank
-                    recorded_clicks[click_url]['type']=vert_type
+                    recorded_clicks[click_url]['rank']= click_rank
+                    recorded_clicks[click_url]['type']= vert_type
                 else:
                     print 'Cannot find in responses', click_url,\
                         row['user_id'], row['task_id'], row['type']
@@ -459,4 +471,10 @@ def FindDwellTimes(concat_table):
     kruskalwallis(vertical_stats['v']['off_dwell'],vertical_stats['o']['off_dwell'])
     print 'Man off_dwell w-o',\
     kruskalwallis(vertical_stats['w']['off_dwell'],vertical_stats['o']['off_dwell'])
+
+    for vert_type, stats in vertical_stats.items():
+        for pos , array in stats['pos_dwell'].items():
+            print 'Man pos dwell ',vert_type, pos,\
+            kruskalwallis(array,vertical_stats['o']['pos_dwell'][pos])
+
 

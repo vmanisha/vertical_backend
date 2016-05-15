@@ -214,7 +214,7 @@ def main():
 
     # # Find dwell time information for each vertical for on-vert and off-vert
     # # click. 
-    # #FindDwellTimes(merged_tables)
+    FindDwellTimes(merged_tables)
 
     # # Generate visibility statistics
     # FindVisiblityMetricsPerVertical(query_filtered,vis_event_table)
