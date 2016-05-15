@@ -6,7 +6,8 @@ import os
 import re
 from datetime import datetime
 from formatTables import *
-from computeVertStats import *
+from computePageLevelMetrics import *
+from computeVerticalLevelMetrics import *
 # Construct several tables.
 #               Find the distribution of following variables:
 #
