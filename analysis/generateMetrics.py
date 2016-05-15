@@ -175,6 +175,11 @@ def main():
 
     merged_tables = MergeAllTables(query_table, click_filtered, tap_event_table,\
     	 page_response_table, task_response_table)
+
+    # Filter query table to have only top position on first page
+    # TODO: Do this after merge tables as it adds 'type' which is used later
+    query_filtered = query_table[query_table['doc_pos']==0]
+    query_filtered = query_filtered[query_filtered['page_id']==1]
     
     # Find the vertical_type stats: sessions, queries, clicks a
     # nd average satisfaction/rel values.
@@ -190,10 +195,25 @@ def main():
 
     # Find dwell time information for each vertical for on-vert and off-vert
     # click. 
-    FindDwellTimes(merged_tables)
+    #FindDwellTimes(merged_tables)
 
     # Generate visibility statistics
-    FindVisiblityMetricsPerVertical(query_table,vis_event_table)
+    FindVisiblityMetricsPerVertical(query_filtered,vis_event_table)
+
+    # Generate task statisfaction stats per vertical
+    FindTaskSatPerVertical(query_filtered,task_response_table)
+
+    # Generate task preference stats per vertical
+    FindTaskPrefPerVertical(query_filtered,task_response_table)
+
+    # Generate task preference distribution per task_id
+    FindTaskPrefDistribution(task_response_table)
+    
+
+    # Generate click distribution for every vertical
+    FindClickDistributionPerVertical(query_filtered,click_filtered)
+
+    #TODO: Fix the sorting after grouping
 
 if __name__ == "__main__":
     main()

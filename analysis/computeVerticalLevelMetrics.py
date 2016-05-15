@@ -3,6 +3,7 @@ import numpy as np
 import re
 from datetime import datetime
 import editdistance 
+from plotStats import *
 
 TASKSATMAP = {'Somewhat Satisfied': 2.0, 'Highly Satisfied': 3.0, 'Not Satisfied' : 1.0}
 
@@ -224,4 +225,155 @@ def FindDescriptiveStatsPerVertical(concat_table):
             round(np.std(stat_dict['task_sat']),2), np.mean(stat_dict['time']),\
             round(np.std(stat_dict['time']),2)
     print 'Not registered clicks ', not_registered_clicks
+
+def FindTaskSatPerVertical(result_table,task_table):
+    # Consider only satisfaction response
+    task_table = task_table[task_table['response_type']=='satisfaction']
+
+    # Join on task_table
+    merge_table = pd.merge(result_table,task_table,how='right',left_on=['user_id','task_id'],right_on=['user_id','task_id'])
+    merge_table.to_csv('merge.csv',encoding='utf-8', index = False)
+    
+    satisfaction = {'i':[], 'v':[], 'w':[], 'o':[]}
+
+    for index, row in merge_table.iterrows():
+        vert = row['doc_type']
+
+        # Check if the vertical is a valid vertical
+        # Need to check this because not all entires in task db
+        # has a corresponding entry in result db
+        # These are the people who rated task without executing a single query!
+        # We have no choice but to ignore their task ratings
+        if vert in satisfaction:
+            satisfaction[vert].append(TASKSATMAP[row['response_value']])
+
+    print 'statisfaction',satisfaction
+    print 'image',np.median(satisfaction['i']),np.mean(satisfaction['i']),np.std(satisfaction['i'])
+    print 'video',np.median(satisfaction['v']),np.mean(satisfaction['v']),np.std(satisfaction['v'])
+    print 'wiki',np.median(satisfaction['w']),np.mean(satisfaction['w']),np.std(satisfaction['w'])
+    print 'organic',np.median(satisfaction['o']),np.mean(satisfaction['o']),np.std(satisfaction['o'])
+
+    PlotTaskSat(satisfaction)
+
+
+def FindTaskPrefDistribution(task_table):
+    task_table = task_table[task_table['response_type']=='preferred_verticals']
+
+    # Compute overall preference and task preference
+    overall_preference = {'Wiki':0,'General Web':0,'Videos':0,'Other':0,'Images':0}
+    
+    # Stores the number of times a task feedback given
+    task_count = np.zeros(10)
+
+    # Task prefernce per task_id
+    task_preference = []
+    for tid in range(0,10):
+        task_preference.append({'Wiki':0,'General Web':0,'Videos':0,'Other':0,'Images':0})
+
+    for index, row in task_table.iterrows():
+        tid = row['task_id']-1
+        task_count[tid] = task_count[tid] + 1
+
+        pref_value = row['response_value']
+        pref_list = pref_value.split(',')
+        for pref in pref_list:
+            pref = pref.strip()
+            if pref != '':
+                overall_preference[pref] = overall_preference[pref] + 1
+                task_preference[tid][pref] = task_preference[tid][pref] + 1
+
+    for tid in range(0,10):
+        for key,value in task_preference[tid].iteritems():
+            task_preference[tid][key] = float(task_preference[tid][key])/float(task_count[tid])
+
+    print overall_preference
+    for pref in task_preference:
+        print pref.values()
+
+def FindTaskPrefPerVertical(result_table,task_table):
+    task_table = task_table[task_table['response_type']=='preferred_verticals']
+
+    # Join on task_table
+    merge_table = pd.merge(result_table,task_table,how='right',left_on=['user_id','task_id'],right_on=['user_id','task_id'])
+
+    vert_preference = {'i':{'Wiki':0,'General Web':0,'Videos':0,'Other':0,'Images':0}, \
+        'v':{'Wiki':0,'General Web':0,'Videos':0,'Other':0,'Images':0},\
+        'w':{'Wiki':0,'General Web':0,'Videos':0,'Other':0,'Images':0},\
+        'o':{'Wiki':0,'General Web':0,'Videos':0,'Other':0,'Images':0},}
+
+    # Stores the number of times a vertical was shown
+    vert_count = {'i':0,'v':0,'w':0,'o':0}
+
+    for index, row in merge_table.iterrows():
+        vert = row['doc_type']
+
+        if vert in vert_preference:
+            vert_count[vert] = vert_count[vert] + 1
+            pref_value = row['response_value']
+            pref_list = pref_value.split(',')
+            for pref in pref_list:
+                pref = pref.strip()
+                if pref != '':
+                    vert_preference[vert][pref] = vert_preference[vert][pref] + 1
+ 
+    for key, value in vert_preference.iteritems():
+        for k, v in value.iteritems():
+            vert_preference[key][k] = float(vert_preference[key][k])/float(vert_count[key])
+
+    print vert_preference
+
+
+def FindClickDistributionPerVertical(result_table,click_filtered):
+    concat_table = pd.concat([result_table, click_filtered], ignore_index = True)
+
+    grouped_table = concat_table.groupby(['user_id'])
+
+    # Store sthe clicks per positions per top vertical
+    clicks_pos = {'i':np.zeros(10), 'v':np.zeros(10), 'w':np.zeros(10), 'o': np.zeros(10)}
+
+    # Store sthe clicks per vertical per top vertical
+    clicks_vert = {'i': {'i':0,'v':0,'w':0,'o':0}, \
+        'v': {'i':0,'v':0,'w':0,'o':0},\
+        'w': {'i':0,'v':0,'w':0,'o':0},\
+        'o': {'i':0,'v':0,'w':0,'o':0},} 
+
+    # Stores the number of times a vertical was shown
+    vert_count = {'i':0,'v':0,'w':0,'o':0}
+
+    for name, group in grouped_table:
+        group = group.sort(['time'])
+
+        vert = None
+        for index, row in group.iterrows():
+
+            # Get the top vertical from result row
+            if row['type'] == 'results':
+                vert = row['doc_type']
+                vert_count[vert] = vert_count[vert] + 1
+
+            # Update clicks from click row
+            if row['type'] == 'click':
+                # Get the position of the clicked doc
+                doc_id = row['doc_id']
+                pos = int(doc_id.split('_')[1])
+                clicks_pos[vert][pos] = clicks_pos[vert][pos] + 1
+
+                # TODO: Compute the type of url
+
+    print clicks_pos
+    print vert_count
+
+    print 'image',' '.join([str(x) for x in clicks_pos['i']])
+    print 'video',' '.join([str(x) for x in clicks_pos['v']])
+    print 'wiki',' '.join([str(x) for x in clicks_pos['w']])
+    print 'organic',' '.join([str(x) for x in clicks_pos['o']])
+
+    print 'image',' '.join([str(round(float(clicks)/float(vert_count['i']),3)) \
+        for clicks in clicks_pos['i']])
+    print 'video',' '.join([str(round(float(clicks)/float(vert_count['v']),3)) \
+        for clicks in clicks_pos['v']])
+    print 'wiki',' '.join([str(round(float(clicks)/float(vert_count['w']),3)) \
+        for clicks in clicks_pos['w']])
+    print 'organic',' '.join([str(round(float(clicks)/float(vert_count['o']),3)) \
+        for clicks in clicks_pos['o']])
 
