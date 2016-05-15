@@ -159,6 +159,7 @@ def FindPageMetricsPerVertical(result_table, page_table):
             })
     rank_level_rel_and_sat.reset_index().to_csv('vert_level_pos_level_rel_and_sat.csv',index='False')
 
+    PlotPageResponsePerVert(first_rel_group,last_rel_group)
 
 # Update card visibility based on visible_elements
 # 1: visible 0: invisible

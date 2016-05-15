@@ -1,6 +1,7 @@
 import matplotlib.pyplot as plt
 import numpy as np
 
+vert = ['i','v','w','o']
 verticals = ['image','video','wiki','organic']
 vert_color = ['blue','black','cyan','green']
 
@@ -33,7 +34,7 @@ def PlotVisiblityStats(visibility,visible_time):
 	plt.ylim(0,120)
 	plt.xlabel('Document Positions')
 	plt.ylabel('Viewport Time (seconds)')
-	plt.title('Document Viewport Times (sec) ')
+	# plt.title('Document Viewport Times (sec) ')
 	ax.set_xticklabels(['1', '2', '3', '4', '5'])
 	ax.set_xticks([2.5, 7.5, 12.5, 17.5, 22.5])
 
@@ -42,7 +43,7 @@ def PlotVisiblityStats(visibility,visible_time):
 	h2, = plt.plot([1,1],color=vert_color[1])
 	h3, = plt.plot([1,1],color=vert_color[2])
 	h4, = plt.plot([1,1],color=vert_color[3])
-	plt.legend((h1,h2,h3,h4),Verticals)
+	plt.legend((h1,h2,h3,h4),verticals)
 	h1.set_visible(False)
 	h2.set_visible(False)
 	h3.set_visible(False)
@@ -88,4 +89,73 @@ def PlotClickDistPerVertical(click_dist):
 	plt.xticks([1,2,3,4],verticals)
 
 	plt.savefig('click_dist_per_vert.png')
+	plt.show()
+
+def PlotPageResponsePerVert(first_rel_group,last_rel_group):
+	fig = plt.figure()
+	ax = plt.axes()
+	plt.hold(True)
+
+	# On Relevance
+	resp_data = []
+	sp = 1
+	pos = [sp, sp+1, sp+2, sp+3]
+	for v in vert:
+		resp_data.append(first_rel_group.get_group((v,'relevance'))['response_value'])
+	# sym='' for not showing outliers
+	bp = plt.boxplot(resp_data,positions=pos,widths=0.5,sym='')
+	SetVisBox(bp)
+
+	# Off Relevance
+	resp_data = []
+	sp = pos[3]+2
+	pos = [sp, sp+1, sp+2, sp+3]
+	for v in vert:
+		resp_data.append(last_rel_group.get_group((v,'relevance'))['response_value'])
+	# sym='' for not showing outliers
+	bp = plt.boxplot(resp_data,positions=pos,widths=0.5,sym='')
+	SetVisBox(bp)
+
+
+	# On Satisfaction
+	resp_data = []
+	sp = pos[3]+2
+	pos = [sp, sp+1, sp+2, sp+3]
+	for v in vert:
+		resp_data.append(first_rel_group.get_group((v,'satisfaction'))['response_value'])
+	# sym='' for not showing outliers
+	bp = plt.boxplot(resp_data,positions=pos,widths=0.5,sym='')
+	SetVisBox(bp)
+
+	# Off Satisfaction
+	resp_data = []
+	sp = pos[3]+2
+	pos = [sp, sp+1, sp+2, sp+3]
+	for v in vert:
+		resp_data.append(last_rel_group.get_group((v,'satisfaction'))['response_value'])
+	# sym='' for not showing outliers
+	bp = plt.boxplot(resp_data,positions=pos,widths=0.5,sym='')
+	SetVisBox(bp)
+
+	# set axes limits and labels
+	plt.xlim(0,pos[3]+1)
+	plt.ylim(0,6)
+	# plt.xlabel('Page Response Type')
+	plt.ylabel('Page Response')
+	# plt.title('Document Viewport Times (sec) ')
+	ax.set_xticklabels(['OnRel', 'OffRel', 'OnSat', 'OffRel'])
+	ax.set_xticks([2.5, 7.5, 12.5, 17.5])
+
+	# draw temporary red and blue lines and use them to create a legend
+	h1, = plt.plot([1,1],color=vert_color[0])
+	h2, = plt.plot([1,1],color=vert_color[1])
+	h3, = plt.plot([1,1],color=vert_color[2])
+	h4, = plt.plot([1,1],color=vert_color[3])
+	plt.legend((h1,h2,h3,h4),verticals)
+	h1.set_visible(False)
+	h2.set_visible(False)
+	h3.set_visible(False)
+	h4.set_visible(False)
+
+	plt.savefig('page_resp_per_vert.png')
 	plt.show()

@@ -199,43 +199,43 @@ def main():
     query_filtered = query_table[query_table['doc_pos']==0]
     query_filtered = query_filtered[query_filtered['page_id']==1]
     
-    '''
-    # Find the vertical_type stats: sessions, queries, clicks a
-    # nd average satisfaction/rel values.
-    FindDescriptiveStatsPerVertical(merged_tables)
     
-    # h. vertical_type : time_to_first_click_and_position. Compute the time to first click for each
-    # k. vertical_type : last_click_position. Compute the ranks that were clicked last for
-    FindFirstAndLastClickInfo(merged_tables)
+    # # Find the vertical_type stats: sessions, queries, clicks a
+    # # nd average satisfaction/rel values.
+    # FindDescriptiveStatsPerVertical(merged_tables)
     
-    # For every page whose response is available find its doc_pos on serp
-    # We ignore the pages who are serp since they do not have any doc_pos
+    # # h. vertical_type : time_to_first_click_and_position. Compute the time to first click for each
+    # # k. vertical_type : last_click_position. Compute the ranks that were clicked last for
+    # FindFirstAndLastClickInfo(merged_tables)
+    
+    # # For every page whose response is available find its doc_pos on serp
+    # # We ignore the pages who are serp since they do not have any doc_pos
     FindPageMetricsPerVertical(query_table,page_response_table)
 
-    # Find dwell time information for each vertical for on-vert and off-vert
-    # click. 
-    #FindDwellTimes(merged_tables)
+    # # Find dwell time information for each vertical for on-vert and off-vert
+    # # click. 
+    # #FindDwellTimes(merged_tables)
 
-    # Generate visibility statistics
-    FindVisiblityMetricsPerVertical(query_filtered,vis_event_table)
+    # # Generate visibility statistics
+    # FindVisiblityMetricsPerVertical(query_filtered,vis_event_table)
 
-    # Generate task statisfaction stats per vertical
-    FindTaskSatPerVertical(query_filtered,task_response_table)
+    # # Generate task statisfaction stats per vertical
+    # FindTaskSatPerVertical(query_filtered,task_response_table)
 
-    # Generate task preference stats per vertical
-    FindTaskPrefPerVertical(query_filtered,task_response_table)
+    # # Generate task preference stats per vertical
+    # FindTaskPrefPerVertical(query_filtered,task_response_table)
 
-    # Generate task preference distribution per task_id
-    FindTaskPrefDistribution(task_response_table)
-    '''
+    # # Generate task preference distribution per task_id
+    # FindTaskPrefDistribution(task_response_table)
+    
 
-    # Generate click distribution for every vertical
-    FindClickDistributionPerVertical(query_filtered,click_filtered)
+    # # Generate click distribution for every vertical
+    # # FindClickDistributionPerVertical(query_filtered,click_filtered)
 
-    #TODO: Fix the sorting after grouping
+    # #TODO: Fix the sorting after grouping
 
-    # Find Scroll event stats
-    #FindPageScrollDistributionPerVertical(query_table, scroll_event_table)
+    # # Find Scroll event stats
+    # #FindPageScrollDistributionPerVertical(query_table, scroll_event_table)
 
 if __name__ == "__main__":
     main()
