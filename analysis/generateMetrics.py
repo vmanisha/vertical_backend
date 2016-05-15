@@ -210,7 +210,7 @@ def main():
     
     # # For every page whose response is available find its doc_pos on serp
     # # We ignore the pages who are serp since they do not have any doc_pos
-    FindPageMetricsPerVertical(query_table,page_response_table)
+    # FindPageMetricsPerVertical(query_table,page_response_table)
 
     # # Find dwell time information for each vertical for on-vert and off-vert
     # # click. 

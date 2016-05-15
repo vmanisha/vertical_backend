@@ -382,7 +382,7 @@ def FindTaskPrefPerVertical(result_table,task_table):
 
     print vert_preference
 
-
+'''
 # TODO: fix clicks by adding data from response or tap db
 def FindClickDistributionPerVertical(result_table,click_filtered):
     concat_table = pd.concat([result_table, click_filtered], ignore_index = True)
@@ -432,4 +432,4 @@ def FindClickDistributionPerVertical(result_table,click_filtered):
         for clicks in click_pos['w']])
     print 'organic',' '.join([str(round(float(clicks)/float(vert_count['o']),3)) \
         for clicks in click_pos['o']])
-
+'''

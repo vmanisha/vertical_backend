@@ -477,4 +477,5 @@ def FindDwellTimes(concat_table):
             print 'Man pos dwell ',vert_type, pos,\
             kruskalwallis(array,vertical_stats['o']['pos_dwell'][pos])
 
-
+    # PlotDwellTimePerVert(vertical_stats)
+    PlotClickDistPerVertical(vertical_stats)
