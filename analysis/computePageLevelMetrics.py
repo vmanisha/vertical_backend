@@ -3,6 +3,8 @@ import numpy as np
 import re
 from datetime import datetime
 import editdistance 
+from plotStats import *
+from scipy.stats.mstats import mannwhitneyu, kruskalwallis,ttest_ind
 
 # default dwell time of the card in seconds
 DEFAULT_CARD_DWELL_TIME = 1
@@ -69,6 +71,11 @@ def FindPageMetricsPerVertical(result_table, page_table):
     # Filter rows with page responses. 
     page_responses = concat_table[concat_table['type'] == 'page_response']
     page_responses = page_responses[page_responses['first_result_type'].str.len() == 1]
+    first_rel_group = page_responses[page_responses['doc_pos'] ==0].groupby(\
+            ['first_result_type', 'response_type'])
+    last_rel_group = page_responses[page_responses['doc_pos']>0].groupby(\
+            ['first_result_type','response_type'])
+
     print page_responses[page_responses['doc_pos'] ==0].groupby(\
             ['first_result_type', 'response_type']).agg({
                 # Find the mean and std rel and satisfaction.
@@ -87,6 +94,57 @@ def FindPageMetricsPerVertical(result_table, page_table):
                     'count' : 'count'
                 }
             })
+
+
+
+    # Calculate the significance of all the numbers.
+    print 'Man rel_first_rank i-o',\
+    kruskalwallis(first_rel_group.get_group(('i','relevance'))['response_value'],\
+                  first_rel_group.get_group(('o','relevance'))['response_value'])
+    
+    print 'Man rel_first_rank v-o',\
+    kruskalwallis(first_rel_group.get_group(('v','relevance'))['response_value'],\
+                  first_rel_group.get_group(('o','relevance'))['response_value'])
+
+    print 'Man rel_first_rank w-o',\
+    kruskalwallis(first_rel_group.get_group(('w','relevance'))['response_value'],\
+                  first_rel_group.get_group(('o','relevance'))['response_value'])
+
+    
+    print 'Man sat_first_rank i-o',\
+    kruskalwallis(first_rel_group.get_group(('i','satisfaction'))['response_value'],\
+                  first_rel_group.get_group(('o','satisfaction'))['response_value'])
+    print 'Man sat_first_rank v-o',\
+    kruskalwallis(first_rel_group.get_group(('v','satisfaction'))['response_value'],\
+                  first_rel_group.get_group(('o','satisfaction'))['response_value'])
+    print 'Man sat_first_rank w-o',\
+    kruskalwallis(first_rel_group.get_group(('w','satisfaction'))['response_value'],\
+                  first_rel_group.get_group(('o','satisfaction'))['response_value'])
+
+
+    print 'Man rel_off_rank i-o',\
+    kruskalwallis(last_rel_group.get_group(('i','relevance'))['response_value'],\
+                  last_rel_group.get_group(('o','relevance'))['response_value'])
+    
+    print 'Man rel_off_rank v-o',\
+    kruskalwallis(last_rel_group.get_group(('v','relevance'))['response_value'],\
+                  last_rel_group.get_group(('o','relevance'))['response_value'])
+
+    print 'Man rel_off_rank w-o',\
+    kruskalwallis(last_rel_group.get_group(('w','relevance'))['response_value'],\
+                  last_rel_group.get_group(('o','relevance'))['response_value'])
+
+    
+    print 'Man sat_off_rank i-o',\
+    kruskalwallis(last_rel_group.get_group(('i','satisfaction'))['response_value'],\
+                  last_rel_group.get_group(('o','satisfaction'))['response_value'])
+    print 'Man sat_off_rank v-o',\
+    kruskalwallis(last_rel_group.get_group(('v','satisfaction'))['response_value'],\
+                  last_rel_group.get_group(('o','satisfaction'))['response_value'])
+    print 'Man sat_off_rank w-o',\
+    kruskalwallis(last_rel_group.get_group(('w','satisfaction'))['response_value'],\
+                  last_rel_group.get_group(('o','satisfaction'))['response_value'])
+
 
     # Find the variation in page satisfaction and relevance for 
     # each position per vertical. 
@@ -270,6 +328,36 @@ def FindVisiblityMetricsPerVertical(result_table,vis_event_table):
     print 'organic',' '.join([str(round(np.median(card_times),3)) for card_times in
       visible_time['o'].values()])
 
+    # find stats significance
+    print 'Man visibilit time 1 i-o',\
+    kruskalwallis(visible_time['i'][0],visible_time['o'][0])
+    print 'Man visibilit time 1 v-o',\
+    kruskalwallis(visible_time['v'][0],visible_time['o'][0])
+    print 'Man visibilit time 1 w-o',\
+    kruskalwallis(visible_time['w'][0],visible_time['o'][0])
+    
+    print 'Man visibilit time 2 i-o',\
+    kruskalwallis(visible_time['i'][1],visible_time['o'][1])
+    print 'Man visibilit time 2 v-o',\
+    kruskalwallis(visible_time['v'][1],visible_time['o'][1])
+    print 'Man visibilit time 2 w-o',\
+    kruskalwallis(visible_time['w'][1],visible_time['o'][1])
+    
+    print 'Man visibilit time3  i-o',\
+    kruskalwallis(visible_time['i'][2],visible_time['o'][2])
+    print 'Man visibilit time 3 v-o',\
+    kruskalwallis(visible_time['v'][2],visible_time['o'][2])
+    print 'Man visibilit time 3 w-o',\
+    kruskalwallis(visible_time['w'][2],visible_time['o'][2])
+
+
+    print 'Man visibilit time 4  i-o',\
+    kruskalwallis(visible_time['i'][3],visible_time['o'][3])
+    print 'Man visibilit time 4 v-o',\
+    kruskalwallis(visible_time['v'][3],visible_time['o'][3])
+    print 'Man visibilit time 4 w-o',\
+    kruskalwallis(visible_time['w'][3],visible_time['o'][3])
+    
     PlotVisiblityStats(visibility,visible_time)
 
  
@@ -360,4 +448,20 @@ def FindDwellTimes(concat_table):
         np.std(val_dict['on_dwell']),'off-dwell', np.mean(val_dict['off_dwell']), \
         np.std(val_dict['off_dwell']), val_dict['on_count'],\
         val_dict['off_count']
+    
+    # find stats significance
+    print 'Man on_dwell i-o',\
+    kruskalwallis(vertical_stats['i']['on_dwell'],vertical_stats['o']['on_dwell'])
+    print 'Man on_dwell v-o',\
+    kruskalwallis(vertical_stats['v']['on_dwell'],vertical_stats['o']['on_dwell'])
+    print 'Man on_dwell w-o',\
+    kruskalwallis(vertical_stats['w']['on_dwell'],vertical_stats['o']['on_dwell'])
+
+    # find stats significance
+    print 'Man off_dwell i-o',\
+    kruskalwallis(vertical_stats['i']['off_dwell'],vertical_stats['o']['off_dwell'])
+    print 'Man off_dwell v-o',\
+    kruskalwallis(vertical_stats['v']['off_dwell'],vertical_stats['o']['off_dwell'])
+    print 'Man off_dwell w-o',\
+    kruskalwallis(vertical_stats['w']['off_dwell'],vertical_stats['o']['off_dwell'])
 

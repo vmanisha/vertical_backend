@@ -10,6 +10,9 @@ def SetVisBox(bp):
 	plt.setp(bp['boxes'][2], color=vert_color[2])
 	plt.setp(bp['boxes'][3], color=vert_color[3])
 
+  
+
+
 def PlotVisiblityStats(visibility,visible_time):
 	fig = plt.figure()
 	ax = plt.axes()
@@ -29,6 +32,7 @@ def PlotVisiblityStats(visibility,visible_time):
 	plt.ylim(0,120)
 	plt.xlabel('Document Positions')
 	plt.ylabel('Viewport Time (seconds)')
+	plt.title('Document Viewport Times (sec) ')
 	ax.set_xticklabels(['1', '2', '3', '4', '5'])
 	ax.set_xticks([2.5, 7.5, 12.5, 17.5, 22.5])
 

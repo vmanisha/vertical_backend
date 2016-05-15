@@ -3,6 +3,7 @@ import numpy as np
 import re
 from datetime import datetime
 import editdistance 
+from scipy.stats.mstats import mannwhitneyu, kruskalwallis,ttest_ind
 
 TASKSATMAP = {'Somewhat Satisfied': 2.0, 'Highly Satisfied': 3.0, 'Not Satisfied' : 1.0}
 
@@ -123,6 +124,41 @@ def FindFirstAndLastClickInfo(concat_table):
         'last-rank',np.mean(stats['last_rank']),np.std(stats['last_rank']),\
         'first-time',np.mean(stats['first_click']),np.std(stats['first_click']),\
         'last-time',np.mean(stats['last_click']),np.std(stats['last_click'])
+    # Print the statistical significance against organic
+    print 'Man off_vert_rank i-o', kruskalwallis(vertical_stats['i']['off_vert_rank'],vertical_stats['o']['off_vert_rank'])
+    print 'Man off_vert_rank v-o',\
+    kruskalwallis(vertical_stats['v']['off_vert_rank'],vertical_stats['o']['off_vert_rank'])
+    print 'Man off_vert_rank w-o',\
+    kruskalwallis(vertical_stats['w']['off_vert_rank'],vertical_stats['o']['off_vert_rank'])
+
+    print 'Man first_rank  i-o',\
+    kruskalwallis(vertical_stats['i']['first_rank'],vertical_stats['o']['first_rank'])
+    print 'Man first_rank v-o',\
+    kruskalwallis(vertical_stats['v']['first_rank'],vertical_stats['o']['first_rank'])
+    print 'Man first_rank w-o',\
+    kruskalwallis(vertical_stats['w']['first_rank'],vertical_stats['o']['first_rank'])
+
+    print 'Man lr i-o',\
+    kruskalwallis(vertical_stats['i']['last_rank'],vertical_stats['o']['last_rank'])
+    print 'Man lr v-o',\
+    kruskalwallis(vertical_stats['v']['last_rank'],vertical_stats['o']['last_rank'])
+    print 'Man lr w-o',\
+    kruskalwallis(vertical_stats['w']['last_rank'],vertical_stats['o']['last_rank'])
+    
+    print 'Man fc i-o',\
+        kruskalwallis(vertical_stats['i']['first_click'],vertical_stats['o']['first_click'])
+    print 'Man fc v-o',\
+        kruskalwallis(vertical_stats['v']['first_click'],vertical_stats['o']['first_click'])
+    print 'Man fc w-o',\
+        kruskalwallis(vertical_stats['w']['first_click'],vertical_stats['o']['first_click'])
+    
+    print 'Man lc i-o',\
+        kruskalwallis(vertical_stats['i']['last_click'],vertical_stats['o']['last_click'])
+    print 'Man lc v-o',\
+        kruskalwallis(vertical_stats['v']['last_click'],vertical_stats['o']['last_click'])
+    print 'Man lc w-o',\
+        kruskalwallis(vertical_stats['w']['last_click'],vertical_stats['o']['last_click'])
+   
         
 
 def FindDescriptiveStatsPerVertical(concat_table):
@@ -162,7 +198,7 @@ def FindDescriptiveStatsPerVertical(concat_table):
         n_task_response = 0.0
 
         for index, row in group.iterrows():
-            if row['type'] == 'results':
+            if row['type'] == 'results' and row['doc_pos'] == 0:
                 if last_time == None:
                     # First query for task
                     last_time = row['time']
@@ -216,12 +252,36 @@ def FindDescriptiveStatsPerVertical(concat_table):
 
     # Count mean and std-dev of page responses and task responses.
     for vertical_type, stat_dict in vertical_stats.items():
-        print vertical_type , stat_dict['sess'], np.mean(stat_dict['query']),\
-            round(np.std(stat_dict['query']),2), np.mean(stat_dict['clicks']),\
-            round(np.std(stat_dict['clicks']),2),np.mean(stat_dict['page_rel']),\
-            round(np.std(stat_dict['page_rel']),2),np.mean(stat_dict['page_sat']),\
-            round(np.std(stat_dict['page_sat']),2),np.mean(stat_dict['task_sat']),\
-            round(np.std(stat_dict['task_sat']),2), np.mean(stat_dict['time']),\
-            round(np.std(stat_dict['time']),2)
+        print vertical_type , stat_dict['sess'],\
+         'query',np.mean(stat_dict['query']),round(np.std(stat_dict['query']),2), \
+        'click', np.mean(stat_dict['clicks']),round(np.std(stat_dict['clicks']),2), \
+        'page_rel',np.mean(stat_dict['page_rel']),round(np.std(stat_dict['page_rel']),2),\
+        'page_sat', np.mean(stat_dict['page_sat']),round(np.std(stat_dict['page_sat']),2),\
+        'task sat', np.mean(stat_dict['task_sat']),round(np.std(stat_dict['task_sat']),2),\
+        'time ', np.mean(stat_dict['time']),round(np.std(stat_dict['time']),2)
+
+    # Print the statistical significance against organic
+    print 'Man query i-o', kruskalwallis(vertical_stats['i']['query'],vertical_stats['o']['query'])
+    print 'Man query v-o', kruskalwallis(vertical_stats['v']['query'],vertical_stats['o']['query'])
+    print 'Man query w-o', kruskalwallis(vertical_stats['w']['query'],vertical_stats['o']['query'])
+
+    print 'Man click i-o', kruskalwallis(vertical_stats['i']['clicks'],vertical_stats['o']['clicks'])
+    print 'Man click v-o', kruskalwallis(vertical_stats['v']['clicks'],vertical_stats['o']['clicks'])
+    print 'Man click w-o', kruskalwallis(vertical_stats['w']['clicks'],vertical_stats['o']['clicks'])
+
+    print 'Man page_rel i-o', kruskalwallis(vertical_stats['i']['page_rel'],vertical_stats['o']['page_rel'])
+    print 'Man page rel v-o', kruskalwallis(vertical_stats['v']['page_rel'],vertical_stats['o']['page_rel'])
+    print 'Man page rel w-o', kruskalwallis(vertical_stats['w']['page_rel'],vertical_stats['o']['page_rel'])
+    
+    print 'Man page_sat i-o', kruskalwallis(vertical_stats['i']['page_sat'],vertical_stats['o']['page_sat'])
+    print 'Man page_sat v-o',kruskalwallis(vertical_stats['v']['page_sat'],vertical_stats['o']['page_sat'])
+    print 'Man page sat w-o', kruskalwallis(vertical_stats['w']['page_sat'],vertical_stats['o']['page_sat'])
+    
+    print 'Man task_sat i-o', kruskalwallis(vertical_stats['i']['task_sat'],vertical_stats['o']['task_sat'])
+    print 'Man task_sat v-o',kruskalwallis(vertical_stats['v']['task_sat'],vertical_stats['o']['task_sat'])
+    print 'Man task sat w-o', kruskalwallis(vertical_stats['w']['task_sat'],vertical_stats['o']['task_sat'])
+   
+
+
     print 'Not registered clicks ', not_registered_clicks
 

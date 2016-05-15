@@ -21,6 +21,7 @@ docurl_pattern = 'docurl=(.*)'
 docurl_regex = re.compile(docurl_pattern)
 
 visibility_events = ['initial_state','panleft','panright','panup','pandown']
+scroll_events = ['panleft','panright','panup','pandown', 'swipeleft','swiperight']
 
 #TODO: Format URLs while loading all the db
 #FIX: Format URLs removing some initial part of the url (e.g., wikipedia.org)
@@ -252,6 +253,53 @@ def FormatEventDBForTap(databases, dbcolumns, sort_keys):
 
     # Remove duplicate rows
     return tsv_frame.drop_duplicates()
+
+def FormatEventDBForScrolls(databases, dbcolumns, sort_keys):
+    tsv_data= []
+    for database in databases:
+        for entry , values in database.items():
+            entry = datetime.fromtimestamp(float(entry)/1000)
+            user, task, page, query = BreakEventUrl(FormatUrl(values['doc_url']))
+            # Track visibility only on first page and for events listed in visibility_events
+            if (query and user and task) and (int(page) == 1) and\
+            (values['event_type'] in scroll_events):
+                event_value = values['event_value']
+                # Only consider entries that have visible_elements
+                if 'prop' in event_value:
+                    # Get the window height, distance, and element and visible
+                    # elements. 
+                    split = event_value['prop'].split(' ')
+                    # Get window height.
+                    if len(split[-1]) > 0:
+                        win_hieght = float(split[-1])
+                        try :
+		                    index = int(split[9][split[9].rfind('_')+1:])
+                        except:
+                	    	index = -1
+                        distance = float(split[8])
+                        if 'visible_elements' in event_value:
+                            visible = event_value['visible_elements']
+                            new_entry = [entry , user , int(task), query.strip(), \
+                                values['event_type'], index, visible,\
+                                distance,win_hieght]
+                        else:
+                            new_entry = [entry , user , int(task), query.strip(), \
+                                values['event_type'], index, '',\
+                                distance,win_hieght]
+
+                        tsv_data.append(new_entry)
+    # create a new data frame
+    tsv_frame = pd.DataFrame(tsv_data, columns= dbcolumns)
+
+    # Remove test users
+    tsv_frame = tsv_frame[~tsv_frame['user_id'].str.contains('test')]
+
+    # sort by time key
+    tsv_frame = tsv_frame.sort(sort_keys)
+
+    # Remove duplicate rows
+    return tsv_frame.drop_duplicates()
+
 
 def FormatEventDBForVisibility(databases, dbcolumns, sort_keys):
     tsv_data= []

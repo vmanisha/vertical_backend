@@ -8,6 +8,7 @@ from datetime import datetime
 from formatTables import *
 from computePageLevelMetrics import *
 from computeVerticalLevelMetrics import *
+from computeEventStats import *
 # Construct several tables.
 #               Find the distribution of following variables:
 #
@@ -59,6 +60,13 @@ tap_event_sortkeys = ['time','task_id', 'user_id']
 vis_event_header = ['time','user_id','task_id','query_text','event_type','event_value']
 # Visibility event table sortkeys
 vis_event_sortkeys = ['time','task_id', 'user_id']
+
+
+# Visibility event table header
+scroll_event_header =['time','user_id','task_id','query_text','event_type',\
+                      'event_value','visible_elements','event_dist', 'page_height' ]
+# Visibility event table sortkeys
+scroll_event_sortkeys = [ 'user_id','task_id', 'time']
 
 def MergeAllTables(result_table, click_table, event_table, page_table, task_table):
     result_table['type'] = 'results'
@@ -132,6 +140,10 @@ def main():
     # Format visibility event db
     vis_event_table = FormatEventDBForVisibility(event_db,vis_event_header,vis_event_sortkeys)
 
+    # Format visibility event db
+    scroll_event_table = FormatEventDBForScrolls(event_db,scroll_event_header,\
+        scroll_event_sortkeys)
+    
     # a. task : users. Compute the number of users who provided task feedback
     # task_id, #users_who_gave_feedback
     task_response_table[['task_id','user_id']].groupby(['task_id']).\
@@ -170,8 +182,14 @@ def main():
     #click_filtered[['task_id','doc_pos']].groupby(['task_id','doc_pos'])['doc_pos'].\
     #        count().to_csv('task_rank_click_counts.csv', encoding = 'utf-8',\
     #        sep = '\t')
-    #click_filtered = click_table[click_table['doc_id'].str.len()\
-    #        == 5]
+    print 'Clicked documents ', click_filtered['doc_url'].value_counts()
+    print 'Page Rel ', page_response_table[page_response_table['response_type'] == 'relevance']['response_type'].value_counts()
+    print 'Page Sat ', page_response_table[page_response_table['response_type'] ==\
+        'satisfaction']['response_type'].value_counts()
+    print 'Task Sat ', task_response_table[task_response_table['response_type']
+        == 'satisfaction']['response_type'].value_counts()
+    print 'Task Sat ', task_response_table[task_response_table['response_type'] ==
+        'satisfaction'].count()
 
     merged_tables = MergeAllTables(query_table, click_filtered, tap_event_table,\
     	 page_response_table, task_response_table)
@@ -194,6 +212,9 @@ def main():
 
     # Generate visibility statistics
     FindVisiblityMetricsPerVertical(query_table,vis_event_table)
+
+    # Find Scroll event stats
+    #FindPageScrollDistributionPerVertical(query_table, scroll_event_table)
 
 if __name__ == "__main__":
     main()
