@@ -61,10 +61,10 @@ vis_event_header = ['time','user_id','task_id','query_text','event_type','event_
 # Visibility event table sortkeys
 vis_event_sortkeys = ['time','task_id', 'user_id']
 
-
 # Visibility event table header
 scroll_event_header =['time','user_id','task_id','query_text','event_type',\
-                      'event_value','visible_elements','event_dist', 'page_height' ]
+                      'event_value','visible_elements','event_dist',
+                      'page_height', 'event_x','event_y' ]
 # Visibility event table sortkeys
 scroll_event_sortkeys = [ 'user_id','task_id', 'time']
 
@@ -206,7 +206,7 @@ def main():
     
     # # h. vertical_type : time_to_first_click_and_position. Compute the time to first click for each
     # # k. vertical_type : last_click_position. Compute the ranks that were clicked last for
-    # FindFirstAndLastClickInfo(merged_tables)
+    #FindFirstAndLastClickInfo(merged_tables)
     
     # # For every page whose response is available find its doc_pos on serp
     # # We ignore the pages who are serp since they do not have any doc_pos
@@ -217,7 +217,7 @@ def main():
     # FindDwellTimes(merged_tables)
 
     # # Generate visibility statistics
-    # FindVisiblityMetricsPerVertical(query_filtered,vis_event_table)
+    FindVisiblityMetricsPerVertical(query_filtered,vis_event_table)
 
     # # Generate task statisfaction stats per vertical
     # FindTaskSatPerVertical(query_filtered,task_response_table)

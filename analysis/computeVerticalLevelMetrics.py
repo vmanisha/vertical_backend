@@ -14,16 +14,17 @@ def FindFirstAndLastClickInfo(concat_table):
     vertical_stats = {
             'i' : { 'first_click': [], 'first_rank':[], 'last_click':[],\
                    'last_rank':[], 'total_clicks':0.0, 'off_vert_click':0.0,\
-                   'off_vert_rank':[], 'on_vert_click':0.0 }, \
+                   'off_vert_rank':[], 'on_vert_click':0.0,
+                   'first_last_same':0.0 }, \
             'v' : { 'first_click': [], 'first_rank':[], 'last_click':[],\
                    'last_rank':[], 'total_clicks':0.0, 'off_vert_click':0.0,\
-                   'off_vert_rank':[],'on_vert_click':0.0 }, \
+                   'off_vert_rank':[],'on_vert_click':0.0, 'first_last_same':0.0 }, \
             'w' : { 'first_click': [], 'first_rank':[], 'last_click':[],\
                    'last_rank':[], 'total_clicks':0.0, 'off_vert_click':0.0,\
-                   'off_vert_rank':[], 'on_vert_click':0.0  }, \
+                   'off_vert_rank':[], 'on_vert_click':0.0, 'first_last_same':0.0  }, \
             'o' : { 'first_click': [], 'first_rank':[], 'last_click':[],\
                    'last_rank':[], 'total_clicks':0.0, 'off_vert_click':0.0,\
-                   'off_vert_rank':[] , 'on_vert_click':0.0 }, \
+                   'off_vert_rank':[] , 'on_vert_click':0.0, 'first_last_same':0.0 }, \
     }
 
     # Remove task responses.
@@ -57,6 +58,9 @@ def FindFirstAndLastClickInfo(concat_table):
                     vertical_stats[vert_type]['last_rank'].append(last_click)
                     vertical_stats[vert_type]['first_click'].append(first_time)
                     vertical_stats[vert_type]['last_click'].append(last_time)
+                    if first_click == last_click:
+                        vertical_stats[vert_type]['first_last_same']+=1.0
+
                     # Set everything to null.
                     first_click = None
                     first_time = None
@@ -124,7 +128,9 @@ def FindFirstAndLastClickInfo(concat_table):
         'first-rank',np.mean(stats['first_rank']),np.std(stats['first_rank']),\
         'last-rank',np.mean(stats['last_rank']),np.std(stats['last_rank']),\
         'first-time',np.mean(stats['first_click']),np.std(stats['first_click']),\
-        'last-time',np.mean(stats['last_click']),np.std(stats['last_click'])
+        'last-time',np.mean(stats['last_click']),np.std(stats['last_click']),\
+        'first_last_same',stats['first_last_same'], (stats['first_last_same']/stats['total_clicks'])
+
     # Print the statistical significance against organic
     print 'Man off_vert_rank i-o', kruskalwallis(vertical_stats['i']['off_vert_rank'],vertical_stats['o']['off_vert_rank'])
     print 'Man off_vert_rank v-o',\
@@ -384,54 +390,3 @@ def FindTaskPrefPerVertical(result_table,task_table):
 
     print vert_preference
 
-'''
-# TODO: fix clicks by adding data from response or tap db
-def FindClickDistributionPerVertical(result_table,click_filtered):
-    concat_table = pd.concat([result_table, click_filtered], ignore_index = True)
-
-    grouped_table = concat_table.groupby(['user_id'])
-
-    # Stores the #clicks per positions per vertical
-    click_pos = {'i':np.zeros(10), 'v':np.zeros(10), 'w':np.zeros(10), 'o': np.zeros(10)}
-
-    # Stores the click distribution per vertical
-    click_dist = {'i':[], 'v':[], 'w':[], 'o': []}
-
-    # Stores the number of times a vertical was shown
-    vert_count = {'i':0,'v':0,'w':0,'o':0}
-
-    for name, group in grouped_table:
-        group = group.sort(['time'])
-
-        vert = None
-        for index, row in group.iterrows():
-
-            # Get the top vertical from result row
-            if row['type'] == 'results':
-                vert = row['doc_type']
-                vert_count[vert] = vert_count[vert] + 1
-
-            # Update clicks from click row
-            if row['type'] == 'click':
-                # Get the position of the clicked doc
-                doc_id = row['doc_id']
-                pos = int(doc_id.split('_')[1])
-                click_pos[vert][pos] = click_pos[vert][pos] + 1
-                click_dist[vert].append(pos+1)
-
-    PlotClickDistPerVertical(click_dist)
-
-    print 'image',' '.join([str(x) for x in click_pos['i']])
-    print 'video',' '.join([str(x) for x in click_pos['v']])
-    print 'wiki',' '.join([str(x) for x in click_pos['w']])
-    print 'organic',' '.join([str(x) for x in click_pos['o']])
-
-    print 'image',' '.join([str(round(float(clicks)/float(vert_count['i']),3)) \
-        for clicks in click_pos['i']])
-    print 'video',' '.join([str(round(float(clicks)/float(vert_count['v']),3)) \
-        for clicks in click_pos['v']])
-    print 'wiki',' '.join([str(round(float(clicks)/float(vert_count['w']),3)) \
-        for clicks in click_pos['w']])
-    print 'organic',' '.join([str(round(float(clicks)/float(vert_count['o']),3)) \
-        for clicks in click_pos['o']])
-'''

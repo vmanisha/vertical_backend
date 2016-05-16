@@ -4,6 +4,7 @@ import re
 from datetime import datetime
 import editdistance 
 from plotStats import *
+from scipy.stats import kendalltau
 from scipy.stats.mstats import mannwhitneyu, kruskalwallis,ttest_ind
 
 # default dwell time of the card in seconds
@@ -145,6 +146,21 @@ def FindPageMetricsPerVertical(result_table, page_table):
     kruskalwallis(last_rel_group.get_group(('w','satisfaction'))['response_value'],\
                   last_rel_group.get_group(('o','satisfaction'))['response_value'])
 
+    #print first_rel_group.get_group(('i','satisfaction'))['response_value']
+    #print first_rel_group.get_group(('i','relevance'))['response_value']
+    #print 'Man sat_first_rank i-o',\
+    #kendalltau(first_rel_group.get_group(('i','satisfaction'))['response_value'],\
+    #              first_rel_group.get_group(('i','relevance'))['response_value'])
+    print 'Man sat_first_rank v-o',\
+    pearsonr(first_rel_group.get_group(('v','satisfaction'))['response_value'],\
+                  first_rel_group.get_group(('v','relevance'))['response_value'])
+    print 'Man sat_first_rank w-o',\
+    (first_rel_group.get_group(('w','satisfaction'))['response_value'],\
+                  first_rel_group.get_group(('w','relevance'))['response_value'])
+
+    print 'Man sat_first_rank o-o',\
+    kendalltau(first_rel_group.get_group(('o','satisfaction'))['response_value'],\
+                  first_rel_group.get_group(('o','relevance'))['response_value'])
 
     # Find the variation in page satisfaction and relevance for 
     # each position per vertical. 
@@ -323,6 +339,12 @@ def FindVisiblityMetricsPerVertical(result_table,vis_event_table):
     print 'organic',' '.join([str(round(np.median(card_times),3)) for card_times in
       visible_time['o'].values()])
 
+
+    print 'Median time i ', np.median(visible_time['i'][0])
+    print 'Median time v ', np.median(visible_time['v'][0])
+    print 'Median time w ', np.median(visible_time['w'][0])
+    print 'Median time o ', np.median(visible_time['o'][0])
+
     # find stats significance
     print 'Man visibilit time 1 i-o',\
     kruskalwallis(visible_time['i'][0],visible_time['o'][0])
@@ -483,8 +505,12 @@ def FindDwellTimes(concat_table):
 
     for vert_type, stats in vertical_stats.items():
         for pos , array in stats['pos_dwell'].items():
-            print 'Man pos dwell ',vert_type, pos,\
+            print 'Man pos dwell ',vert_type, pos, np.median(array), \
             kruskalwallis(array,vertical_stats['o']['pos_dwell'][pos])
+        for pos in stats['clicks'].keys():
+            vertical_stats[vert_type]['clicks'][pos]/= (stats['on_count']+\
+                stats['off_count']) 
+
 
     print 'Man off_dwell i-o',\
     kruskalwallis(vertical_stats['i']['all_clicks'],vertical_stats['o']['all_clicks'])
@@ -493,6 +519,6 @@ def FindDwellTimes(concat_table):
     print 'Man off_dwell w-o',\
     kruskalwallis(vertical_stats['w']['all_clicks'],vertical_stats['o']['all_clicks'])
     
-    PlotClickDist(vertical_stats)
+    # PlotClickDist(vertical_stats)
     PlotClickDistPerVertical(vertical_stats)
-    PlotDwellTimePerVert(vertical_stats)
+    # PlotDwellTimePerVert(vertical_stats)

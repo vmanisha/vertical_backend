@@ -272,6 +272,8 @@ def FormatEventDBForScrolls(databases, dbcolumns, sort_keys):
                     # Get window height.
                     if len(split[-1]) > 0:
                         win_hieght = float(split[-1])
+                        event_x = float(split[2])
+                        event_y = float(split[3])
                         try :
 		                    index = int(split[9][split[9].rfind('_')+1:])
                         except:
@@ -281,11 +283,11 @@ def FormatEventDBForScrolls(databases, dbcolumns, sort_keys):
                             visible = event_value['visible_elements']
                             new_entry = [entry , user , int(task), query.strip(), \
                                 values['event_type'], index, visible,\
-                                distance,win_hieght]
+                                distance,win_hieght, event_x, event_y]
                         else:
                             new_entry = [entry , user , int(task), query.strip(), \
                                 values['event_type'], index, '',\
-                                distance,win_hieght]
+                                distance,win_hieght, event_x, event_y]
 
                         tsv_data.append(new_entry)
     # create a new data frame

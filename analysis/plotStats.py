@@ -365,9 +365,9 @@ def PlotClickDistPerVertical(vertical_stats):
 		bbox_to_anchor=(0.5, 1.05),ncol=4,fontsize=15)
 
 	plt.xlim(0,25)
-	plt.ylim(0,45)
+	plt.ylim(0,0.5)
 	plt.xlabel('Document Positions')
-	plt.ylabel('Number of Clicks')
+	plt.ylabel('% Clicks')
 	ax.set_xticklabels(['1', '2', '3', '4', '5'])
 	ax.set_xticks([2.5, 7.5, 12.5, 17.5, 22.5])
 
