@@ -159,7 +159,8 @@ def FindFirstAndLastClickInfo(concat_table):
         kruskalwallis(vertical_stats['v']['last_click'],vertical_stats['o']['last_click'])
     print 'Man lc w-o',\
         kruskalwallis(vertical_stats['w']['last_click'],vertical_stats['o']['last_click'])
-   
+    
+    PlotPageResponsePerVert(vertical_stats, vertical_stats)
         
 
 def FindDescriptiveStatsPerVertical(concat_table):

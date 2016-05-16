@@ -77,8 +77,11 @@ def PlotPageResponsePerVert(first_rel_group,last_rel_group):
     resp_data = []
     sp = 1
     pos = [sp, sp+1, sp+2, sp+3]
+    #for v in vert:
+    #    resp_data.append(first_rel_group.get_group((v,'relevance'))['response_value'])
     for v in vert:
-        resp_data.append(first_rel_group.get_group((v,'relevance'))['response_value'])
+        print v,'last ranks', np.median(first_rel_group[v]['last_rank'])
+        resp_data.append(first_rel_group[v]['last_rank'])
     # sym='' for not showing outliers
     bp = plt.boxplot(resp_data,positions=pos,widths=0.5)#,sym='')
     SetVisBox(bp)
@@ -92,17 +95,19 @@ def PlotPageResponsePerVert(first_rel_group,last_rel_group):
     # sym='' for not showing outliers
     bp = plt.boxplot(resp_data,positions=pos,widths=0.5,sym='')
     SetVisBox(bp)
-    '''
+    
     # On Satisfaction
     resp_data = []
     sp = pos[3]+2
     pos = [sp, sp+1, sp+2, sp+3]
     for v in vert:
-        resp_data.append(first_rel_group.get_group((v,'satisfaction'))['response_value'])
+        resp_data.append(first_rel_group[v]['last_rank'])
+    #for v in vert:
+    #    resp_data.append(first_rel_group.get_group((v,'satisfaction'))['response_value'])
     # sym='' for not showing outliers
     bp = plt.boxplot(resp_data,positions=pos,widths=0.5)#,sym='')
     SetVisBox(bp)
-    '''
+    
     # Off Satisfaction
     resp_data = []
     sp = pos[3]+2
@@ -115,12 +120,20 @@ def PlotPageResponsePerVert(first_rel_group,last_rel_group):
     '''
     # set axes limits and labels
     plt.xlim(0,pos[3]+1)
-    plt.ylim(0,6)
+    plt.ylim(0,12)
+    #plt.ylim(0,40)
     # plt.xlabel('Page Response Type')
-    plt.ylabel('Page Response')
+    # plt.ylabel('Page Response')
+    # plt.ylabel('Result Rank')
+    # plt.ylabel('#clicks')
+    plt.ylabel('Result Rank')
+
     # plt.title('Document Viewport Times (sec) ')
-    ax.set_xticklabels(['OnRel','OnSat'])
-    ax.set_xticks([2.5, 7.5]) #, 12.5, 17.5])
+    # ax.set_xticklabels(['Relevance','Satisfaction'])
+    ax.set_xticklabels(['Last Click Rank'])
+    #ax.set_xticklabels(['Number of clicks per SERP'])
+
+    ax.set_xticks([2.5]) #, 7.5]) #, 12.5, 17.5])
 
     # draw temporary red and blue lines and use them to create a legend
     h1, = plt.plot([1,1],color=vert_color[0])
@@ -128,13 +141,14 @@ def PlotPageResponsePerVert(first_rel_group,last_rel_group):
     h3, = plt.plot([1,1],color=vert_color[2])
     h4, = plt.plot([1,1],color=vert_color[3])
     plt.legend((h1,h2,h3,h4),verticals, loc='upper center',\
-        bbox_to_anchor=(0.5, 1.05),ncol=4)
+        bbox_to_anchor=(0.5, 1.05),ncol=2, fontsize = 12)
     h1.set_visible(False)
     h2.set_visible(False)
     h3.set_visible(False)
     h4.set_visible(False)
 
-    plt.savefig('page_resp_per_vert.png')
+    #plt.savefig('page_resp_per_vert.png')
+    plt.savefig('first_last_rank.png')
     plt.show()
 
 def PlotDwellTimePerVert(vertical_stats):

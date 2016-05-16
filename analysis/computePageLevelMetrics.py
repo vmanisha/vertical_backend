@@ -159,7 +159,7 @@ def FindPageMetricsPerVertical(result_table, page_table):
             })
     rank_level_rel_and_sat.reset_index().to_csv('vert_level_pos_level_rel_and_sat.csv',index='False')
 
-    PlotPageResponsePerVert(first_rel_group,last_rel_group)
+    # PlotPageResponsePerVert(first_rel_group,last_rel_group)
 
 # Update card visibility based on visible_elements
 # 1: visible 0: invisible
@@ -361,19 +361,21 @@ def FindDwellTimes(concat_table):
     vertical_stats = { 'i' : { 'on_dwell': [], 'off_dwell':[] ,\
                   'on_count':0.0, 'off_count':0.0, \
                   'pos_dwell' : {0:[],1:[], 2:[], 3:[], 4:[]},\
+                  'all_clicks':[], \
                   'clicks':{0:0.0,1:0.0, 2: 0.0, 3:0.0, 4:0.0}}, \
             'w' : { 'on_dwell': [], 'off_dwell':[],'on_count':0.0,\
-                    'off_count':0.0 ,\
+                    'off_count':0.0 ,'all_clicks':[],\
                     'pos_dwell' : {0:[],1:[], 2:[], 3:[], 4:[]} ,\
-                    'clicks':{0:0.0,1:0.0, 2: 0.0, 3:0.0, 4:0.0} } , \
+                    'clicks':{0:0.0,1:0.0, 2: 0.0, 3:0.0, 4:0.0}}, \
             'o' : { 'on_dwell': [], 'off_dwell':[],'on_count':0.0,\
-                    'off_count':0.0,\
-                    'pos_dwell' : {0:[],1:[], 2:[], 3:[], 4:[]},\
+                    'off_count':0.0,'pos_dwell' : {0:[],1:[], 2:[], 3:[], 4:[]},\
+                    'all_clicks':[],\
                     'clicks':{0:0.0,1:0.0, 2: 0.0, 3:0.0, 4:0.0}  }, \
             'v' : { 'on_dwell': [], 'off_dwell':[],'on_count':0.0,\
-                    'off_count':0.0 ,\
+                    'off_count':0.0 ,'all_clicks':[], \
                     'pos_dwell' : {0:[],1:[], 2:[], 3:[], 4:[]},\
-                    'clicks':{0:0.0,1:0.0, 2: 0.0, 3:0.0, 4:0.0} }, \
+                    'clicks':{0:0.0,1:0.0, 2: 0.0, 3:0.0, 4:0.0},  \
+                  } \
     }
 
     # Group by task_id and query_id and Sort by time within each group.
@@ -384,6 +386,7 @@ def FindDwellTimes(concat_table):
         group = group.sort('time')
         rows = []
         results = {}
+        serp_clicks = 0
         for index, row in group.iterrows():
             rows.append(row)
         for i in range(len(rows)):
@@ -395,7 +398,9 @@ def FindDwellTimes(concat_table):
             if row['type'] == 'results' and row['doc_pos'] == 0:
                 # For each page find time it was tapped or clicked. 
                 # Take the min for dwell time.
+                vtype = None
                 for curl, stats in recorded_clicks.items():
+                    vtype = stats['type']
                     if stats['rank'] < 5:
                         vertical_stats[stats['type']]['pos_dwell'][stats['rank']].append(min(stats['time']))
                         vertical_stats[stats['type']]['clicks'][stats['rank']]+=1
@@ -406,7 +411,10 @@ def FindDwellTimes(concat_table):
                     else:
                         vertical_stats[stats['type']]['off_dwell'].append(min(stats['time']))
                         vertical_stats[stats['type']]['off_count']+=1.0
+                if vtype and serp_clicks > 0:
+                    vertical_stats[vtype]['all_clicks'].append(serp_clicks)
                 recorded_clicks = {}
+                serp_clicks = 0
                 vert_type = str(row['doc_type']).strip()
 
             # Found a tap or a click
@@ -446,6 +454,7 @@ def FindDwellTimes(concat_table):
                     recorded_clicks[click_url]['time'].append((end_time-start_time).total_seconds())
                     recorded_clicks[click_url]['rank']= click_rank
                     recorded_clicks[click_url]['type']= vert_type
+                    serp_clicks+=1.0
                 else:
                     print 'Cannot find in responses', click_url,\
                         row['user_id'], row['task_id'], row['type']
@@ -477,5 +486,13 @@ def FindDwellTimes(concat_table):
             print 'Man pos dwell ',vert_type, pos,\
             kruskalwallis(array,vertical_stats['o']['pos_dwell'][pos])
 
+    print 'Man off_dwell i-o',\
+    kruskalwallis(vertical_stats['i']['all_clicks'],vertical_stats['o']['all_clicks'])
+    print 'Man off_dwell v-o',\
+    kruskalwallis(vertical_stats['v']['all_clicks'],vertical_stats['o']['all_clicks'])
+    print 'Man off_dwell w-o',\
+    kruskalwallis(vertical_stats['w']['all_clicks'],vertical_stats['o']['all_clicks'])
+    
     # PlotDwellTimePerVert(vertical_stats)
-    PlotClickDistPerVertical(vertical_stats)
+    # PlotClickDistPerVertical(vertical_stats)
+    #PlotPageResponsePerVert(vertical_stats, vertical_stats)
