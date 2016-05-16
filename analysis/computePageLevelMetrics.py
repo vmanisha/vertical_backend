@@ -159,7 +159,7 @@ def FindPageMetricsPerVertical(result_table, page_table):
             })
     rank_level_rel_and_sat.reset_index().to_csv('vert_level_pos_level_rel_and_sat.csv',index='False')
 
-    # PlotPageResponsePerVert(first_rel_group,last_rel_group)
+    PlotPageResponsePerVert(first_rel_group,last_rel_group)
 
 # Update card visibility based on visible_elements
 # 1: visible 0: invisible
@@ -493,6 +493,6 @@ def FindDwellTimes(concat_table):
     print 'Man off_dwell w-o',\
     kruskalwallis(vertical_stats['w']['all_clicks'],vertical_stats['o']['all_clicks'])
     
-    # PlotDwellTimePerVert(vertical_stats)
-    # PlotClickDistPerVertical(vertical_stats)
-    #PlotPageResponsePerVert(vertical_stats, vertical_stats)
+    PlotClickDist(vertical_stats)
+    PlotClickDistPerVertical(vertical_stats)
+    PlotDwellTimePerVert(vertical_stats)

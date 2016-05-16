@@ -2,8 +2,14 @@ import matplotlib.pyplot as plt
 import numpy as np
 
 vert = ['i','v','w','o']
-verticals = ['image','video','wiki','organic']
+verticals = ['Image','Video','Wiki','Organic']
 vert_color = ['blue','black','cyan','green']
+
+font = {'family' : 'normal',
+        'weight' : 'bold',
+        'size'   : 22}
+
+plt.rc('font', **font)
 
 def SetVisBox(bp):
     plt.setp(bp['boxes'][0], color=vert_color[0])
@@ -40,13 +46,14 @@ def PlotVisiblityStats(visibility,visible_time):
     h2, = plt.plot([1,1],color=vert_color[1])
     h3, = plt.plot([1,1],color=vert_color[2])
     h4, = plt.plot([1,1],color=vert_color[3])
-    plt.legend((h1,h2,h3,h4),verticals)
+    plt.legend((h1,h2,h3,h4),verticals, loc='upper center',\
+        bbox_to_anchor=(0.5, 1.05),ncol=4,fontsize=15)
     h1.set_visible(False)
     h2.set_visible(False)
     h3.set_visible(False)
     h4.set_visible(False)
 
-    plt.savefig('card_time_per_vert.png')
+    plt.savefig('view_port_time.png')
     plt.show()
 
 def PlotTaskSat(satisfaction):
@@ -62,7 +69,8 @@ def PlotTaskSat(satisfaction):
     plt.ylim(0,4)
     plt.ylabel('Satisfaction Ratings')
     plt.xlabel('Verticals')
-    plt.xticks([1,2,3,4],verticals)
+    plt.xticks([1,2,3,4],verticals, loc='upper center',\
+        bbox_to_anchor=(0.5, 1.05),ncol=4,fontsize=15)
 
     plt.savefig('task_sat_per_vert.png')
     plt.show()
@@ -77,23 +85,9 @@ def PlotPageResponsePerVert(first_rel_group,last_rel_group):
     resp_data = []
     sp = 1
     pos = [sp, sp+1, sp+2, sp+3]
-    #for v in vert:
-    #    resp_data.append(first_rel_group.get_group((v,'relevance'))['response_value'])
     for v in vert:
-        print v,'last ranks', np.median(first_rel_group[v]['last_rank'])
-        resp_data.append(first_rel_group[v]['last_rank'])
-    # sym='' for not showing outliers
-    bp = plt.boxplot(resp_data,positions=pos,widths=0.5)#,sym='')
-    SetVisBox(bp)
-    '''
-    # Off Relevance
-    resp_data = []
-    sp = pos[3]+2
-    pos = [sp, sp+1, sp+2, sp+3]
-    for v in vert:
-        resp_data.append(last_rel_group.get_group((v,'relevance'))['response_value'])
-    # sym='' for not showing outliers
-    bp = plt.boxplot(resp_data,positions=pos,widths=0.5,sym='')
+       resp_data.append(first_rel_group.get_group((v,'relevance'))['response_value'])
+    bp = plt.boxplot(resp_data,positions=pos,widths=0.5)
     SetVisBox(bp)
     
     # On Satisfaction
@@ -101,39 +95,16 @@ def PlotPageResponsePerVert(first_rel_group,last_rel_group):
     sp = pos[3]+2
     pos = [sp, sp+1, sp+2, sp+3]
     for v in vert:
-        resp_data.append(first_rel_group[v]['last_rank'])
-    #for v in vert:
-    #    resp_data.append(first_rel_group.get_group((v,'satisfaction'))['response_value'])
-    # sym='' for not showing outliers
-    bp = plt.boxplot(resp_data,positions=pos,widths=0.5)#,sym='')
+       resp_data.append(first_rel_group.get_group((v,'satisfaction'))['response_value'])
+    bp = plt.boxplot(resp_data,positions=pos,widths=0.5)
     SetVisBox(bp)
     
-    # Off Satisfaction
-    resp_data = []
-    sp = pos[3]+2
-    pos = [sp, sp+1, sp+2, sp+3]
-    for v in vert:
-        resp_data.append(last_rel_group.get_group((v,'satisfaction'))['response_value'])
-    # sym='' for not showing outliers
-    bp = plt.boxplot(resp_data,positions=pos,widths=0.5,sym='')
-    SetVisBox(bp)
-    '''
-    # set axes limits and labels
     plt.xlim(0,pos[3]+1)
-    plt.ylim(0,12)
-    #plt.ylim(0,40)
-    # plt.xlabel('Page Response Type')
-    # plt.ylabel('Page Response')
-    # plt.ylabel('Result Rank')
-    # plt.ylabel('#clicks')
-    plt.ylabel('Result Rank')
+    plt.ylim(0.5,5.5)
+    plt.ylabel('Page Response')
 
-    # plt.title('Document Viewport Times (sec) ')
-    # ax.set_xticklabels(['Relevance','Satisfaction'])
-    ax.set_xticklabels(['Last Click Rank'])
-    #ax.set_xticklabels(['Number of clicks per SERP'])
-
-    ax.set_xticks([2.5]) #, 7.5]) #, 12.5, 17.5])
+    ax.set_xticklabels(['Relevance','Satisfaction'])
+    ax.set_xticks([2.5, 7.5])
 
     # draw temporary red and blue lines and use them to create a legend
     h1, = plt.plot([1,1],color=vert_color[0])
@@ -141,15 +112,195 @@ def PlotPageResponsePerVert(first_rel_group,last_rel_group):
     h3, = plt.plot([1,1],color=vert_color[2])
     h4, = plt.plot([1,1],color=vert_color[3])
     plt.legend((h1,h2,h3,h4),verticals, loc='upper center',\
-        bbox_to_anchor=(0.5, 1.05),ncol=2, fontsize = 12)
+        bbox_to_anchor=(0.5, 1.05),ncol=4,fontsize=15)
     h1.set_visible(False)
     h2.set_visible(False)
     h3.set_visible(False)
     h4.set_visible(False)
 
-    #plt.savefig('page_resp_per_vert.png')
+    plt.savefig('rel_sat_first_pos.png')
+    plt.show()
+
+def PlotFirstAndLastClickRank(vertical_stats):
+    fig = plt.figure()
+    ax = plt.axes()
+    plt.hold(True)
+
+    # First Click Rank
+    resp_data = []
+    sp = 1
+    pos = [sp, sp+1, sp+2, sp+3]
+    for v in vert:
+        print v,'first ranks', np.median(vertical_stats[v]['first_rank'])
+        resp_data.append(vertical_stats[v]['first_rank'])
+    bp = plt.boxplot(resp_data,positions=pos,widths=0.5)
+    SetVisBox(bp)
+
+    # Last Click Rank
+    resp_data = []
+    sp = pos[3]+2
+    pos = [sp, sp+1, sp+2, sp+3]
+    for v in vert:
+        print v,'last ranks', np.median(vertical_stats[v]['last_rank'])
+        resp_data.append(vertical_stats[v]['last_rank'])
+    bp = plt.boxplot(resp_data,positions=pos,widths=0.5)
+    SetVisBox(bp)
+    
+    # set axes limits and labels
+    plt.xlim(0,pos[3]+1)
+    plt.ylim(0.5,10.5)
+    plt.ylabel('Result Rank')
+
+    ax.set_xticklabels(['First Click','Last Click'])
+    ax.set_xticks([2.5, 7.5])
+
+    # draw temporary red and blue lines and use them to create a legend
+    h1, = plt.plot([1,1],color=vert_color[0])
+    h2, = plt.plot([1,1],color=vert_color[1])
+    h3, = plt.plot([1,1],color=vert_color[2])
+    h4, = plt.plot([1,1],color=vert_color[3])
+    plt.legend((h1,h2,h3,h4),verticals, loc='upper center',\
+        bbox_to_anchor=(0.5, 1.05),ncol=4, fontsize = 12)
+    h1.set_visible(False)
+    h2.set_visible(False)
+    h3.set_visible(False)
+    h4.set_visible(False)
+
     plt.savefig('first_last_rank.png')
     plt.show()
+
+
+def PlotFirstAndLastClickTime(vertical_stats):
+    fig = plt.figure()
+    ax = plt.axes()
+    plt.hold(True)
+
+    # First Click Rank
+    resp_data = []
+    sp = 1
+    pos = [sp, sp+1, sp+2, sp+3]
+    for v in vert:
+        print v,'first click', np.median(vertical_stats[v]['first_click'])
+        resp_data.append(vertical_stats[v]['first_click'])
+    bp = plt.boxplot(resp_data,positions=pos,widths=0.5)
+    SetVisBox(bp)
+
+    # Last Click Rank
+    resp_data = []
+    sp = pos[3]+2
+    pos = [sp, sp+1, sp+2, sp+3]
+    for v in vert:
+        print v,'last click', np.median(vertical_stats[v]['last_click'])
+        resp_data.append(vertical_stats[v]['last_click'])
+    bp = plt.boxplot(resp_data,positions=pos,widths=0.5)
+    SetVisBox(bp)
+    
+    # set axes limits and labels
+    plt.xlim(0,pos[3]+1)
+    plt.ylim(0,170)
+    plt.ylabel('Time to Click (seconds)')
+
+    ax.set_xticklabels(['First Click','Last Click'])
+    ax.set_xticks([2.5, 7.5])
+
+    # draw temporary red and blue lines and use them to create a legend
+    h1, = plt.plot([1,1],color=vert_color[0])
+    h2, = plt.plot([1,1],color=vert_color[1])
+    h3, = plt.plot([1,1],color=vert_color[2])
+    h4, = plt.plot([1,1],color=vert_color[3])
+    plt.legend((h1,h2,h3,h4),verticals, loc='upper center',\
+        bbox_to_anchor=(0.5, 1.05),ncol=4, fontsize = 12)
+    h1.set_visible(False)
+    h2.set_visible(False)
+    h3.set_visible(False)
+    h4.set_visible(False)
+
+    plt.savefig('first_last_time.png')
+    plt.show()
+
+
+# def PlotPageResponsePerVert(first_rel_group,last_rel_group):
+#     fig = plt.figure()
+#     ax = plt.axes()
+#     plt.hold(True)
+
+#     # On Relevance
+#     resp_data = []
+#     sp = 1
+#     pos = [sp, sp+1, sp+2, sp+3]
+#     #for v in vert:
+#     #    resp_data.append(first_rel_group.get_group((v,'relevance'))['response_value'])
+#     for v in vert:
+#         print v,'last ranks', np.median(first_rel_group[v]['last_rank'])
+#         resp_data.append(first_rel_group[v]['last_rank'])
+#     # sym='' for not showing outliers
+#     bp = plt.boxplot(resp_data,positions=pos,widths=0.5)#,sym='')
+#     SetVisBox(bp)
+#     '''
+#     # Off Relevance
+#     resp_data = []
+#     sp = pos[3]+2
+#     pos = [sp, sp+1, sp+2, sp+3]
+#     for v in vert:
+#         resp_data.append(last_rel_group.get_group((v,'relevance'))['response_value'])
+#     # sym='' for not showing outliers
+#     bp = plt.boxplot(resp_data,positions=pos,widths=0.5,sym='')
+#     SetVisBox(bp)
+    
+#     # On Satisfaction
+#     resp_data = []
+#     sp = pos[3]+2
+#     pos = [sp, sp+1, sp+2, sp+3]
+#     for v in vert:
+#         resp_data.append(first_rel_group[v]['last_rank'])
+#     #for v in vert:
+#     #    resp_data.append(first_rel_group.get_group((v,'satisfaction'))['response_value'])
+#     # sym='' for not showing outliers
+#     bp = plt.boxplot(resp_data,positions=pos,widths=0.5)#,sym='')
+#     SetVisBox(bp)
+    
+#     # Off Satisfaction
+#     resp_data = []
+#     sp = pos[3]+2
+#     pos = [sp, sp+1, sp+2, sp+3]
+#     for v in vert:
+#         resp_data.append(last_rel_group.get_group((v,'satisfaction'))['response_value'])
+#     # sym='' for not showing outliers
+#     bp = plt.boxplot(resp_data,positions=pos,widths=0.5,sym='')
+#     SetVisBox(bp)
+#     '''
+#     # set axes limits and labels
+#     plt.xlim(0,pos[3]+1)
+#     plt.ylim(0,12)
+#     #plt.ylim(0,40)
+#     # plt.xlabel('Page Response Type')
+#     # plt.ylabel('Page Response')
+#     # plt.ylabel('Result Rank')
+#     # plt.ylabel('#clicks')
+#     plt.ylabel('Result Rank')
+
+#     # plt.title('Document Viewport Times (sec) ')
+#     # ax.set_xticklabels(['Relevance','Satisfaction'])
+#     ax.set_xticklabels(['Last Click Rank'])
+#     #ax.set_xticklabels(['Number of clicks per SERP'])
+
+#     ax.set_xticks([2.5]) #, 7.5]) #, 12.5, 17.5])
+
+#     # draw temporary red and blue lines and use them to create a legend
+#     h1, = plt.plot([1,1],color=vert_color[0])
+#     h2, = plt.plot([1,1],color=vert_color[1])
+#     h3, = plt.plot([1,1],color=vert_color[2])
+#     h4, = plt.plot([1,1],color=vert_color[3])
+#     plt.legend((h1,h2,h3,h4),verticals, loc='upper center',\
+#         bbox_to_anchor=(0.5, 1.05),ncol=2, fontsize = 12)
+#     h1.set_visible(False)
+#     h2.set_visible(False)
+#     h3.set_visible(False)
+#     h4.set_visible(False)
+
+#     #plt.savefig('page_resp_per_vert.png')
+#     plt.savefig('first_last_rank.png')
+#     plt.show()
 
 def PlotDwellTimePerVert(vertical_stats):
 	fig = plt.figure()
@@ -167,7 +318,7 @@ def PlotDwellTimePerVert(vertical_stats):
 		SetVisBox(bp)
 
 	plt.xlim(0,25)
-	plt.ylim(0,120)
+	plt.ylim(0,180)
 	plt.xlabel('Document Positions')
 	plt.ylabel('Dwell Time (seconds)')
 	ax.set_xticklabels(['1', '2', '3', '4', '5'])
@@ -179,7 +330,7 @@ def PlotDwellTimePerVert(vertical_stats):
 	h3, = plt.plot([1,1],color=vert_color[2])
 	h4, = plt.plot([1,1],color=vert_color[3])
 	plt.legend((h1,h2,h3,h4),verticals, loc='upper center',\
-        bbox_to_anchor=(0.5, 1.05),ncol=4)
+        bbox_to_anchor=(0.5, 1.05),ncol=4,fontsize=15)
 	h1.set_visible(False)
 	h2.set_visible(False)
 	h3.set_visible(False)
@@ -192,7 +343,7 @@ def PlotDwellTimePerVert(vertical_stats):
 def PlotClickDistPerVertical(vertical_stats):
 	fig = plt.figure()
 	ax = plt.axes()
-	# plt.hold(True)
+	plt.hold(True)
 
 	ind = [1,6,11,16,21]
 	time_data = vertical_stats['i']['clicks'].values()
@@ -211,17 +362,38 @@ def PlotClickDistPerVertical(vertical_stats):
 	rect_o = ax.bar(ind,time_data,0.5,color=vert_color[3])
 
 	ax.legend((rect_i,rect_v,rect_w,rect_o),verticals,loc='upper center',\
-		bbox_to_anchor=(0.5, 1.05),ncol=4)
+		bbox_to_anchor=(0.5, 1.05),ncol=4,fontsize=15)
 
 	plt.xlim(0,25)
-	plt.ylim(0,41)
+	plt.ylim(0,45)
 	plt.xlabel('Document Positions')
-	plt.ylabel('#Clicks')
+	plt.ylabel('Number of Clicks')
 	ax.set_xticklabels(['1', '2', '3', '4', '5'])
 	ax.set_xticks([2.5, 7.5, 12.5, 17.5, 22.5])
 
 	plt.savefig('click_dist_per_vert.png')
 	plt.show()
+
+def PlotClickDist(vertical_stats):
+    fig = plt.figure()
+    ax = plt.axes()
+
+    click_data = []
+    sp = 1
+    pos = [sp, sp+1, sp+2, sp+3]
+    for v in vert:
+        click_data.append(vertical_stats[v]['all_clicks'])
+    bp = plt.boxplot(click_data,positions=pos,widths=0.5)
+    # SetVisBox(bp)
+
+    # plt.xlim(0,25)
+    plt.ylim(0,20)
+    plt.ylabel('Number of Clicks on SERP')
+    ax.set_xticklabels(verticals)
+
+    plt.savefig('serp_click_count.png')
+    plt.show()
+
 
 '''
 def PlotClickDistPerVertical(click_dist):

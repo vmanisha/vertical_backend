@@ -202,19 +202,19 @@ def main():
     
     # # Find the vertical_type stats: sessions, queries, clicks a
     # # nd average satisfaction/rel values.
-    FindDescriptiveStatsPerVertical(merged_tables)
+    # FindDescriptiveStatsPerVertical(merged_tables)
     
     # # h. vertical_type : time_to_first_click_and_position. Compute the time to first click for each
     # # k. vertical_type : last_click_position. Compute the ranks that were clicked last for
-    FindFirstAndLastClickInfo(merged_tables)
+    # FindFirstAndLastClickInfo(merged_tables)
     
     # # For every page whose response is available find its doc_pos on serp
     # # We ignore the pages who are serp since they do not have any doc_pos
-    FindPageMetricsPerVertical(query_table,page_response_table)
+    # FindPageMetricsPerVertical(query_table,page_response_table)
 
     # # Find dwell time information for each vertical for on-vert and off-vert
     # # click. 
-    FindDwellTimes(merged_tables)
+    # FindDwellTimes(merged_tables)
 
     # # Generate visibility statistics
     # FindVisiblityMetricsPerVertical(query_filtered,vis_event_table)
