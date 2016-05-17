@@ -62,6 +62,7 @@ vis_event_header = ['time','user_id','task_id','query_text','event_type','event_
 vis_event_sortkeys = ['time','task_id', 'user_id']
 
 # Visibility event table header
+# event_value is doc_id
 scroll_event_header =['time','user_id','task_id','query_text','event_type',\
                       'event_value','visible_elements','event_dist',
                       'page_height', 'event_x','event_y' ]
@@ -217,7 +218,7 @@ def main():
     # FindDwellTimes(merged_tables)
 
     # # Generate visibility statistics
-    FindVisiblityMetricsPerVertical(query_filtered,vis_event_table)
+    # FindVisiblityMetricsPerVertical(query_filtered,vis_event_table)
 
     # # Generate task statisfaction stats per vertical
     # FindTaskSatPerVertical(query_filtered,task_response_table)
@@ -235,7 +236,7 @@ def main():
     # #TODO: Fix the sorting after grouping
 
     # # Find Scroll event stats
-    # #FindPageScrollDistributionPerVertical(query_table, scroll_event_table)
+    FindPageScrollDistributionPerVertical(query_table, scroll_event_table)
 
 if __name__ == "__main__":
     main()

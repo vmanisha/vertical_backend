@@ -395,6 +395,114 @@ def PlotClickDist(vertical_stats):
     plt.show()
 
 
+def PlotScrollDepthPerVert(highest_card):
+    fig = plt.figure()
+    ax = plt.axes()
+
+    scroll_data = []
+    sp = 1
+    pos = [sp, sp+1, sp+2, sp+3]
+    for v in vert:
+        scroll_data.append(highest_card[v])
+    bp = plt.boxplot(scroll_data,positions=pos,widths=0.5)
+    # SetVisBox(bp)
+
+    # plt.xlim(0,25)
+    plt.ylim(0,1.1)
+    plt.ylabel('Page Depth (%)')
+    ax.set_xticklabels(verticals)
+
+    plt.savefig('scroll_depth.png')
+    plt.show()
+
+def PlotSwipeFreqPerVert(swipe_freq):
+    fig = plt.figure()
+    ax = plt.axes()
+    plt.hold(True)
+
+    # PanUp
+    resp_data = []
+    sp = 1
+    pos = [sp, sp+1, sp+2, sp+3]
+    for v in vert:
+        resp_data.append(swipe_freq[v]['panup'])
+    bp = plt.boxplot(resp_data,positions=pos,widths=0.5)
+    SetVisBox(bp)
+
+    # PanDown
+    resp_data = []
+    sp = pos[3]+2
+    pos = [sp, sp+1, sp+2, sp+3]
+    for v in vert:
+        resp_data.append(swipe_freq[v]['pandown'])
+    bp = plt.boxplot(resp_data,positions=pos,widths=0.5)
+    SetVisBox(bp)
+
+    plt.xlim(0,pos[3]+1)
+    plt.ylim(0,45)
+    plt.ylabel('Swipe Counts')
+    ax.set_xticklabels(['Down', 'Up'])
+    ax.set_xticks([2.5, 7.5])
+
+    # draw temporary red and blue lines and use them to create a legend
+    h1, = plt.plot([1,1],color=vert_color[0])
+    h2, = plt.plot([1,1],color=vert_color[1])
+    h3, = plt.plot([1,1],color=vert_color[2])
+    h4, = plt.plot([1,1],color=vert_color[3])
+    plt.legend((h1,h2,h3,h4),verticals, loc='upper center',\
+        bbox_to_anchor=(0.5, 1.05),ncol=4,fontsize=15)
+    h1.set_visible(False)
+    h2.set_visible(False)
+    h3.set_visible(False)
+    h4.set_visible(False)
+
+    plt.savefig('swipe_freq.png')
+    plt.show()
+
+def PlotSwipeDistPerVert(swipe_dist):
+    fig = plt.figure()
+    ax = plt.axes()
+    plt.hold(True)
+
+    # PanUp
+    resp_data = []
+    sp = 1
+    pos = [sp, sp+1, sp+2, sp+3]
+    for v in vert:
+        resp_data.append(swipe_dist[v]['panup'])
+    bp = plt.boxplot(resp_data,positions=pos,widths=0.5)
+    SetVisBox(bp)
+
+    # PanDown
+    resp_data = []
+    sp = pos[3]+2
+    pos = [sp, sp+1, sp+2, sp+3]
+    for v in vert:
+        resp_data.append(swipe_dist[v]['pandown'])
+    bp = plt.boxplot(resp_data,positions=pos,widths=0.5)
+    SetVisBox(bp)
+
+    plt.xlim(0,pos[3]+1)
+    plt.ylim(0,6500)
+    plt.xlabel('Direction of Swipe')
+    plt.ylabel('Swipe Distance (px)')
+    ax.set_xticklabels(['Down', 'Up'])
+    ax.set_xticks([2.5, 7.5])
+
+    # draw temporary red and blue lines and use them to create a legend
+    h1, = plt.plot([1,1],color=vert_color[0])
+    h2, = plt.plot([1,1],color=vert_color[1])
+    h3, = plt.plot([1,1],color=vert_color[2])
+    h4, = plt.plot([1,1],color=vert_color[3])
+    plt.legend((h1,h2,h3,h4),verticals, loc='upper center',\
+        bbox_to_anchor=(0.5, 1.05),ncol=4,fontsize=15)
+    h1.set_visible(False)
+    h2.set_visible(False)
+    h3.set_visible(False)
+    h4.set_visible(False)
+
+    plt.savefig('swipe_dist.png')
+    plt.show()
 '''
 def PlotClickDistPerVertical(click_dist):
     plt.figure()
