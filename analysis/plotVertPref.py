@@ -6,12 +6,6 @@ import numpy as np
 
 # data = new_df.values
 
-font = {'family' : 'normal',
-        'weight' : 'bold',
-        'size'   : 22}
-
-plt.rc('font', **font)
-
 topics = ['BMW C1 motorcycle','Bachelor party ideas','Dewar Flask','Dumb blonde jokes', \
 	'Inertia of sphere','Kim Kardashian','Kobe bryant','Long beach california', \
 	'Varese ionisation','Xmen sequel']
@@ -51,31 +45,33 @@ app_data = [[0.2857142857,	0.6666666667,	0.2857142857,	0.380952381,	0.0476190476
 	[0.7,	0.4,	0.4,	0.3,	0]]
 
 fig, ax = plt.subplots()
-# data = np.array(desktop_data)
+data = np.array(desktop_data)
 # data = np.array(mobile_data)
-data = np.array(app_data)
+# data = np.array(app_	data)
 for y in range(data.shape[0]):
     for x in range(data.shape[1]):
         col = 'black'
-        if y == 0 and x == 0:
-            col = 'white'
+        # if y == 0 and x == 0:
+        #     col = 'white'
+        if data[y,x] > 0.75:
+        	col = 'white'
         #print data[y, x], new_df_sum[y], x, y
         plt.text(x + 0.5 , y + 0.5, '%2.2f' % (data[y,x]), \
             horizontalalignment='center',\
             verticalalignment='center',\
-            color=col,size=15)
+            color=col,size=25)
 
 heatmap = ax.pcolor(data, cmap=plt.cm.Blues)
 
 # put the major ticks at the middle of each cell
 ax.set_xticks(np.arange(data.shape[1])+0.5)#, minor=False)
 ax.set_yticks(np.arange(data.shape[0])+0.5)#, minor=False)
-# ax.set_ylabel('Topics',fontsize=15)
+# ax.set_ylabel('Topics',fontsize=20)
 # ax.set_xlabel('Verticals',fontsize=15)
 # want a more natural, table-like display
 ax.invert_yaxis()
 ax.xaxis.tick_top()
 
-ax.set_xticklabels(verticals, minor=False,fontsize=15)
+ax.set_xticklabels(verticals, minor=False,fontsize=20)
 ax.set_yticklabels(topics, minor=False,fontsize=15)
 plt.show()

@@ -153,11 +153,14 @@ def FindPageScrollDistributionPerVertical(result_table, event_table):
 
     for vert_type, stats in swipe_dist.items():
         for event_type, values in stats.items():
-            print 'Percentage ',vert_type, event_type, np.mean(values), np.std(values)
+            print 'Percentage ',vert_type, event_type, round(np.mean(values),2), round(np.std(values),2)
 
     for vert_type, stats in swipe_freq.items():
         for event_type, values in stats.items():
-            print 'Frequency', vert_type, event_type, np.mean(values), np.std(values)
+            print 'Frequency', vert_type, event_type, round(np.mean(values),2), round(np.std(values),2)
+
+    for vert_type, values in max_vis_card.items():
+        print 'Depth', vert_type, round(np.mean(values),2), round(np.std(values),2)
 
     # print swipe_dist
     # print swipe_freq
@@ -170,5 +173,5 @@ def FindPageScrollDistributionPerVertical(result_table, event_table):
     # PlotScrollDepthPerVert(max_scroll_card)
     # PlotScrollDepthPerVert(max_vis_card)
     
-    PlotSwipeFreqPerVert(swipe_freq)
+    # PlotSwipeFreqPerVert(swipe_freq)
     # PlotSwipeDistPerVert(swipe_dist)
