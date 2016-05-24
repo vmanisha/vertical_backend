@@ -229,7 +229,6 @@ app.post('/submitTaskResponse', function(req, res){
   {
 	for(var rkey in response_array[i])
 	  {
-		  time = new Date(time.getTime()+10);
 		  database.addTaskResponse(req.body.user, req.body.task,
 		  rkey,response_array[i][rkey],time);
 	  }

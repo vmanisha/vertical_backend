@@ -116,7 +116,7 @@ function MakeSearchRequestAndServeResults(request_page_id) {
 		$('<input>',{ "name":"query", "id":"query" , "value" : curr_query  }))
 		.append($('<input>',{ "name":"user", "id":"user" , "value" : user_name}))
 		.append($('<input>',{ "name":"task", "id":"task" , "value" : task_id  }))
-		.append($('<input>',{ "name":"page", "id":"page" , "value" : search_page_id}));
+		.append($('<input>',{ "name":"page", "id":"page" , "value" : search_page_id}))
 		.append($('<input>',{ "name":"time", "id":"time" , "value" : new Date().getTime()}));
 		
 		$form.appendTo('body').hide().submit();
@@ -163,7 +163,7 @@ function RenderPage(request_page_id,  output)
 	
 
 	visibleElements = visibleElements.trim(); // Removing extra space at the end		
-	var event_value = JSON.stringify{"visible_elements" : visibleElements };
+	var event_value = JSON.stringify({"visible_elements" : visibleElements });
 	var time_stamp  = new Date().getTime(); 
 	// Make an ajax call and submit the data.
 	$.ajax ( { url : '/submitPageEvent',
