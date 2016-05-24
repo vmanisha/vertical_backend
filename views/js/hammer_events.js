@@ -13,6 +13,8 @@ hammer_body.on("tap swipeup swipedown swipeleft swiperight pinchin pinchout doub
 	var deltaTime = devent.deltaTime;
 	var deltaX = Math.round(devent.deltaX,-3);
 	var deltaY = Math.round(devent.deltaY,-3);
+	var centerX = Math.round(devent.center.x,-3);
+	var centerY = Math.round(devent.center.y,-3);
 	var velocityX = Math.round(devent.velocityX,-3);
 	var velocityY = Math.round(devent.velocityY,-3);
 	var direction = devent.direction;
@@ -26,7 +28,7 @@ hammer_body.on("tap swipeup swipedown swipeleft swiperight pinchin pinchout doub
   	                       html.clientHeight, html.scrollHeight, html.offsetHeight );
 	if(newtag.length == 0) newtag=devent.target.tagName;
 	
-	var deventsMeta = " "+timestamp+" "+deltaTime+" "+deltaX+
+	var deventsMeta = deltaTime+" "+deltaX+ " "+centerX + " "+ centerY+
 					  " "+deltaY+" "+velocityX+" "+velocityY+" "
 					  +direction+" "+distance+" "+newtag+ " "+ height;
 
@@ -51,7 +53,8 @@ hammer_body.on("tap swipeup swipedown swipeleft swiperight pinchin pinchout doub
 	$.ajax ( { url : '/submitPageEvent',
 				type :"post",
 				contentType: "application/json",
-				data : JSON.stringify({"eventtype" : type ,"eventvalue" : event_value , "url" :window.location.href }),
+				data : JSON.stringify({"eventtype" : type ,"eventvalue" : event_value , 
+					"eventtime": timestamp, "url" :window.location.href }),
 				success : function (response) {
 				
 				},

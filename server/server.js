@@ -71,19 +71,22 @@ app.get('/begin', function(req, res) {
   var last_history_state = database.getLastUserAndTaskState( user_name, task_id);
 
   if (last_history_state == null)
-  // else send a new search page with input query. 
     res.render('index.ejs', {
 	  "task_id":JSON.stringify(task_id), 
 	  "user_name": JSON.stringify(user_name), "search_page_id": JSON.stringify(1),
 	  "user_query" : JSON.stringify(query_text), "query_id" : JSON.stringify(""),
 	  "results" : JSON.stringify({})});
-  else
+  else {
+  // else send a new search page with input query. 
 	  res.render("index.ejs", { "task_id":JSON.stringify(task_id), 
 	  "user_name": JSON.stringify(user_name), 
 	  "search_page_id": JSON.stringify(last_history_state["page_id"]),
 	  "user_query" : JSON.stringify(last_history_state["query_text"]), 
 	  "query_id" : JSON.stringify(last_history_state["query_id"]),
 	  'results': JSON.stringify(last_history_state["search_results"])});
+
+	  // Submit an event for search. 
+  }
   
 });
 
@@ -112,6 +115,7 @@ app.get('/search', function(req, res){
   var query_text =req.query.query;
   var user_name = req.query.user;
   var page_number = parseInt(req.query.page);
+  var time = parseInt(req.query.time);
 
   // Check if this is a repeated request. If yes
   // get the results and send them again.
@@ -142,7 +146,7 @@ app.get('/search', function(req, res){
 	  
 	  // Save the search results for future use. 
 	  database.addSearchResults(user_name, task_id, query_id, query_text, 
-			  page_number, results, new Date().getTime());
+			  page_number, results, time);
 
 	  res.render("index.ejs", { "task_id":JSON.stringify(task_id), 
 	  "user_name": JSON.stringify(user_name), 
@@ -151,13 +155,18 @@ app.get('/search', function(req, res){
 	  "query_id" : JSON.stringify(query_id),
 	  'results': JSON.stringify(results)});
   }
-  else
+  else {
 	  res.render("index.ejs", { "task_id":JSON.stringify(task_id), 
 	  "user_name": JSON.stringify(user_name), 
 	  "search_page_id": JSON.stringify(page_number),
 	  "user_query" : JSON.stringify(query_text), 
 	  "query_id" : JSON.stringify(check_result['query_id']),
 	  'results':JSON.stringify(check_result['search_results'])});
+
+	  // Add a search event. 
+  }
+
+
 });
 
 
@@ -165,21 +174,22 @@ app.get('/search', function(req, res){
 app.post('/submitPageEvent', function(req, res){
 
   database.addPageEvent(req.body.url, req.body.eventtype,
-  req.body.eventvalue, new Date().getTime());
+  req.body.eventvalue, req.body.eventtime);
   res.json(true);
 });
 
 // Submit page interaction to db.
 app.post('/submitPageClick', function(req, res){
   console.log("Click : user: "+req.body.user+" task_id: "+req.body.task+" url: "
-	+req.body.docurl+" doc_id: "+req.body.docid+" query_id: "+req.body.queryid);
+	+req.body.docurl+" doc_id: "+req.body.docid+" query_id: "+req.body.queryid+
+	' page_id: ' + req.body.page + ' time' + req.body.time);
 
-  if (req.query.user && req.query.docurl && req.query.task && 
-	  req.query.queryid && req.query.page && req.query.docid) {
+  if (req.body.user && req.body.docurl && req.body.task && 
+	  req.body.queryid && req.body.page && req.body.docid) {
 
 		  database.addClickDoc(req.body.user, req.body.task,
 		  req.body.queryid, req.body.page, req.body.docid, 
-		  req.body.docurl, new Date().getTime());
+		  req.body.docurl, req.body.time);
   }
   	  res.json(true);
 });
@@ -188,7 +198,7 @@ app.post('/submitPageClick', function(req, res){
 app.post('/submitPageResponse', function(req, res){
   var response_array = req.body.responses;
 
-  var time = new Date();
+  var time = req.body.time;
   // Ideally the click is registered in a global database. 
   // So fetch last click information. 
   console.log("Page Response : user: "+req.body.user+" task_id: "+
@@ -201,7 +211,7 @@ app.post('/submitPageResponse', function(req, res){
 		{
 		   time = new Date(time.getTime()+10+i);
 		   database.addPageResponse(req.body.user, req.body.task, 
-		   req.body.docurl, rkey,response_array[i][rkey],time.getTime());
+		   req.body.docurl, rkey,response_array[i][rkey],time);
 		}
 	  }
   }
@@ -212,7 +222,7 @@ app.post('/submitPageResponse', function(req, res){
 // Submit task responses (relevance and satisfaction) interaction to db.
 app.post('/submitTaskResponse', function(req, res){
   var response_array = req.body.responses;
-  var time = new Date();
+  var time = req.body.time;
   console.log("Task Response : user: "+req.body.user+" task_id: "+
 		  req.body.task+ "response_array: "+response_array);
   for(var i = 0; i < response_array.length;i++) 
@@ -221,7 +231,7 @@ app.post('/submitTaskResponse', function(req, res){
 	  {
 		  time = new Date(time.getTime()+10);
 		  database.addTaskResponse(req.body.user, req.body.task,
-		  rkey,response_array[i][rkey],time.getTime());
+		  rkey,response_array[i][rkey],time);
 	  }
     }
   res.json({"success":true});
@@ -245,7 +255,7 @@ app.get('/viewPage', function (req, res) {
 		  
 	  database.addClickDoc(req.query.user, req.query.task,
   	  req.query.queryid, req.query.page, req.query.docid, 
-  	  req.query.docurl, new Date().getTime());
+  	  req.query.docurl, req.query.time);
 
   	  // Check if url is on the server.
   	  if (req.query.docurl in global_page_location_dict) 
@@ -313,9 +323,10 @@ app.get('/viewPage', function (req, res) {
 					  console.log('Written html to ' + filename);
 			});
 			global_page_location_dict[req.query.docurl] = filename;
-			database.addPageLocation(filename, req.query.docurl, req.query.docid, (new Date()).getTime());
+			database.addPageLocation(filename, req.query.docurl, req.query.docid, req.query.time);
 			// Add the url mapping to database
-  	    		res.send($.html());
+			if (!res.headersSent)	
+				res.send($.html());
 		}
   	    });
   	  }

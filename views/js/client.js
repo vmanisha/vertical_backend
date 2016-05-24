@@ -52,14 +52,15 @@ $(function(){
 		// Get the url, query, page_id, query_id and task_id
 		var link = escape($(this).attr("href"));
 		var doc_id =$(this).attr("id");
+		var time_stamp = new Date().getTime();
 
 		if (!CheckURLForImage(link) && !CheckURLForDomains(link) && (doc_id.indexOf("page")==-1))
-			$(this).attr("href", ModifyUrl(doc_id, link));
+			$(this).attr("href", ModifyUrl(doc_id, link, time_stamp));
 		else {
 			// register a click
 			var send_data = JSON.stringify({ "user" : user_name, "task" : task_id,
 						  "page" : search_page_id , "queryid" : $("#query_id").val(), 
-						  "docurl" : link, "docid" : doc_id});
+						  "docurl" : link, "docid" : doc_id, 'time':time_stamp});
 			// Submit it to the server if not a prev_page or next_page click 
 			if (doc_id.indexOf("aid") > -1)
 			{ 
@@ -82,10 +83,10 @@ $(function(){
 
 
 // Format the url into following form: viewPage?page=page_number&docid=doc_id&url=url
-function ModifyUrl(doc_id, url) {
+function ModifyUrl(doc_id, url, time_stamp) {
 	var modified_url = 'viewPage?page='+search_page_id+"&docid="+doc_id+
 		"&queryid="+$("#query_id").val()+"&user="+user_name+"&task="+
-		task_id+"&docurl="+url;
+		task_id+"&time="+time_stamp+"&docurl="+url;
 
 return modified_url;
 }
@@ -116,6 +117,7 @@ function MakeSearchRequestAndServeResults(request_page_id) {
 		.append($('<input>',{ "name":"user", "id":"user" , "value" : user_name}))
 		.append($('<input>',{ "name":"task", "id":"task" , "value" : task_id  }))
 		.append($('<input>',{ "name":"page", "id":"page" , "value" : search_page_id}));
+		.append($('<input>',{ "name":"time", "id":"time" , "value" : new Date().getTime()}));
 		
 		$form.appendTo('body').hide().submit();
 }
@@ -161,12 +163,14 @@ function RenderPage(request_page_id,  output)
 	
 
 	visibleElements = visibleElements.trim(); // Removing extra space at the end		
-	var event_value = {"visible_elements" : visibleElements};
+	var event_value = JSON.stringify{"visible_elements" : visibleElements };
+	var time_stamp  = new Date().getTime(); 
 	// Make an ajax call and submit the data.
 	$.ajax ( { url : '/submitPageEvent',
 		type :"post",
 		contentType: "application/json",
-		data : JSON.stringify({"eventtype" : "initial_state" ,"eventvalue" : event_value , "url" :window.location.href }),
+		data : JSON.stringify({"eventtype" : "initial_state" ,"eventvalue" : event_value , 
+			"eventtime": time_stamp, "url" :window.location.href }),
 		success : function (response) {
 		},
 		error : function(response) {
