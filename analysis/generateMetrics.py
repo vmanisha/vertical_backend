@@ -236,7 +236,11 @@ def main():
     # #TODO: Fix the sorting after grouping
 
     # # Find Scroll event stats
-    FindPageScrollDistributionPerVertical(query_table, scroll_event_table)
+    # FindPageScrollDistributionPerVertical(query_table, scroll_event_table)
+
+    # Find time-scroll freq ratio
+    FindPageVelocityDistribution(query_table, scroll_event_table)
+ 
 
 if __name__ == "__main__":
     main()

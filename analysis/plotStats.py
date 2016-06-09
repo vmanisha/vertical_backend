@@ -3,7 +3,8 @@ import numpy as np
 
 vert = ['i','v','w','o']
 verticals = ['Image','Video','Wiki','Organic']
-vert_color = ['blue','black','cyan','green']
+vert_color = ['blue','black','red','green']
+vert_expand = {'i':'Image','v': 'Video', 'w': 'Wiki', 'o': 'Organic'}
 
 font = {'family' : 'normal',
         'weight' : 'bold',
@@ -503,6 +504,44 @@ def PlotSwipeDistPerVert(swipe_dist):
 
     plt.savefig('swipe_dist.png')
     plt.show()
+
+def PlotScrollFreqByTime(aggregate_freq):
+  # Format : {'i': {0 : [] , 1 : [] , 2 : [] .. }}
+  # Time buckets are 0 , 1 ,2 .. 10.
+  # Each array is fraction of swipes that happen in bucket. 
+  i = 0
+  face_color = ['lightskyblue','darkgray','lightcoral','palegreen' ]
+  edge_color = ['dodgerblue','dimgray','tomato','forestgreen'] 
+
+  for vert_type, bucket_dict in aggregate_freq.items():
+      print vert_type, bucket_dict  
+      sort_freq = sorted(bucket_dict.items())
+      x = []
+      mean = []
+      var = []
+      for entry in sort_freq:
+        print entry
+        x.append(entry[0])
+        mean.append(np.mean(entry[1]))
+        var.append(np.std(entry[1]))
+
+      plt.plot(x, mean, 'k', color = vert_color[i], label =\
+          vert_expand[vert_type])
+      print edge_color[i], face_color[i]
+      plt.fill_between(x, np.array(mean) - np.array(var), np.array(mean) +\
+          np.array(var), alpha=0.2, linewidth=4, linestyle='dashdot',\
+          antialiased=True,edgecolor=edge_color[i],\
+          facecolor=face_color[i])
+
+      i+=1
+  plt.xlabel('Time buckets')
+  plt.ylabel('Normalized Swipe Freq')
+  plt.legend(bbox_to_anchor=(0.5, 1.05), loc='upper center', ncol = 4, fontsize=15)
+  plt.show()
+  plt.clf()
+
+
+
 '''
 def PlotClickDistPerVertical(click_dist):
     plt.figure()

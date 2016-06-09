@@ -272,8 +272,8 @@ def FormatEventDBForScrolls(databases, dbcolumns, sort_keys):
                     # Get window height.
                     if len(split[-1]) > 0:
                         win_hieght = float(split[-1])
-                        event_x = float(split[2])
-                        event_y = float(split[3])
+                        event_x = float(split[4])
+                        event_y = float(split[5])
                         try :
 		                    index = int(split[9][split[9].rfind('_')+1:])
                         except:
