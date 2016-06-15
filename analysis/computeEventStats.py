@@ -10,9 +10,10 @@ def CheckEqualVisEle(prev_vis, curr_vis):
     return True
 
 
+
 def FindPageVelocityDistribution(result_table, event_table):
     # Find velocity distribution per serp.
-    scroll_events = ['panup','pandown','panleft','panright','swipeleft','swiperight']
+    scroll_events = ['panup','pandown']
     verticals = ['i','v','w','o']
 
     result_table['type'] = 'results'
@@ -29,7 +30,7 @@ def FindPageVelocityDistribution(result_table, event_table):
         group = group.sort('time')
         # Set vertical type for each serp. 
         vert_type = None
-        swipe_time = []
+        swipe_time = {}
         speeds_x = {}
         speeds_y = {}
 
@@ -42,14 +43,14 @@ def FindPageVelocityDistribution(result_table, event_table):
                     speedy_buckets[vert_type].append(speeds_y)
                     swipe_time_buckets[vert_type].append(swipe_time)
                 vert_type = row['doc_type']
-                swipe_time = []
+                swipe_time = {}
                 speeds_x = {}
                 speeds_y = {}
                 vert_type = row['doc_type']
                 start_time = row['time']
                 
 
-            if row['type'] == 'event':
+            if row['type'] == 'event' and row['event_type'] in scroll_events:
                 event_time = row['time']
                 # Append the speed. 
                 speeds_x[(event_time - start_time).total_seconds()] =\
@@ -58,41 +59,72 @@ def FindPageVelocityDistribution(result_table, event_table):
                     row['event_y']
 
                 # Append the time for frequency.
-                swipe_time.append((event_time - start_time).total_seconds())
+                swipe_time[(event_time - start_time).total_seconds()] = row['direction']
 
         if vert_type:
             speedx_buckets[vert_type].append(speeds_x)
             speedy_buckets[vert_type].append(speeds_y)
             swipe_time_buckets[vert_type].append(swipe_time)
-
-
-
+    
     aggregate_freq = {'i': {} , 'v':{} , 'w': {}, 'o':{}}
-    aggregate_speed_x = {'i': {} , 'v':{} , 'w': {}, 'o':{}}
-    aggregate_speed_y = {'i': {} , 'v':{} , 'w': {}, 'o':{}}
     for  vert_type, time_stamps in swipe_time_buckets.items():
         # take max time (last swipe)
-        for time_array in time_stamps:
-            if len(time_array) > 0:
-                max_time = max(time_array)
-                total = len(time_array)
+        for time_dict in time_stamps:
+            if len(time_dict) > 0:
+                max_time = max(time_dict.keys())
+                total = len(time_dict)
                 bucket_size = max_time/10
                 bucket = {}
-                for entry in time_array:
-                    index = int((entry/bucket_size))
+                for time, dirn in time_dict.items():
+                    index = int((time/bucket_size))
                     if index not in bucket:
                         bucket[index] = 0.0
-                    bucket[index]+= (1.0 / total)
+                    if dirn == 'down':
+                        bucket[index]+= (1.0 / total)
 
                 for index, count in bucket.items():
                     if index not in aggregate_freq[vert_type]:
                         aggregate_freq[vert_type][index]= []
                     aggregate_freq[vert_type][index].append(count)
+    PlotVertSwipeInfoByTime(aggregate_freq, 'Time buckets','Normalized Swipe down Freq')
+    '''
+    aggregate_speed_x = {'i': {} , 'v':{} , 'w': {}, 'o':{}}
+    aggregate_speed_y = {'i': {} , 'v':{} , 'w': {}, 'o':{}}
 
+    for vert_type, speed_list in speedx_buckets.items():
+        bucket = AggregateSpeedsWithTime(speed_list)
+        for index, speeds in bucket.items():
+            if index not in aggregate_speed_x[vert_type]:
+                aggregate_speed_x[vert_type][index] = []
+            aggregate_speed_x[vert_type][index] = bucket[index]
+    PlotVertSwipeInfoByTime(aggregate_speed_x, 'Time buckets','Swipe Velocity in X-dim')
+    
+    for vert_type, speed_list in speedy_buckets.items():
+        bucket = AggregateSpeedsWithTime(speed_list)
+        for index, speeds in bucket.items():
+            if index not in aggregate_speed_y[vert_type]:
+                aggregate_speed_y[vert_type][index] = []
+            aggregate_speed_y[vert_type][index] = bucket[index]
+    PlotVertSwipeInfoByTime(aggregate_speed_y, 'Time buckets','Swipe Velocity in Y-dim')
+    '''
+'''
+@speeds : An array of dictionaries of format: {time_from_result_display: speed}
+'''
+def AggregateSpeedsWithTime(speeds):
 
-    PlotScrollFreqByTime(aggregate_freq)
-
-
+    bucket = {};
+    for speed_dict in speeds:
+        total = len(speed_dict)
+        if total > 0:
+            max_time = max(speed_dict.keys())
+            bucket_size = max_time/10
+            for entry, speed in speed_dict.items():
+                index = int(entry/bucket_size)
+                if index not in bucket:
+                    bucket[index] = []
+                bucket[index].append(speed)
+    return bucket;
+            
 
 
 # Find the box plot of %page scrolled per vertical. 

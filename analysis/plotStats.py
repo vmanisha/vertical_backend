@@ -505,7 +505,7 @@ def PlotSwipeDistPerVert(swipe_dist):
     plt.savefig('swipe_dist.png')
     plt.show()
 
-def PlotScrollFreqByTime(aggregate_freq):
+def PlotVertSwipeInfoByTime(aggregate_freq, x_title, y_title):
   # Format : {'i': {0 : [] , 1 : [] , 2 : [] .. }}
   # Time buckets are 0 , 1 ,2 .. 10.
   # Each array is fraction of swipes that happen in bucket. 
@@ -527,18 +527,17 @@ def PlotScrollFreqByTime(aggregate_freq):
 
       plt.plot(x, mean, 'k', color = vert_color[i], label =\
           vert_expand[vert_type])
-      print edge_color[i], face_color[i]
       plt.fill_between(x, np.array(mean) - np.array(var), np.array(mean) +\
           np.array(var), alpha=0.2, linewidth=4, linestyle='dashdot',\
           antialiased=True,edgecolor=edge_color[i],\
           facecolor=face_color[i])
 
       i+=1
-  plt.xlabel('Time buckets')
-  plt.ylabel('Normalized Swipe Freq')
-  plt.legend(bbox_to_anchor=(0.5, 1.05), loc='upper center', ncol = 4, fontsize=15)
-  plt.show()
-  plt.clf()
+      plt.xlabel(x_title)
+      plt.ylabel(y_title)
+      plt.legend(bbox_to_anchor=(0.5, 1.05), loc='upper center', ncol = 4, fontsize=15)
+      plt.show()
+      plt.clf()
 
 
 

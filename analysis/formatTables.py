@@ -256,6 +256,8 @@ def FormatEventDBForTap(databases, dbcolumns, sort_keys):
 
 def FormatEventDBForScrolls(databases, dbcolumns, sort_keys):
     tsv_data= []
+    hammer_direction = {'2':'left', '4':'right', '8':'up', '16':'down',
+        '6':'horizontal','24':'vertical','30':'all','1':'none'}
     for database in databases:
         for entry , values in database.items():
             entry = datetime.fromtimestamp(float(entry)/1000)
@@ -268,27 +270,36 @@ def FormatEventDBForScrolls(databases, dbcolumns, sort_keys):
                 if 'prop' in event_value:
                     # Get the window height, distance, and element and visible
                     # elements. 
-                    split = event_value['prop'].split(' ')
+                    event = ' '.join(event_value['prop'].split())
+                    split = event.split(' ')
                     # Get window height.
+                    # Format " "+timestamp+" "+deltaTime+" "+deltaX+" "
+                    #            +deltaY+" "+velocityX+" "+velocityY+" "
+                    #            +direction+" "+distance+" "+newtag+" "
+                    #            +height;
                     if len(split[-1]) > 0:
-                        win_hieght = float(split[-1])
+                        try:
+                          win_hieght = float(split[-1])
+                        except:
+                          win_hieght = 0
                         event_x = float(split[4])
                         event_y = float(split[5])
                         try :
-		                    index = int(split[9][split[9].rfind('_')+1:])
+		                    index = int(split[8][split[8].rfind('_')+1:])
                         except:
                 	    	index = -1
-                        distance = float(split[8])
+                        distance = float(split[7])
+                        direction = hammer_direction[split[6]]
+
                         if 'visible_elements' in event_value:
                             visible = event_value['visible_elements']
                             new_entry = [entry , user , int(task), query.strip(), \
                                 values['event_type'], index, visible,\
-                                distance,win_hieght, event_x, event_y]
+                                distance,direction, win_hieght, event_x, event_y]
                         else:
                             new_entry = [entry , user , int(task), query.strip(), \
                                 values['event_type'], index, '',\
-                                distance,win_hieght, event_x, event_y]
-
+                                distance,direction, win_hieght, event_x, event_y]
                         tsv_data.append(new_entry)
     # create a new data frame
     tsv_frame = pd.DataFrame(tsv_data, columns= dbcolumns)
@@ -300,6 +311,7 @@ def FormatEventDBForScrolls(databases, dbcolumns, sort_keys):
     tsv_frame = tsv_frame.sort(sort_keys)
 
     # Remove duplicate rows
+    print 'Event table size ',tsv_frame.shape
     return tsv_frame.drop_duplicates()
 
 

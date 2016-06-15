@@ -62,10 +62,10 @@ vis_event_header = ['time','user_id','task_id','query_text','event_type','event_
 vis_event_sortkeys = ['time','task_id', 'user_id']
 
 # Visibility event table header
-# event_value is doc_id
+# event_value is visible doc_id
 scroll_event_header =['time','user_id','task_id','query_text','event_type',\
                       'event_value','visible_elements','event_dist',
-                      'page_height', 'event_x','event_y' ]
+                      'direction','page_height', 'event_x','event_y' ]
 # Visibility event table sortkeys
 scroll_event_sortkeys = [ 'user_id','task_id', 'time']
 

@@ -8,6 +8,31 @@ from plotStats import *
 
 TASKSATMAP = {'Somewhat Satisfied': 2.0, 'Highly Satisfied': 3.0, 'Not Satisfied' : 1.0}
 
+def FindMarkovNetwork(result_table, event_table, click_table):
+
+    # Filter first result type. 
+
+    # concat table contains the following: 
+    # result table, click table and event table. 
+    total_events = 0.0
+    states = {}
+    grouped_table = concat_table.groupby(['user_id','task_id'])
+    # Find the transition between :
+        # result
+        # swipe up 
+        # swipe down
+        # panup and pan down
+        # click
+        # tap
+        # reformulate
+    result_table = result_table[(result_table['page_id']==1) & \
+            (result_table['doc_pos'] == 0)]
+
+    for name, group in grouped_table.items():
+        group = group.sort('time')
+
+
+
 def FindFirstAndLastClickInfo(concat_table):
     # For each result type: Record time to first click, Record time to last click
     # (Image and video clicks would not have been recorded ! Use taps. 
