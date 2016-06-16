@@ -69,12 +69,20 @@ scroll_event_header =['time','user_id','task_id','query_text','event_type',\
 # Visibility event table sortkeys
 scroll_event_sortkeys = [ 'user_id','task_id', 'time']
 
+# All event table 
+all_event_header =['time','user_id','task_id','query_text','page_id','event_type',\
+                      'element','direction', 'visible_elements']
+# Visibility event table sortkeys
+all_event_sortkeys = [ 'user_id','task_id', 'time']
+
+
+
 def MergeAllTables(result_table, click_table, event_table, page_table, task_table):
     result_table['type'] = 'results'
     click_table['type'] = 'click'
     page_table['type'] = 'page_response'
     task_table['type'] = 'task_response'
-    event_table['type'] = 'event_response'
+    event_table['type'] = 'event'
 
     # Concatinate all tables. Keep only the first result.
     # values not present will be N/A
@@ -98,7 +106,6 @@ def LoadDatabase(filename, isFolder):
             database.append(db)
 
     return database
-
 
 def main():
     parser = argparse.ArgumentParser(description='Find and plot statistics\
@@ -135,55 +142,43 @@ def main():
     # Format click result db
     click_table = FormatClickResultDB(click_result_db,click_result_header,click_result_sortkeys)
 
-    # Format tap event db
-    tap_event_table = FormatEventDBForTap(event_db,tap_event_header,tap_event_sortkeys)
-
-    # Format visibility event db
-    vis_event_table = FormatEventDBForVisibility(event_db,vis_event_header,vis_event_sortkeys)
-
-    # Format visibility event db
-    scroll_event_table = FormatEventDBForScrolls(event_db,scroll_event_header,\
-        scroll_event_sortkeys)
+    # Format event db
+    all_event_table = FormatAllEventDB(event_db, all_event_header, all_event_sortkeys)
     
     # a. task : users. Compute the number of users who provided task feedback
     # task_id, #users_who_gave_feedback
-    task_response_table[['task_id','user_id']].groupby(['task_id']).\
-            agg({'user_id': pd.Series.nunique}).to_csv('task_feedback.csv')
+    # task_response_table[['task_id','user_id']].groupby(['task_id']).\
+    #        agg({'user_id': pd.Series.nunique}).to_csv('task_feedback.csv')
 
     # b. task : user_impressions. Compute the number of users who executed a task.
     # task_id, #users_who_executed_task
-    page_response_table[['task_id','user_id']].groupby(['task_id']).\
-            agg({'user_id': pd.Series.nunique}).to_csv('task_execute.csv')
+    # page_response_table[['task_id','user_id']].groupby(['task_id']).\
+    #         agg({'user_id': pd.Series.nunique}).to_csv('task_execute.csv')
 
     # c. vertical_type : vertical_SERPs. Compute the number of times each vertical was shown as top result.
     # Only consider query results in the first page (page_id==1)
     # Here we output counts for all the doc position in the first page
     # doc_type, #occurances
-    query_results = query_table[(query_table['page_id']==1) & \
-            (query_table['doc_pos'] == 0)]
-    print query_results.groupby(['doc_type'])['task_id'].count()
+    # query_results = query_table[(query_table['page_id']==1) & \
+    #        (query_table['doc_pos'] == 0)]
+    # print query_results.groupby(['doc_type'])['task_id'].count()
 
     # d. vertical_type : queries. Compute the number of queries fired for each vertical.
     # task_id, #unique_queries
-    queries_with_time= query_results[['time','doc_type','query_text']].drop_duplicates();
-    queries_with_time.groupby(['doc_type','query_text']).agg(\
-            {'query_text': pd.Series.count}).to_csv('vert_queries.csv')
-
-    # f. task : time . Compute the time spent on doing each task.
+    # queries_with_time= query_results[['time','doc_type','query_text']].drop_duplicates();
+    # queries_with_time.groupby(['doc_type','query_text']).agg(\
+    #        {'query_text': pd.Series.count}).to_csv('vert_queries.csv')
 
     # g. task : click_ranks. Compute the number of times a position was clicked
     # ignore positions with double digits as they are nested clicks
-    # doc_pos = (page_id - 1) * 10 + doc_id
     # task_id, doc_pos, #clicks
-    click_filtered = click_table[click_table['doc_id'].str.len()\
-            == 5]
-    #click_filtered['doc_pos'] = (click_filtered['page_id'].astype(float) -\
-    #        1.0) + (click_filtered['doc_id'].str[4]).astype(float)
+    # click_filtered = click_table[click_table['doc_id'].str.len()\
+    #        == 5]
+
     # Filter the columns for count.
     #click_filtered[['task_id','doc_pos']].groupby(['task_id','doc_pos'])['doc_pos'].\
     #        count().to_csv('task_rank_click_counts.csv', encoding = 'utf-8',\
     #        sep = '\t')
-    print 'Clicked documents ', click_filtered['doc_url'].value_counts()
     print 'Page Rel ', page_response_table[page_response_table['response_type'] == 'relevance']['response_type'].value_counts()
     print 'Page Sat ', page_response_table[page_response_table['response_type'] ==\
         'satisfaction']['response_type'].value_counts()
@@ -192,14 +187,19 @@ def main():
     print 'Task Sat ', task_response_table[task_response_table['response_type'] ==
         'satisfaction'].count()
 
-    merged_tables = MergeAllTables(query_table, click_filtered, tap_event_table,\
+    # Concatenate event, pageresponse, task_response, click, result tables.
+    # Fix the gaps. And complete all columns and save them. 
+    # Format tap event db
+    # tap_event_table = FormatEventDBForTap(event_db,tap_event_header,tap_event_sortkeys)
+    query_filtered = query_table[query_table['doc_pos']==0]
+    merged_tables = MergeAllTables(query_filtered, click_table, all_event_table,\
     	 page_response_table, task_response_table)
+
+    # Find state transitions. 
+    FindMarkovNetwork(merged_tables)
 
     # Filter query table to have only top position on first page
     # TODO: Do this after merge tables as it adds 'type' which is used later
-    query_filtered = query_table[query_table['doc_pos']==0]
-    query_filtered = query_filtered[query_filtered['page_id']==1]
-    
     
     # # Find the vertical_type stats: sessions, queries, clicks a
     # # nd average satisfaction/rel values.
@@ -218,6 +218,8 @@ def main():
     # FindDwellTimes(merged_tables)
 
     # # Generate visibility statistics
+    # Format visibility event db
+    # vis_event_table = FormatEventDBForVisibility(event_db,vis_event_header,vis_event_sortkeys)
     # FindVisiblityMetricsPerVertical(query_filtered,vis_event_table)
 
     # # Generate task statisfaction stats per vertical
@@ -229,17 +231,19 @@ def main():
     # # Generate task preference distribution per task_id
     # FindTaskPrefDistribution(task_response_table)
     
-
     # # Generate click distribution for every vertical
     # # FindClickDistributionPerVertical(query_filtered,click_filtered)
 
-    # #TODO: Fix the sorting after grouping
-
+    # Format scroll event db
+    # scroll_event_table = FormatEventDBForScrolls(event_db,scroll_event_header,\
+    #    scroll_event_sortkeys)
     # # Find Scroll event stats
     # FindPageScrollDistributionPerVertical(query_table, scroll_event_table)
 
     # Find time-scroll freq ratio
-    FindPageVelocityDistribution(query_table, scroll_event_table)
+    # FindPageVelocityDistribution(query_table, scroll_event_table)
+
+
  
 
 if __name__ == "__main__":

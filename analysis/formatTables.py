@@ -9,16 +9,22 @@ from datetime import datetime
 import urllib
 
 # Query pattern to extract from server url.
-query_id_pattern = 'queryid=(.*?)&'
-query_id_regex = re.compile(query_id_pattern)
+query_id_regex = re.compile('queryid=(.*?)&')
 
 # Query pattern to extract from server url.
-page_id_pattern = 'page=(.*?)&'
-page_id_regex = re.compile(page_id_pattern)
+query_regex = re.compile('query=(.*?)(&|\Z)')
+
+# Task pattern to extract from event url.
+task_id_regex = re.compile('task=(.*?)&')
+
+# user id to extract from event url.
+user_id_regex = re.compile('user=(.*?)(&|\Z)')
 
 # Query pattern to extract from server url.
-docurl_pattern = 'docurl=(.*)'
-docurl_regex = re.compile(docurl_pattern)
+page_id_regex = re.compile('page=(.*?)(&|\Z|#)')
+
+# doc url pattern to extract from server url.
+docurl_regex = re.compile('docurl=(.*)')
 
 visibility_events = ['initial_state','panleft','panright','panup','pandown']
 scroll_events = ['panleft','panright','panup','pandown', 'swipeleft','swiperight']
@@ -47,45 +53,32 @@ def FormatUrl(url):
     url = url.replace(' ','+')
     return url
 
-
+def GetValueFromRegex(regex, string, default):
+  variable = re.search(regex,string)
+  value = None
+  if not variable:
+    value = default
+  else:
+    value = variable.group(1)
+  return value
+  
 # Always on serp
 # TODO: Should we call FormatUrl here as well?
 def BreakEventUrl(url):
-  url_split = url.split('&')
-  query = None
-  user = None
-  task = None
-  page = None
-  if len(url_split) == 4:
-      query = url_split[0][url_split[0].rfind('=')+1:].replace('+',' ')
-      user =  url_split[1][url_split[1].rfind('=')+1:]
-      task =  url_split[2][url_split[2].rfind('=')+1:]
-      page =  url_split[3][url_split[3].rfind('=')+1:]
+  query = GetValueFromRegex(query_regex, url,'').replace('+',' ')
+  user = GetValueFromRegex(user_id_regex, url,'')
+  task = GetValueFromRegex(task_id_regex, url,-1)
+  page = GetValueFromRegex(page_id_regex, url,-1)
   return user, task, page, query
 
 # Some doc_url does not have queryid and pageid
 # (e.g., https://m.youtube.com/watch?v=RZ_YOAlPJNY)
 # We use empty strings if we do not find any match
 def BreakServerUrl(url):
-	query_id = re.search(query_id_regex,url)
-	if not query_id:
-		query_id = -1
-	else:
-		query_id = query_id.group(1)
-
-	page_id = re.search(page_id_regex, url)
-	if not page_id:
-		page_id = -1
-	else:
-		page_id = page_id.group(1)
-
-	doc_url = re.search(docurl_regex,url)
-	if not doc_url:
-		doc_url = url
-	else:
-		doc_url = doc_url.group(1)
-
-	return query_id, page_id, FormatUrl(doc_url)
+  query_id = GetValueFromRegex(query_id_regex,url, -1)
+  page_id = GetValueFromRegex(page_id_regex, url, -1)
+  doc_url = GetValueFromRegex(docurl_regex,url, url)
+  return query_id, page_id, FormatUrl(doc_url)
 
 
 '''
@@ -219,15 +212,81 @@ def FormatClickResultDB(databases, dbcolumns, sort_keys ):
     # Remove duplicate rows
     return tsv_frame.drop_duplicates()
 
-def ProcessEventValueDict(event_value):
-    # Contains html, prop and visible elements
-    # Leave the html for now.
-    split = event_value['prop'].split(' ')
-    try :
-		index = int(split[9][split[9].rfind('_')+1:])
-    except:
-		index = -1
-    return index
+# @prop: timestamp+" "+deltaTime+" "+deltaX+" "+deltaY+" "+
+# velocityX+" "+velocityY+" "+direction+" "+distance+" "+newtag+" "+height;
+def ProcessPropInEvents(prop_string):
+  hammer_direction = {'2':'left', '4':'right', '8':'up', '16':'down',
+        '6':'horizontal','24':'vertical','30':'all','1':'none'}
+  prop_dict = {}
+  val_string = ' '.join(prop_string.split())
+  split = val_string.split(' ')
+  try:
+    prop_dict['win_height'] = float(split[-1])
+  except:
+    prop_dict['win_height'] = -1
+  prop_dict['vel_x'] = float(split[4])
+  prop_dict['vel_y'] = float(split[5])
+  prop_dict['delta_x'] = float(split[2])
+  prop_dict['delta_y'] = float(split[3])
+  try :
+      prop_dict['element'] = int(split[8][split[8].rfind('_')+1:])
+  except:
+      prop_dict['element'] = -1
+  prop_dict['distance'] = float(split[7])
+  prop_dict['direction'] = hammer_direction[split[6]]
+  return prop_dict
+
+'''
+Event dict has different format for different events.
+The format for different event types is given below:
+  Tap or double tap: ,"event_type":"tap","event_value":{"html":"Bachelor",
+  "prop":" 1462459928613 83 0 0 0 0 1 0 aid_0  1996"}}
+  pan and swipe: "event_type":"panup","event_value":{"html":"A wild",
+  "prop":" 1462459948379 466 41 -103 0 0 8 111 bott_id_1 card_bottom  1996",
+  "visible_elements":"card_id_1"}}
+  initial_state: "event_type":"initial_state","
+  event_value":{"visible_elements":"card_id_0"}}
+'''
+def FormatAllEventDB(databases, dbcolumns, sort_keys):
+  # Store all events in a table. Mainly for markov transition calculation.
+  # Format is : event_type, event_element, visible_elements, distance,
+  # direction, win hieght, delta_x , delta_y.
+  # keep nothing where events are taps. 
+  tsv_data = []
+  for database in databases:
+    for entry, values in database.items():
+        entry = datetime.fromtimestamp(float(entry)/1000)
+        user, task, page, query = BreakEventUrl(values['doc_url'])
+        if not page:
+          page = -1
+        new_entry = [entry , user , int(task), query.strip(), int(page),\
+                    values['event_type']]
+        event_dict = values['event_value']
+
+        if 'prop' in event_dict:
+          prop_dict = ProcessPropInEvents(event_dict['prop'])
+          new_entry.append(prop_dict['element'])
+          new_entry.append(prop_dict['direction'])
+        else:
+          new_entry.append(-1)
+          new_entry.append('')
+        if 'visible_elements' in event_dict:
+          new_entry.append(event_dict['visible_elements'])
+        else:
+          new_entry.append("")
+        tsv_data.append(new_entry)
+  # create a new data frame
+  tsv_frame = pd.DataFrame(tsv_data, columns= dbcolumns)
+
+  # Remove test users
+  tsv_frame = tsv_frame[~tsv_frame['user_id'].str.contains('test')]
+
+  # sort by time key
+  tsv_frame = tsv_frame.sort(sort_keys)
+
+  # Remove duplicate rows
+  return tsv_frame.drop_duplicates()
+        
 
 def FormatEventDBForTap(databases, dbcolumns, sort_keys):
     tsv_data= []
@@ -236,11 +295,11 @@ def FormatEventDBForTap(databases, dbcolumns, sort_keys):
             entry = datetime.fromtimestamp(float(entry)/1000)
             user, task, page, query = BreakEventUrl(values['doc_url'])
             if (query and user and task and page) and (values['event_type'] == 'tap'):
-                element_tap = ProcessEventValueDict(values['event_value'])
-                if element_tap > -1:
-		    new_entry = [entry , user , int(task), query.strip(), int(page), \
-                    values['event_type'], element_tap ]
-                tsv_data.append(new_entry)
+                prop_dict = ProcessPropInEvents(values['event_value'])
+                if prop_dict['element'] > -1:
+                    new_entry = [entry , user , int(task), query.strip(), int(page), \
+                    values['event_type'], prop_dict['element']  ]
+                    tsv_data.append(new_entry)
 
     # create a new data frame
     tsv_frame = pd.DataFrame(tsv_data, columns= dbcolumns)
@@ -256,8 +315,6 @@ def FormatEventDBForTap(databases, dbcolumns, sort_keys):
 
 def FormatEventDBForScrolls(databases, dbcolumns, sort_keys):
     tsv_data= []
-    hammer_direction = {'2':'left', '4':'right', '8':'up', '16':'down',
-        '6':'horizontal','24':'vertical','30':'all','1':'none'}
     for database in databases:
         for entry , values in database.items():
             entry = datetime.fromtimestamp(float(entry)/1000)
@@ -270,37 +327,21 @@ def FormatEventDBForScrolls(databases, dbcolumns, sort_keys):
                 if 'prop' in event_value:
                     # Get the window height, distance, and element and visible
                     # elements. 
-                    event = ' '.join(event_value['prop'].split())
-                    split = event.split(' ')
-                    # Get window height.
-                    # Format " "+timestamp+" "+deltaTime+" "+deltaX+" "
-                    #            +deltaY+" "+velocityX+" "+velocityY+" "
-                    #            +direction+" "+distance+" "+newtag+" "
-                    #            +height;
-                    if len(split[-1]) > 0:
-                        try:
-                          win_hieght = float(split[-1])
-                        except:
-                          win_hieght = 0
-                        event_x = float(split[4])
-                        event_y = float(split[5])
-                        try :
-		                    index = int(split[8][split[8].rfind('_')+1:])
-                        except:
-                	    	index = -1
-                        distance = float(split[7])
-                        direction = hammer_direction[split[6]]
-
-                        if 'visible_elements' in event_value:
-                            visible = event_value['visible_elements']
-                            new_entry = [entry , user , int(task), query.strip(), \
-                                values['event_type'], index, visible,\
-                                distance,direction, win_hieght, event_x, event_y]
-                        else:
-                            new_entry = [entry , user , int(task), query.strip(), \
-                                values['event_type'], index, '',\
-                                distance,direction, win_hieght, event_x, event_y]
-                        tsv_data.append(new_entry)
+                    prop_dict = ProcessPropInEvents(event_value['prop'])
+                    if 'visible_elements' in event_value:
+                        visible = event_value['visible_elements']
+                        new_entry = [entry , user , int(task), query.strip(), \
+                            values['event_type'], prop_dict['element'], visible,\
+                            prop_dict['distance'],prop_dict['direction'],\
+                            prop_dict['win_hieght'], prop_dict['vel_x'],
+                            prop_dict['vel_y']]
+                    else:
+                        new_entry = [entry , user , int(task), query.strip(), \
+                            values['event_type'], prop_dict['element'], '',\
+                            prop_dict['distance'],prop_dict['direction'],\
+                            prop_dict['win_hieght'], prop_dict['vel_x'],
+                            prop_dict['vel_y']]
+                    tsv_data.append(new_entry)
     # create a new data frame
     tsv_frame = pd.DataFrame(tsv_data, columns= dbcolumns)
 
@@ -311,7 +352,6 @@ def FormatEventDBForScrolls(databases, dbcolumns, sort_keys):
     tsv_frame = tsv_frame.sort(sort_keys)
 
     # Remove duplicate rows
-    print 'Event table size ',tsv_frame.shape
     return tsv_frame.drop_duplicates()
 
 

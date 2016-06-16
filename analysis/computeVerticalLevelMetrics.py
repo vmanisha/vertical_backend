@@ -8,29 +8,92 @@ from plotStats import *
 
 TASKSATMAP = {'Somewhat Satisfied': 2.0, 'Highly Satisfied': 3.0, 'Not Satisfied' : 1.0}
 
-def FindMarkovNetwork(result_table, event_table, click_table):
-
-    # Filter first result type. 
-
+# merged table is contains first result only. 
+def FindMarkovNetwork(merged_table):
     # concat table contains the following: 
     # result table, click table and event table. 
     total_events = 0.0
-    states = {}
-    grouped_table = concat_table.groupby(['user_id','task_id'])
+    vert_state_transitions = {'i':{}, 'v':{}, 'w':{}, 'o':{}}
+    grouped_table = merged_table.groupby(['user_id','task_id'])
     # Find the transition between :
-        # result
+        # start
         # swipe up 
         # swipe down
         # panup and pan down
-        # click
-        # tap
+        # click or click
         # reformulate
-    result_table = result_table[(result_table['page_id']==1) & \
-            (result_table['doc_pos'] == 0)]
-
-    for name, group in grouped_table.items():
+        # end
+    for name, group in grouped_table:
         group = group.sort('time')
+        first_query = False
+        task_sequence = []
+        first_result_type = None
+        for index, row in group.iterrows():
+            # get the first 
+            if row['type'] == 'results':
+                if not first_query:
+                    first_query = True
+                    first_result_type = row['doc_type']
+                    task_sequence.append('start')
+                else:
+                    task_sequence.append('reformulate')
+            # Append the event type. Ignore panleft and right.
+            if row['type'] == 'event':
+                event_type = row['event_type']
+                if event_type == 'tap' or event_type == 'doubletap':
+                    task_sequence.append('click')
+                #if not first_result_type == 'i' and ('left' in event_type or
+                #        'right' in event_type):
+                #    continue
+                elif event_type not in ['initial_state','panleft','panright']:
+                    # replace word pan with swipe
+                    event_type = event_type.replace('pan','swipe')
+                    task_sequence.append(event_type)
+                else:
+                    continue
+            # append clicks. 
+            if row['type'] == 'click':
+                task_sequence.append('click')
 
+        task_sequence.append('end')
+        if len(task_sequence) > 0 and first_result_type:
+            vert_state_transitions=UpdateStateTransitions(task_sequence, first_result_type,\
+                vert_state_transitions)
+        else:
+            print name, task_sequence, first_result_type
+
+    #for result_type, state_transitions in vert_state_transitions.items():
+    #    for state1 in state_transitions.keys():
+    #        for state2 in state_transitions[state1].keys():
+    #            if vert_state_transitions[result_type][state1][state2] < 7:
+    #                del vert_state_transitions[result_type][state1][state2]
+    # Convert into probabilities.
+    for result_type, state_transitions in vert_state_transitions.items():
+        total = 0.0
+        for state1 in state_transitions.keys():
+            total += sum(state_transitions[state1].values())
+        print result_type, total
+        for state1 in state_transitions.keys():
+            #total = sum(state_transitions[state1].values())
+            for state2 in state_transitions[state1].keys():
+                vert_state_transitions[result_type][state1][state2] /= total
+            print result_type,state1, state_transitions[state1], sum(state_transitions[state1].values())
+       
+    PlotMarkovTransitions(vert_state_transitions)
+
+
+def UpdateStateTransitions(task_sequence, result_type, vert_state_trans):
+    prev_state = task_sequence[0]
+    for entry in task_sequence[1:]:
+        curr_state = entry
+        if not (curr_state == prev_state):
+            if prev_state not in vert_state_trans[result_type]:
+                vert_state_trans[result_type][prev_state] = {}
+            if curr_state not in vert_state_trans[result_type][prev_state]:
+                vert_state_trans[result_type][prev_state][curr_state] = 0.0
+            vert_state_trans[result_type][prev_state][curr_state] += 1.0
+        prev_state = curr_state
+    return vert_state_trans
 
 
 def FindFirstAndLastClickInfo(concat_table):

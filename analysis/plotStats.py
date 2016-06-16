@@ -1,5 +1,7 @@
 import matplotlib.pyplot as plt
 import numpy as np
+import networkx as nx
+import pylab
 
 vert = ['i','v','w','o']
 verticals = ['Image','Video','Wiki','Organic']
@@ -533,12 +535,34 @@ def PlotVertSwipeInfoByTime(aggregate_freq, x_title, y_title):
           facecolor=face_color[i])
 
       i+=1
-      plt.xlabel(x_title)
-      plt.ylabel(y_title)
-      plt.legend(bbox_to_anchor=(0.5, 1.05), loc='upper center', ncol = 4, fontsize=15)
-      plt.show()
-      plt.clf()
+  plt.xlabel(x_title)
+  plt.ylabel(y_title)
+  plt.legend(bbox_to_anchor=(0.5, 1.05), loc='upper center', ncol = 4, fontsize=15)
+  plt.show()
+  plt.clf()
 
+
+def PlotMarkovTransitions(vert_state_transitions):
+  # Format : {result_type: {state1 : {state2: count}}}
+
+  # Make graph 
+  for result_type, state_transitions in vert_state_transitions.items():
+    G= nx.MultiDiGraph()
+    for state1, second_state_dict in state_transitions.items():
+      for state2, weight in second_state_dict.items():
+        weight=round(weight,3)
+        if weight > 0.03:
+          G.add_edge(state1, state2, weight=weight)
+    val_map = {'start': 1.0,  'end': 1.0, 'swipeup': 0.8, 'swipedown': 0.8,\
+        'swipeleft': 0.8, 'swiperight': 0.8, 'reformulate':0.5, 'click':0.3}
+    values = [val_map.get(node, 0.25) for node in G.nodes()]
+    edge_labels=dict([((u,v,),d['weight']) for u,v,d in G.edges(data=True)])
+    edge_colors = ['black' for edge in G.edges()]
+    pos=nx.circular_layout(G)
+    nx.draw_networkx_edge_labels(G,pos,edge_labels=edge_labels)
+    nx.draw(G,pos,node_color = values, node_size=4700,edge_color=edge_colors,edge_cmap=plt.cm.Reds)
+    plt.title('Markov transitions for '+vert_expand[result_type])
+    pylab.show()
 
 
 '''
