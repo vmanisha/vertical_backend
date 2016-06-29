@@ -580,7 +580,6 @@ def PlotMarkovTransitions(vert_state_transitions):
   # Make graph 
   colors = {'start':'lightgreen','end':'salmon','click':'lightyellow','reformulate':'lightblue'}
   for result_type, state_transitions in vert_state_transitions.items():
-    #G= nx.MultiDiGraph()
     G = gv.Digraph(format='svg')
     G.graph_attr['layout'] = 'dot'
     states = set([])
@@ -600,25 +599,6 @@ def PlotMarkovTransitions(vert_state_transitions):
         if weight > 0.05:
           G.edge(state1, state2,label=str(weight))
     G.render(result_type+'_trans', view=True) 
-    #plt.figure(figsize=(20,10))
-    #node_size = 1000
-    #pos=nx.circular_layout(G)
-    #nx.draw_networkx_edges(G,pos,width=1.0,alpha=0.5)
-    #nx.draw_networkx_labels(G, pos, font_weight=2)
-    #nx.draw_networkx_edge_labels(G, pos, edge_labels)
-    #plt.axis('off');
-    #nx.write_dot(G, result_type+'.dot')
-
-    '''val_map = {'start': 1.0,  'end': 1.0, 'swipeup': 0.8, 'swipedown': 0.8,\
-        'swipeleft': 0.8, 'swiperight': 0.8, 'reformulate':0.5, 'click':0.3}
-    values = [val_map.get(node, 0.25) for node in G.nodes()]
-    edge_colors = ['black' for edge in G.edges()]
-    pos=nx.circular_layout(G)
-    nx.draw_networkx_edge_labels(G,pos,edge_labels=edge_labels)
-    nx.draw(G,pos,node_color = values, node_size=4700,edge_color=edge_colors,edge_cmap=plt.cm.Reds)
-    plt.title('Markov transitions for '+vert_expand[result_type])
-    nx.write_dot(G, 'mc.dot')
-    pylab.show()'''
 
 
 '''
