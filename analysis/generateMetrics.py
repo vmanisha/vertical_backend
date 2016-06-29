@@ -92,6 +92,13 @@ def MergeAllTables(result_table, click_table, event_table, page_table, task_tabl
     concat_table.to_csv('concat_tables.csv', index = False, encoding = 'utf-8')
     return concat_table
 
+def AssignTaskVerticalLabel(results_table, task_dict):
+  results_table['task_vertical'] = None
+  for task_id, task_vert in task_dict.items():
+    # Get all the rows with task_id.
+    # assign task vertical from dictionary.
+    results_table.loc[(results_table['task_id'] == task_id),'task_vertical'] = task_vert
+  return results_table
 
 def LoadDatabase(filename, isFolder):
     database = []
@@ -172,9 +179,10 @@ def main():
     # g. task : click_ranks. Compute the number of times a position was clicked
     # ignore positions with double digits as they are nested clicks
     # task_id, doc_pos, #clicks
-    # click_filtered = click_table[click_table['doc_id'].str.len()\
-    #        == 5]
+    click_filtered = click_table[click_table['doc_id'].str.len()\
+            == 5]
 
+    query_filtered = query_table[query_table['doc_pos'] == 0]
     # Filter the columns for count.
     #click_filtered[['task_id','doc_pos']].groupby(['task_id','doc_pos'])['doc_pos'].\
     #        count().to_csv('task_rank_click_counts.csv', encoding = 'utf-8',\
@@ -191,8 +199,12 @@ def main():
     # Fix the gaps. And complete all columns and save them. 
     # Format tap event db
     # tap_event_table = FormatEventDBForTap(event_db,tap_event_header,tap_event_sortkeys)
-    query_filtered = query_table[query_table['doc_pos']==0]
-    merged_tables = MergeAllTables(query_filtered, click_table, all_event_table,\
+    # Assign the on-off vertical label depending on tasktype. 
+    task_vert_dict = {1:'i',2:'i',3:'w',4:'w',5:'v',6:'w',7:'w',8:'v',9:'i',10:'v'}
+    results_with_task_type = AssignTaskVerticalLabel(query_filtered,\
+        task_vert_dict)
+
+    merged_tables = MergeAllTables(results_with_task_type, click_filtered, all_event_table,\
     	 page_response_table, task_response_table)
 
     # Find state transitions. 
@@ -207,7 +219,7 @@ def main():
     
     # # h. vertical_type : time_to_first_click_and_position. Compute the time to first click for each
     # # k. vertical_type : last_click_position. Compute the ranks that were clicked last for
-    #FindFirstAndLastClickInfo(merged_tables)
+    # FindFirstAndLastClickInfo(merged_tables)
     
     # # For every page whose response is available find its doc_pos on serp
     # # We ignore the pages who are serp since they do not have any doc_pos
@@ -223,13 +235,14 @@ def main():
     # FindVisiblityMetricsPerVertical(query_filtered,vis_event_table)
 
     # # Generate task statisfaction stats per vertical
-    # FindTaskSatPerVertical(query_filtered,task_response_table)
+    # FindTaskSatPerVertical(results_with_task_type,task_response_table)
 
     # # Generate task preference stats per vertical
     # FindTaskPrefPerVertical(query_filtered,task_response_table)
 
     # # Generate task preference distribution per task_id
-    # FindTaskPrefDistribution(task_response_table)
+    # FindTaskPrefDistribution(task_response_table, task_vert_dict)
+    # FindVerticalPreferenceAndOrientationDistribution(task_response_table, task_vert_dict)
     
     # # Generate click distribution for every vertical
     # # FindClickDistributionPerVertical(query_filtered,click_filtered)
@@ -242,9 +255,6 @@ def main():
 
     # Find time-scroll freq ratio
     # FindPageVelocityDistribution(query_table, scroll_event_table)
-
-
- 
 
 if __name__ == "__main__":
     main()

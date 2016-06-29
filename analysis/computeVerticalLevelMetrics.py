@@ -8,6 +8,19 @@ from plotStats import *
 
 TASKSATMAP = {'Somewhat Satisfied': 2.0, 'Highly Satisfied': 3.0, 'Not Satisfied' : 1.0}
 
+def GetRankBucket(visible_elements):
+    buckets = []
+    for entry in visible_elements.split():
+        index = int(entry[entry.rfind('_')+1:])
+        if index < 3:
+            buckets.append('top')
+        elif index < 6:
+            buckets.append('middle')
+        else:
+            buckets.append('bottom')
+
+    return buckets
+
 # merged table is contains first result only. 
 def FindMarkovNetwork(merged_table):
     # concat table contains the following: 
@@ -41,16 +54,21 @@ def FindMarkovNetwork(merged_table):
             if row['type'] == 'event':
                 event_type = row['event_type']
                 if event_type == 'tap' or event_type == 'doubletap':
-                    task_sequence.append('click')
+                    if len(row['visible_elements']) > 0:
+                        #task_sequence.append('click')
+                        task_sequence.extend(GetRankBucket(row['visible_elements']))
                 #if not first_result_type == 'i' and ('left' in event_type or
                 #        'right' in event_type):
                 #    continue
-                elif event_type not in ['initial_state','panleft','panright']:
+                else: # if event_type not in ['initial_state','panleft','panright']:
                     # replace word pan with swipe
                     event_type = event_type.replace('pan','swipe')
-                    task_sequence.append(event_type)
-                else:
-                    continue
+                    #task_sequence.append(event_type)
+                    if len(row['visible_elements']) > 0:
+                        #task_sequence.append('click')
+                        task_sequence.extend(GetRankBucket(row['visible_elements']))
+                #else:
+                #    continue
             # append clicks. 
             if row['type'] == 'click':
                 task_sequence.append('click')
@@ -70,11 +88,11 @@ def FindMarkovNetwork(merged_table):
     # Convert into probabilities.
     for result_type, state_transitions in vert_state_transitions.items():
         total = 0.0
-        for state1 in state_transitions.keys():
-            total += sum(state_transitions[state1].values())
+        #for state1 in state_transitions.keys():
+        #    total += sum(state_transitions[state1].values())
         print result_type, total
         for state1 in state_transitions.keys():
-            #total = sum(state_transitions[state1].values())
+            total = sum(state_transitions[state1].values())
             for state2 in state_transitions[state1].keys():
                 vert_state_transitions[result_type][state1][state2] /= total
             print result_type,state1, state_transitions[state1], sum(state_transitions[state1].values())
@@ -99,7 +117,7 @@ def UpdateStateTransitions(task_sequence, result_type, vert_state_trans):
 def FindFirstAndLastClickInfo(concat_table):
     # For each result type: Record time to first click, Record time to last click
     # (Image and video clicks would not have been recorded ! Use taps. 
-    vertical_stats = {
+    '''vertical_stats = {
             'i' : { 'first_click': [], 'first_rank':[], 'last_click':[],\
                    'last_rank':[], 'total_clicks':0.0, 'off_vert_click':0.0,\
                    'off_vert_rank':[], 'on_vert_click':0.0,
@@ -114,19 +132,26 @@ def FindFirstAndLastClickInfo(concat_table):
                    'last_rank':[], 'total_clicks':0.0, 'off_vert_click':0.0,\
                    'off_vert_rank':[] , 'on_vert_click':0.0, 'first_last_same':0.0 }, \
     }
+    '''
+    vertical_stats = {
+            'on' : { 'first_click': [], 'first_rank':[], 'last_click':[],\
+                   'last_rank':[], 'total_clicks':0.0, 'off_vert_click':0.0,\
+                   'off_vert_rank':[], 'on_vert_click':0.0,\
+                   'first_last_same':0.0 }, \
+            'off' : { 'first_click': [], 'first_rank':[], 'last_click':[],\
+                   'last_rank':[], 'total_clicks':0.0, 'off_vert_click':0.0,\
+                   'off_vert_rank':[],'on_vert_click':0.0, 'first_last_same':0.0 }
+    }
 
     # Remove task responses.
     concat_table = concat_table[~concat_table['type'].str.contains('task_response')]
 
     # Group by task_id and query_id and Sort by time within each group.
-    grouped_table = concat_table.sort(['time']).groupby(['user_id','task_id'])
+    grouped_table = concat_table.groupby(['user_id','task_id'])
     for name, group in grouped_table:
-        vert_type = None
-        first_click = None
-        first_time = None
-        last_time = None
-        last_click = None
-        result_time = None
+        group = group.sort('time')
+        vert_type = first_click = first_time = None
+        last_time= last_click = result_time = None
         rows = []
         results = {}
         recorded_clicks = {}
@@ -138,7 +163,7 @@ def FindFirstAndLastClickInfo(concat_table):
             # Store results.
             if row['type'] == 'results':
                 results[row['doc_pos']] = row
-
+           
             if row['type'] == 'results' and row['doc_pos'] == 0:
                 # check prev result data.
                 if vert_type and first_click and last_click:
@@ -148,17 +173,17 @@ def FindFirstAndLastClickInfo(concat_table):
                     vertical_stats[vert_type]['last_click'].append(last_time)
                     if first_click == last_click:
                         vertical_stats[vert_type]['first_last_same']+=1.0
-
                     # Set everything to null.
-                    first_click = None
-                    first_time = None
-                    last_time = None
-                    last_click = None
-                    result_time = None
-                    vert_type = None
+                    first_click= first_time= last_time= last_click=\
+                        result_time= vert_type = None
                     recorded_clicks = {}
                 # Set vertical type for this page and request time.
                 vert_type = str(row['doc_type']).strip()
+                if vert_type == row['task_vertical']:
+                    vert_type = 'on'
+                else:
+                    vert_type = 'off'
+
                 result_time = row['time']
 
             # Found a tap or a click
@@ -166,11 +191,12 @@ def FindFirstAndLastClickInfo(concat_table):
             etype = None
             click_rank = None
             found = False
-            if (row['type'] == 'event_response'):
-                click_url = results[row['event_value']]['doc_url']
+            if (row['type'] == 'event') and (row['event_type'] == 'tap') and\
+                (row['element'] > -1):
+                click_url = results[row['element']]['doc_url']
                 # check if in clicks.
                 if click_url not in recorded_clicks:
-                    click_rank = int(row['event_value'])+1
+                    click_rank = int(row['element'])+1
                 etype = 'tap'
                 # Check if page response for this url has been submitted.
                 j = i+1
@@ -181,15 +207,17 @@ def FindFirstAndLastClickInfo(concat_table):
                         recorded_clicks[click_url] = 1.0
                         break
                     j+=1
-                if (row['type'] == 'click') and (row['doc_url'] not in\
-                        recorded_clicks):
-                    # check if in taps. 
-                    click_rank = int(row['doc_id'][row['doc_id'].find('_')+1:])+1
-                    etype = 'click'
-                    recorded_clicks[row['doc_url']] = 1.0
+            if (row['type'] == 'click') and (row['doc_url'] not in\
+                recorded_clicks):
+                # check if in taps. 
+                click_rank = int(row['doc_id'][row['doc_id'].find('_')+1:])+1
+                etype = 'click'
+                recorded_clicks[row['doc_url']] = 1.0
 
             # Found the page score or click
             if  etype == 'click' or (etype == 'tap' and found):
+                if click_rank > 10:
+                    print row
                 if click_rank > 0:
                     vertical_stats[vert_type]['total_clicks']+=1.0
                     if click_rank > 1:
@@ -208,6 +236,16 @@ def FindFirstAndLastClickInfo(concat_table):
                 etype = None
                 found = False
 
+        # Set values for last serp.
+        if vert_type and first_click and last_click:
+            vertical_stats[vert_type]['first_rank'].append(first_click)
+            vertical_stats[vert_type]['last_rank'].append(last_click)
+            vertical_stats[vert_type]['first_click'].append(first_time)
+            vertical_stats[vert_type]['last_click'].append(last_time)
+            if first_click == last_click:
+                vertical_stats[vert_type]['first_last_same']+=1.0
+
+
     for vertical_type, stats in vertical_stats.items():
         print vertical_type, stats['total_clicks'],\
         'off-click',stats['off_vert_click']/stats['total_clicks'],\
@@ -219,6 +257,16 @@ def FindFirstAndLastClickInfo(concat_table):
         'last-time',np.mean(stats['last_click']),np.std(stats['last_click']),\
         'first_last_same',stats['first_last_same'], (stats['first_last_same']/stats['total_clicks'])
 
+    print 'Man off_vert_rank on-off', kruskalwallis(vertical_stats['on']['off_vert_rank'],vertical_stats['off']['off_vert_rank'])
+    print 'Man first_rank  on-off',\
+    kruskalwallis(vertical_stats['on']['first_rank'],vertical_stats['off']['first_rank'])
+    print 'Man lr on-off',\
+    kruskalwallis(vertical_stats['on']['last_rank'],vertical_stats['off']['last_rank'])
+    print 'Man fc on-off',\
+        kruskalwallis(vertical_stats['on']['first_click'],vertical_stats['off']['first_click'])
+    print 'Man lc on-off',\
+        kruskalwallis(vertical_stats['on']['last_click'],vertical_stats['off']['last_click'])
+    '''
     # Print the statistical significance against organic
     print 'Man off_vert_rank i-o', kruskalwallis(vertical_stats['i']['off_vert_rank'],vertical_stats['o']['off_vert_rank'])
     print 'Man off_vert_rank v-o',\
@@ -253,7 +301,7 @@ def FindFirstAndLastClickInfo(concat_table):
         kruskalwallis(vertical_stats['v']['last_click'],vertical_stats['o']['last_click'])
     print 'Man lc w-o',\
         kruskalwallis(vertical_stats['w']['last_click'],vertical_stats['o']['last_click'])
-    
+    '''
     PlotFirstAndLastClickTime(vertical_stats)
     PlotFirstAndLastClickRank(vertical_stats)
         
@@ -264,6 +312,7 @@ def FindDescriptiveStatsPerVertical(concat_table):
     # task-responses.
     user_stats = {}
     not_registered_clicks = 0.0
+    '''
     vertical_stats = {
             'i' : {'sess':0.0, 'query': [], 'clicks':[], 'page_rel':[],\
                 'page_sat':[], 'task_sat':[] , 'time' : [] }, \
@@ -273,6 +322,13 @@ def FindDescriptiveStatsPerVertical(concat_table):
                 'page_sat':[], 'task_sat':[], 'time': []}, \
             'w' :  {'sess':0.0, 'query': [], 'clicks':[],'page_sat':[],\
                 'page_rel':[],'task_sat':[], 'time': []}
+    }
+    '''
+    vertical_stats = {
+            'off' : {'sess':0.0, 'query': [], 'clicks':[], 'page_rel':[],\
+                'page_sat':[], 'task_sat':[] , 'time' : [] }, \
+            'on' : {'sess':0.0, 'query': [], 'clicks':[], 'page_rel': [],\
+                'page_sat':[], 'task_sat':[], 'time': []}, \
     }
 
     # Group by task_id and query_id and Sort by time within each group.
@@ -302,6 +358,12 @@ def FindDescriptiveStatsPerVertical(concat_table):
                     # Increment sessions.
                     sess+=1.0
                     doc_type = str(row['doc_type']).strip()
+                    # To mark on and off vertical.
+                    if doc_type == row['task_vertical']:
+                        doc_type = 'on'
+                    else:
+                        doc_type = 'off'
+
                 # Record queries.
                 queries +=1.0
 
@@ -358,7 +420,7 @@ def FindDescriptiveStatsPerVertical(concat_table):
         'time ', np.mean(stat_dict['time']),round(np.std(stat_dict['time']),2)
 
     # Print the statistical significance against organic
-    print 'Man query i-o', kruskalwallis(vertical_stats['i']['query'],vertical_stats['o']['query'])
+    '''print 'Man query i-o', kruskalwallis(vertical_stats['i']['query'],vertical_stats['o']['query'])
     print 'Man query v-o', kruskalwallis(vertical_stats['v']['query'],vertical_stats['o']['query'])
     print 'Man query w-o', kruskalwallis(vertical_stats['w']['query'],vertical_stats['o']['query'])
 
@@ -377,9 +439,12 @@ def FindDescriptiveStatsPerVertical(concat_table):
     print 'Man task_sat i-o', kruskalwallis(vertical_stats['i']['task_sat'],vertical_stats['o']['task_sat'])
     print 'Man task_sat v-o',kruskalwallis(vertical_stats['v']['task_sat'],vertical_stats['o']['task_sat'])
     print 'Man task sat w-o', kruskalwallis(vertical_stats['w']['task_sat'],vertical_stats['o']['task_sat'])
-   
-
-
+    '''
+    print 'Man query on-off', kruskalwallis(vertical_stats['on']['query'],vertical_stats['off']['query'])
+    print 'Man click on-off', kruskalwallis(vertical_stats['on']['clicks'],vertical_stats['off']['clicks'])
+    print 'Man page_rel on-off', kruskalwallis(vertical_stats['on']['page_rel'],vertical_stats['off']['page_rel'])
+    print 'Man page_sat on-off', kruskalwallis(vertical_stats['on']['page_sat'],vertical_stats['off']['page_sat'])
+    print 'Man task sat on-off', kruskalwallis(vertical_stats['on']['task_sat'],vertical_stats['off']['task_sat'])
     print 'Not registered clicks ', not_registered_clicks
 
 def FindTaskSatPerVertical(result_table,task_table):
@@ -390,10 +455,16 @@ def FindTaskSatPerVertical(result_table,task_table):
     merge_table = pd.merge(result_table,task_table,how='right',left_on=['user_id','task_id'],right_on=['user_id','task_id'])
     merge_table.to_csv('merge.csv',encoding='utf-8', index = False)
     
-    satisfaction = {'i':[], 'v':[], 'w':[], 'o':[]}
+    # satisfaction = {'i':[], 'v':[], 'w':[], 'o':[]}
+    satisfaction = {'on':[], 'off':[]}
 
     for index, row in merge_table.iterrows():
-        vert = row['doc_type']
+        doc_type = row['doc_type']
+        task_vert = row['task_vertical']
+        if doc_type == task_vert:
+            vert = 'on'
+        else:
+            vert = 'off'
 
         # Check if the vertical is a valid vertical
         # Need to check this because not all entires in task db
@@ -404,12 +475,46 @@ def FindTaskSatPerVertical(result_table,task_table):
             satisfaction[vert].append(TASKSATMAP[row['response_value']])
 
     print 'statisfaction',satisfaction
+    '''
     print 'image',np.median(satisfaction['i']),np.mean(satisfaction['i']),np.std(satisfaction['i'])
     print 'video',np.median(satisfaction['v']),np.mean(satisfaction['v']),np.std(satisfaction['v'])
     print 'wiki',np.median(satisfaction['w']),np.mean(satisfaction['w']),np.std(satisfaction['w'])
     print 'organic',np.median(satisfaction['o']),np.mean(satisfaction['o']),np.std(satisfaction['o'])
+    '''
+    print 'on',np.median(satisfaction['on']),np.mean(satisfaction['on']),np.std(satisfaction['on'])
+    print 'off',np.median(satisfaction['off']),np.mean(satisfaction['off']),np.std(satisfaction['off'])
 
     PlotTaskSat(satisfaction)
+
+
+def FindVerticalPreferenceAndOrientationDistribution(task_table, task_vertical_orientation):
+    task_table = task_table[task_table['response_type']=='preferred_verticals']
+
+    
+    # Task prefernce per orientation
+    task_preference = {'w':{'Wiki':0,'General Web':0,'Videos':0,'Other':0,\
+        'Images':0},'v':{'Wiki':0,'General Web':0,'Videos':0,'Other':0,\
+        'Images':0},'i':{'Wiki':0,'General Web':0,'Videos':0,'Other':0,\
+        'Images':0}}
+
+    for index, row in task_table.iterrows():
+        task_orient = task_vertical_orientation[row['task_id']]
+        pref_value = row['response_value']
+        pref_list = pref_value.split(',')
+        for pref in pref_list:
+            pref = pref.strip()
+            if pref != '':
+                task_preference[task_orient][pref] += 1.0
+
+    print task_preference
+    for task_orient in task_preference.keys():
+        total = sum(task_preference[task_orient].values())
+        print task_orient, total
+        for key in task_preference[task_orient].keys():
+            task_preference[task_orient][key] = float(task_preference[task_orient][key])/total
+
+    for orient, pref in task_preference.items():
+        print orient, pref
 
 
 def FindTaskPrefDistribution(task_table):

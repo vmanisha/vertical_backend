@@ -158,7 +158,7 @@ def FormatQueryResultDB(databases, dbcolumns, sort_keys ):
 
                 # All verticals have only one result except image
                 # In case of image vertical we show multiple images
-                # so pick the first image and ignore the rest
+                # so concatenate all the images into one url. 
                 if (doc_type == 'i'):
                     doc_url = ''
                     for image in result[1]:
@@ -328,19 +328,14 @@ def FormatEventDBForScrolls(databases, dbcolumns, sort_keys):
                     # Get the window height, distance, and element and visible
                     # elements. 
                     prop_dict = ProcessPropInEvents(event_value['prop'])
+                    visible = ''
                     if 'visible_elements' in event_value:
                         visible = event_value['visible_elements']
-                        new_entry = [entry , user , int(task), query.strip(), \
-                            values['event_type'], prop_dict['element'], visible,\
-                            prop_dict['distance'],prop_dict['direction'],\
-                            prop_dict['win_hieght'], prop_dict['vel_x'],
-                            prop_dict['vel_y']]
-                    else:
-                        new_entry = [entry , user , int(task), query.strip(), \
-                            values['event_type'], prop_dict['element'], '',\
-                            prop_dict['distance'],prop_dict['direction'],\
-                            prop_dict['win_hieght'], prop_dict['vel_x'],
-                            prop_dict['vel_y']]
+                    new_entry = [entry , user , int(task), query.strip(), \
+                        values['event_type'], prop_dict['element'], visible,\
+                        prop_dict['distance'],prop_dict['direction'],\
+                        prop_dict['win_hieght'], prop_dict['vel_x'],
+                        prop_dict['vel_y']]
                     tsv_data.append(new_entry)
     # create a new data frame
     tsv_frame = pd.DataFrame(tsv_data, columns= dbcolumns)
@@ -382,52 +377,3 @@ def FormatEventDBForVisibility(databases, dbcolumns, sort_keys):
     # Remove duplicate rows
     return tsv_frame.drop_duplicates()
 
-
-def FormatQueryResultCompleteDB(databases, dbcolumns, sort_keys ):
-    tsv_data = []
-    for database in databases:
-        for entry , values in database.items():
-            entry = datetime.fromtimestamp(float(entry)/1000)
-            # Format of Query Result db
-            # "time_stamp":{"user_id":"","query_id":4,"task_id":"4","query_text":"","page_id":1,"search_results":[["i",[{"title":"","external_url":"","display_url":"","thumbnail":""},{"title":"","external_url":"","display_url":"","thumbnail":""}...]],["o",{"title":"","desc":"","display_url":"","external_url":""}],["o",{"title":"","desc":"","display_url":"","external_url":""}]...]}
-            search_results = values['search_results']
-
-            # The documents are stored in the order in which
-            # they are displayed on the search results page.
-            doc_pos = 0
-            for result in search_results:
-                doc_type = result[0]
-
-                # All verticals have only one result except image
-                # In case of image vertical we show multiple images
-                # so pick the first image and ignore the rest
-                if (doc_type == 'i'):
-                    for doc_prop in result[1]:
-                        doc_title = doc_prop['title']
-                        doc_url = FormatUrl(doc_prop['external_url'])
-                        new_entry = [entry , values['user_id'] , int(values['task_id']),\
-                            int(values['query_id']), values['query_text'].strip(), int(values['page_id']), \
-                            doc_pos, doc_type, doc_title, doc_url]
-                        tsv_data.append(new_entry)
-                else:
-                    doc_prop = result[1]
-                    doc_title = doc_prop['title']
-                    doc_url = FormatUrl(doc_prop['external_url'])
-                    new_entry = [entry , values['user_id'] , int(values['task_id']),\
-                        int(values['query_id']), values['query_text'].strip(), int(values['page_id']), \
-                        doc_pos, doc_type, doc_title, doc_url]
-                    tsv_data.append(new_entry)
-
-                # Document position starts with zero
-                doc_pos = doc_pos + 1
-    # create a new data frame
-    tsv_frame = pd.DataFrame(tsv_data, columns= dbcolumns)
-
-    # Remove test users
-    tsv_frame = tsv_frame[~tsv_frame['user_id'].str.contains('test')]
-
-    # sort by time key
-    tsv_frame = tsv_frame.sort(sort_keys)
-
-    # Remove duplicate rows
-    return tsv_frame.drop_duplicates()

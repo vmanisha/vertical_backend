@@ -1,7 +1,6 @@
 import matplotlib.pyplot as plt
 import numpy as np
-import networkx as nx
-import pylab
+import graphviz as gv
 
 vert = ['i','v','w','o']
 verticals = ['Image','Video','Wiki','Organic']
@@ -19,6 +18,10 @@ def SetVisBox(bp):
     plt.setp(bp['boxes'][1], color=vert_color[1])
     plt.setp(bp['boxes'][2], color=vert_color[2])
     plt.setp(bp['boxes'][3], color=vert_color[3])
+
+def SetVisBoxForOnOff(bp):
+    plt.setp(bp['boxes'][0], color=vert_color[0])
+    plt.setp(bp['boxes'][1], color=vert_color[1])
 
 def PlotVisiblityStats(visibility,visible_time):
     fig = plt.figure()
@@ -63,18 +66,25 @@ def PlotTaskSat(satisfaction):
     plt.figure()
 
     sat_data = []
+    '''
     sat_data.append(satisfaction['i'])
     sat_data.append(satisfaction['v'])
     sat_data.append(satisfaction['w'])
     sat_data.append(satisfaction['o'])
+    '''
+    sat_data.append(satisfaction['on'])
+    sat_data.append(satisfaction['off'])
 
     plt.boxplot(sat_data)
     plt.ylim(0,4)
     plt.ylabel('Satisfaction Ratings')
     plt.xlabel('Verticals')
-    plt.xticks([1,2,3,4],verticals, loc='upper center',\
-        bbox_to_anchor=(0.5, 1.05),ncol=4,fontsize=15)
+    #plt.xticks([1,2,3,4],verticals, loc='upper center',\
+    #    bbox_to_anchor=(0.5, 1.05),ncol=4,fontsize=15)
 
+    plt.legend(['On','Off'],['On','Off'], loc='upper center',\
+        bbox_to_anchor=(0.5, 1.05),ncol=2,fontsize=15)
+    
     plt.savefig('task_sat_per_vert.png')
     plt.show()
 
@@ -132,42 +142,53 @@ def PlotFirstAndLastClickRank(vertical_stats):
     # First Click Rank
     resp_data = []
     sp = 1
-    pos = [sp, sp+1, sp+2, sp+3]
-    for v in vert:
+    '''
+    #pos = [sp, sp+1, sp+2, sp+3]
+    pos = [sp, sp+1]
+    for v in ['on','off']:
+    #for v in vert:
         print v,'first ranks', np.median(vertical_stats[v]['first_rank'])
         resp_data.append(vertical_stats[v]['first_rank'])
     bp = plt.boxplot(resp_data,positions=pos,widths=0.5)
-    SetVisBox(bp)
-
+    # SetVisBox(bp)
+    SetVisBoxForOnOff(bp)
+    '''
+    
     # Last Click Rank
     resp_data = []
-    sp = pos[3]+2
-    pos = [sp, sp+1, sp+2, sp+3]
-    for v in vert:
+    #sp = pos[1]+2
+    #pos = [sp, sp+1, sp+2, sp+3]
+    pos = [sp, sp+1]
+    for v in ['on','off']:
+    #for v in vert:
         print v,'last ranks', np.median(vertical_stats[v]['last_rank'])
         resp_data.append(vertical_stats[v]['last_rank'])
     bp = plt.boxplot(resp_data,positions=pos,widths=0.5)
-    SetVisBox(bp)
+    #SetVisBox(bp)
+    SetVisBoxForOnOff(bp)
     
     # set axes limits and labels
-    plt.xlim(0,pos[3]+1)
-    plt.ylim(0.5,10.5)
+    plt.xlim(0,pos[1]+1)
+    plt.ylim(0.5,11)
     plt.ylabel('Result Rank')
 
-    ax.set_xticklabels(['First Click','Last Click'])
-    ax.set_xticks([2.5, 7.5])
+    ax.set_xticklabels(['Last Click'])#,'Last Click'])
+    #ax.set_xticks([2.5, 7.5])
+    ax.set_xticks([1.5])#, 4.5])
 
     # draw temporary red and blue lines and use them to create a legend
     h1, = plt.plot([1,1],color=vert_color[0])
     h2, = plt.plot([1,1],color=vert_color[1])
-    h3, = plt.plot([1,1],color=vert_color[2])
-    h4, = plt.plot([1,1],color=vert_color[3])
-    plt.legend((h1,h2,h3,h4),verticals, loc='upper center',\
-        bbox_to_anchor=(0.5, 1.05),ncol=4, fontsize = 12)
+    #h3, = plt.plot([1,1],color=vert_color[2])
+    #h4, = plt.plot([1,1],color=vert_color[3])
+    #plt.legend((h1,h2,h3,h4),verticals, loc='upper center',\
+    #    bbox_to_anchor=(0.5, 1.05),ncol=4, fontsize = 12)
+    plt.legend((h1,h2),['On','Off'], loc='upper center',\
+        bbox_to_anchor=(0.5, 1.05),ncol=2, fontsize = 12)
     h1.set_visible(False)
     h2.set_visible(False)
-    h3.set_visible(False)
-    h4.set_visible(False)
+    #h3.set_visible(False)
+    #h4.set_visible(False)
 
     plt.savefig('first_last_rank.png')
     plt.show()
@@ -177,46 +198,57 @@ def PlotFirstAndLastClickTime(vertical_stats):
     fig = plt.figure()
     ax = plt.axes()
     plt.hold(True)
-
+    '''
     # First Click Rank
     resp_data = []
     sp = 1
-    pos = [sp, sp+1, sp+2, sp+3]
-    for v in vert:
+    #pos = [sp, sp+1, sp+2, sp+3]
+    pos = [sp, sp+1]
+    #for v in vert:
+    for v in ['on','off']:
         print v,'first click', np.median(vertical_stats[v]['first_click'])
         resp_data.append(vertical_stats[v]['first_click'])
     bp = plt.boxplot(resp_data,positions=pos,widths=0.5)
-    SetVisBox(bp)
-
+    #SetVisBox(bp)
+    SetVisBoxForOnOff(bp)
+    '''
     # Last Click Rank
     resp_data = []
-    sp = pos[3]+2
-    pos = [sp, sp+1, sp+2, sp+3]
-    for v in vert:
+    sp = 1
+    #sp = pos[1]+2
+    #pos = [sp, sp+1, sp+2, sp+3]
+    pos = [sp, sp+1] 
+    #for v in vert:
+    for v in ['on','off']:
         print v,'last click', np.median(vertical_stats[v]['last_click'])
         resp_data.append(vertical_stats[v]['last_click'])
     bp = plt.boxplot(resp_data,positions=pos,widths=0.5)
-    SetVisBox(bp)
+    #SetVisBox(bp)
+    SetVisBoxForOnOff(bp)
     
     # set axes limits and labels
-    plt.xlim(0,pos[3]+1)
-    plt.ylim(0,170)
+    #plt.xlim(0,pos[3]+1)
+    plt.xlim(0,pos[1]+1)
+    plt.ylim(0,200)
     plt.ylabel('Time to Click (seconds)')
 
-    ax.set_xticklabels(['First Click','Last Click'])
-    ax.set_xticks([2.5, 7.5])
+    ax.set_xticklabels(['Last Click'])#,'Last Click'])
+    # ax.set_xticks([2.5, 7.5])
+    ax.set_xticks([1.5])#, 4])
 
     # draw temporary red and blue lines and use them to create a legend
     h1, = plt.plot([1,1],color=vert_color[0])
     h2, = plt.plot([1,1],color=vert_color[1])
-    h3, = plt.plot([1,1],color=vert_color[2])
-    h4, = plt.plot([1,1],color=vert_color[3])
-    plt.legend((h1,h2,h3,h4),verticals, loc='upper center',\
-        bbox_to_anchor=(0.5, 1.05),ncol=4, fontsize = 12)
+    #h3, = plt.plot([1,1],color=vert_color[2])
+    #h4, = plt.plot([1,1],color=vert_color[3])
+    #plt.legend((h1,h2,h3,h4),verticals, loc='upper center',\
+    #    bbox_to_anchor=(0.5, 1.05),ncol=4, fontsize = 12)
+    plt.legend((h1,h2),['On','Off'], loc='upper center',\
+        bbox_to_anchor=(0.5, 1.05),ncol=2, fontsize = 12)
     h1.set_visible(False)
     h2.set_visible(False)
-    h3.set_visible(False)
-    h4.set_visible(False)
+    #h3.set_visible(False)
+    #h4.set_visible(False)
 
     plt.savefig('first_last_time.png')
     plt.show()
@@ -546,23 +578,47 @@ def PlotMarkovTransitions(vert_state_transitions):
   # Format : {result_type: {state1 : {state2: count}}}
 
   # Make graph 
+  colors = {'start':'lightgreen','end':'salmon','click':'lightyellow','reformulate':'lightblue'}
   for result_type, state_transitions in vert_state_transitions.items():
-    G= nx.MultiDiGraph()
+    #G= nx.MultiDiGraph()
+    G = gv.Digraph(format='svg')
+    G.graph_attr['layout'] = 'dot'
+    states = set([])
     for state1, second_state_dict in state_transitions.items():
+      if state1 not in states:
+        if state1 in colors:
+          G.node(state1,state1,{'style':'filled','fillcolor':colors[state1]})
+        else:
+          G.node(state1,state1)
       for state2, weight in second_state_dict.items():
-        weight=round(weight,3)
-        if weight > 0.03:
-          G.add_edge(state1, state2, weight=weight)
-    val_map = {'start': 1.0,  'end': 1.0, 'swipeup': 0.8, 'swipedown': 0.8,\
+        if state2 not in states:
+          if state2 in colors:
+            G.node(state2,state2,{'style':'filled','fillcolor':colors[state2]})
+          else:
+            G.node(state2,state2)
+        weight=round(weight,2)
+        if weight > 0.05:
+          G.edge(state1, state2,label=str(weight))
+    G.render(result_type+'_trans', view=True) 
+    #plt.figure(figsize=(20,10))
+    #node_size = 1000
+    #pos=nx.circular_layout(G)
+    #nx.draw_networkx_edges(G,pos,width=1.0,alpha=0.5)
+    #nx.draw_networkx_labels(G, pos, font_weight=2)
+    #nx.draw_networkx_edge_labels(G, pos, edge_labels)
+    #plt.axis('off');
+    #nx.write_dot(G, result_type+'.dot')
+
+    '''val_map = {'start': 1.0,  'end': 1.0, 'swipeup': 0.8, 'swipedown': 0.8,\
         'swipeleft': 0.8, 'swiperight': 0.8, 'reformulate':0.5, 'click':0.3}
     values = [val_map.get(node, 0.25) for node in G.nodes()]
-    edge_labels=dict([((u,v,),d['weight']) for u,v,d in G.edges(data=True)])
     edge_colors = ['black' for edge in G.edges()]
     pos=nx.circular_layout(G)
     nx.draw_networkx_edge_labels(G,pos,edge_labels=edge_labels)
     nx.draw(G,pos,node_color = values, node_size=4700,edge_color=edge_colors,edge_cmap=plt.cm.Reds)
     plt.title('Markov transitions for '+vert_expand[result_type])
-    pylab.show()
+    nx.write_dot(G, 'mc.dot')
+    pylab.show()'''
 
 
 '''
