@@ -522,3 +522,51 @@ def FindDwellTimes(concat_table):
     # PlotClickDist(vertical_stats)
     PlotClickDistPerVertical(vertical_stats)
     # PlotDwellTimePerVert(vertical_stats)
+
+
+def PlotLastRankBeforeClick(merged_table):
+  # Compute before each click the scatter plot of
+  # time before click and max rank. 
+  first_click_time_and_pos = {'i':[], 'v':[], 'w':[], 'o':[]}
+
+  grouped_table = merged_table.groupby(['user_id','task_id'])
+  for name, group in grouped_table:
+      group = group.sort('time')
+      first_click_pos = None
+      last_result_before_click = -1
+      first_click_time = None
+      first_result_type = None
+      first_event_time = None
+      for index, row in group.iterrows():
+        # Get the time and max visible result pos for each
+        # vertical.
+        if row['type'] == 'results':
+          if first_time and (last_result_before_click > -1) \
+              and first_result_type:
+            first_click_time_and_pos[first_result_type].append(\
+                (first_click_time, last_result_before_click))
+          first_click_pos = None
+          last_result_before_click = -1
+          first_click_time = None
+          first_event_time = None
+          first_result_type = None
+          first_result_type = row['doc_type']
+
+        if row['type'] == 'event' and (not first_click_pos):
+          # Record time of first event.
+          if not first_event_time:
+            first_event_time = row['time']
+          # Find the maximum result visible. 
+          if len(row['visible_elements']) > 0:
+            for entry in visible_elements.split():
+              last_result_before_click = max(last_result_before_click,\
+                                        int(entry[entry.rfind('_')+1:]))
+        
+        if (row['type'] == 'tap' or row['type'] == 'click') and\
+            (not first_click_pos):
+              first_click_pos = row['doc_id'][row['doc_id'].rfind('_')+1:] 
+
+  # Does the user scan results non-linearly?
+  # Show the transitions for each top-mid-bot-with-time
+  # markov models. 
+  

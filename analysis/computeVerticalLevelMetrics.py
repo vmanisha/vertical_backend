@@ -5,6 +5,7 @@ from datetime import datetime
 import editdistance 
 from scipy.stats.mstats import mannwhitneyu, kruskalwallis,ttest_ind
 from plotStats import *
+import math
 
 TASKSATMAP = {'Somewhat Satisfied': 2.0, 'Highly Satisfied': 3.0, 'Not Satisfied' : 1.0}
 
@@ -26,7 +27,8 @@ def FindMarkovNetwork(merged_table):
     # concat table contains the following: 
     # result table, click table and event table. 
     total_events = 0.0
-    vert_state_transitions = {'i':{}, 'v':{}, 'w':{}, 'o':{}}
+    vert_markov_trans_prob = {'i':{}, 'v':{}, 'w':{}, 'o':{}}
+    vert_markov_trans_sequence = {'i':[], 'v':[], 'w':[], 'o':[]}
     grouped_table = merged_table.groupby(['user_id','task_id'])
     # Find the transition between :
         # start
@@ -41,6 +43,7 @@ def FindMarkovNetwork(merged_table):
         first_query = False
         task_sequence = []
         first_result_type = None
+        last_time = None
         for index, row in group.iterrows():
             # get the first 
             if row['type'] == 'results':
@@ -48,56 +51,178 @@ def FindMarkovNetwork(merged_table):
                     first_query = True
                     first_result_type = row['doc_type']
                     task_sequence.append('start')
+                    last_time = row['time']
                 else:
+                    task_sequence.append(GetTimeLabel(row['time'] - last_time))
                     task_sequence.append('reformulate')
+                    last_time = row['time']
             # Append the event type. Ignore panleft and right.
             if row['type'] == 'event':
                 event_type = row['event_type']
-                if event_type == 'tap' or event_type == 'doubletap':
-                    if len(row['visible_elements']) > 0:
-                        #task_sequence.append('click')
-                        task_sequence.extend(GetRankBucket(row['visible_elements']))
-                #if not first_result_type == 'i' and ('left' in event_type or
-                #        'right' in event_type):
-                #    continue
-                else: # if event_type not in ['initial_state','panleft','panright']:
-                    # replace word pan with swipe
-                    event_type = event_type.replace('pan','swipe')
-                    #task_sequence.append(event_type)
-                    if len(row['visible_elements']) > 0:
-                        #task_sequence.append('click')
-                        task_sequence.extend(GetRankBucket(row['visible_elements']))
-                #else:
-                #    continue
+                # Handle double or single tap
+                if 'tap' in event_type:
+                    task_sequence.append(GetTimeLabel(row['time'] - last_time))
+                    last_time = row['time']
+                    task_sequence.append('tap')
+                    #if len(row['visible_elements']) > 0:
+                        # task_sequence.append('click')
+                        #task_sequence.extend(GetRankBucket(row['visible_elements']))
+                elif not first_result_type == 'i' and ('left' in event_type or
+                        'right' in event_type):
+                    continue
+                elif event_type not in ['initial_state','panleft','panright']:
+                  if last_time:
+                    task_sequence.append(GetTimeLabel(row['time'] - last_time))
+                    last_time = row['time']
+                  # replace word pan with swipe
+                  event_type = event_type.replace('pan','swipe')
+                  task_sequence.append(event_type)
+                  #if len(row['visible_elements']) > 0:
+                  #    task_sequence.append('click')
+                  #    task_sequence.extend(GetRankBucket(row['visible_elements']))
+                else:
+                    continue
             # append clicks. 
             if row['type'] == 'click':
+                task_sequence.append(GetTimeLabel(row['time'] - last_time))
+                last_time = row['time']
                 task_sequence.append('click')
-
+        if last_time:
+          task_sequence.append(GetTimeLabel(row['time'] - last_time))
+          last_time = row['time']
         task_sequence.append('end')
         if len(task_sequence) > 0 and first_result_type:
-            vert_state_transitions=UpdateStateTransitions(task_sequence, first_result_type,\
-                vert_state_transitions)
+            vert_markov_trans_prob=UpdateStateTransitions(task_sequence, first_result_type,\
+                vert_markov_trans_prob)
+            vert_markov_trans_sequence[first_result_type].append(task_sequence)
+            
         else:
             print name, task_sequence, first_result_type
 
-    #for result_type, state_transitions in vert_state_transitions.items():
-    #    for state1 in state_transitions.keys():
-    #        for state2 in state_transitions[state1].keys():
-    #            if vert_state_transitions[result_type][state1][state2] < 7:
-    #                del vert_state_transitions[result_type][state1][state2]
     # Convert into probabilities.
-    for result_type, state_transitions in vert_state_transitions.items():
+    transition_counts = {}
+    for result_type, state_transitions in vert_markov_trans_prob.items():
         total = 0.0
+        transition_counts[result_type] = {}
         #for state1 in state_transitions.keys():
         #    total += sum(state_transitions[state1].values())
         print result_type, total
         for state1 in state_transitions.keys():
+            transition_counts[result_type][state1] = {}
             total = sum(state_transitions[state1].values())
             for state2 in state_transitions[state1].keys():
-                vert_state_transitions[result_type][state1][state2] /= total
+                transition_counts[result_type][state1][state2] = vert_markov_trans_prob[result_type][state1][state2]
+                vert_markov_trans_prob[result_type][state1][state2] /= total
             print result_type,state1, state_transitions[state1], sum(state_transitions[state1].values())
-       
-    PlotMarkovTransitions(vert_state_transitions)
+   
+    # Compute the likelihoods. 
+    log_likelihoods = {}
+    for result_type in transition_counts.keys():
+      log_likelihoods[result_type] = ComputeLogLikelihood(\
+                                        transition_counts[result_type],\
+                                        vert_markov_trans_prob[result_type])
+      print result_type, log_likelihoods[result_type]
+
+    # likelihood of each transition matrix with MLE probability
+    # estimates of another model. 
+    log_likelihood_ratios = {}
+    result_types = transition_counts.keys()
+    for i in range(len(result_types)):
+      for j in range(len(result_types)):
+        # Get the transition counts of i and use probabilities of j
+        transition_counts_i = transition_counts[result_types[i]]
+        transition_probs_j = vert_markov_trans_prob[result_types[j]]
+        log_i_j = ComputeLogLikelihood(transition_counts_i, transition_probs_j)
+        print result_types[i], result_types[j], log_i_j,\
+            log_likelihoods[result_types[i]]
+        log_likelihood_ratios[result_types[i]+' '+result_types[j]] =\
+                                        log_i_j/log_likelihoods[result_types[i]]
+    print log_likelihood_ratios
+
+    # Likelihood of each sequence
+    log_likelihood_sequence = {}
+    sid = 0
+    for i in range(len(result_types)):
+      log_likelihood_sequence[result_types[i]] = {}
+      # Aggregate counts of each state.
+      for sequence in vert_markov_trans_sequence[result_types[i]]:
+        log_likelihood_sequence[result_types[i]][sid] = {}
+        transition_counts = ComputeTransitionFrequencies(sequence)
+        for j in range(len(result_types)):
+          # Get the probabilities.
+          transition_probabilities = vert_markov_trans_prob[result_types[j]]
+          seq_likelihood = ComputeLogLikelihood(transition_counts, transition_probabilities)
+          log_likelihood_sequence[result_types[i]][sid][result_types[j]] = seq_likelihood
+        sid+=1
+    
+    # Compute the significance with probabilities. 
+    prob_lists = {}
+    for result_type in vert_markov_trans_prob.keys():
+      prob_lists[result_type] = []
+      for state1, state_trans in vert_markov_trans_prob[result_type].items():
+        prob_lists[result_type].extend(state_trans.values())
+      print  len(prob_lists[result_type])
+
+    for result_type1 in prob_lists.keys():
+      for result_type2 in prob_lists.keys():
+        print 'wallis ',result_type1,result_type2,\
+            kruskalwallis(prob_lists[result_type1],\
+            prob_lists[result_type2])
+
+    # Print probabilities per combination for each vertical. 
+    transitions = {}
+    for result_type in vert_markov_trans_prob.keys():
+      for state1, state_trans in vert_markov_trans_prob[result_type].items():
+        for state2, value in state_trans.items():
+          comb_string = state1+' '+state2
+          if comb_string not in transitions:
+            transitions[comb_string] = {}
+          if result_type not in transitions[comb_string]:
+            transitions[comb_string][result_type] = value
+
+    for combination, vert_values in transitions.items():
+      print combination, vert_values  
+
+    PlotMarkovTransitions(vert_markov_trans_prob)
+
+def GetTimeLabel(time_diff):
+  time_in_sec = time_diff.total_seconds()
+  if time_in_sec < 10:
+    return 'SI'
+  elif time_in_sec < 20:
+    return 'MI'
+  else:
+    return 'LI'
+ 
+
+def ComputeLogLikelihood(transition_counts, transition_probs):
+    # Find the log likelihood of all the models.
+    # Find the prob(a|b)^count of (a|b)
+    log_likelihood = 0.0
+    for state1 in transition_counts.keys():
+      for state2, count in transition_counts[state1].items():
+        if (state1 in transition_probs) and\
+            (state2 in transition_probs[state1]):
+          log_likelihood += \
+            math.log(transition_probs[state1][state2])*count
+        else:
+          print state1, state2, 'not present in probabilities.'
+
+    return log_likelihood
+
+def ComputeTransitionFrequencies(task_sequence):
+    counts = {}
+    prev_state = task_sequence[0]
+    for entry in task_sequence[1:]:
+        curr_state = entry
+        if not (curr_state == prev_state):
+            if prev_state not in counts:
+                counts[prev_state] = {}
+            if curr_state not in counts[prev_state]:
+                counts[prev_state][curr_state] = 0.0
+            counts[prev_state][curr_state] += 1.0
+        prev_state = curr_state
+    return counts
 
 
 def UpdateStateTransitions(task_sequence, result_type, vert_state_trans):

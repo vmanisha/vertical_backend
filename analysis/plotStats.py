@@ -596,7 +596,8 @@ def PlotMarkovTransitions(vert_state_transitions):
           else:
             G.node(state2,state2)
         weight=round(weight,2)
-        if weight > 0.05:
+        if weight > 0.01 and (state1 in ['start','end', 'reformulate','click'] or\
+            state2 in ['start','end','reformulate','click']):
           G.edge(state1, state2,label=str(weight))
     G.render(result_type+'_trans', view=True) 
 
