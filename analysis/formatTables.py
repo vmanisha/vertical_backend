@@ -220,6 +220,7 @@ def ProcessPropInEvents(prop_string):
   prop_dict = {}
   val_string = ' '.join(prop_string.split())
   split = val_string.split(' ')
+  prop_dict['delta_time'] = float(split[1])
   try:
     prop_dict['win_height'] = float(split[-1])
   except:
@@ -267,6 +268,7 @@ def FormatAllEventDB(databases, dbcolumns, sort_keys):
           prop_dict = ProcessPropInEvents(event_dict['prop'])
           new_entry.append(prop_dict['element'])
           new_entry.append(prop_dict['direction'])
+          new_entry.append(prop_dict['delta_time'])
         else:
           new_entry.append(-1)
           new_entry.append('')

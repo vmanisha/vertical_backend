@@ -430,24 +430,26 @@ def PlotClickDist(vertical_stats):
     plt.show()
 
 
-def PlotScrollDepthPerVert(highest_card):
+def PlotScrollDepthPerVert(highest_card, x_lable, y_label, title,filename):
     fig = plt.figure()
     ax = plt.axes()
 
     scroll_data = []
     sp = 1
     pos = [sp, sp+1, sp+2, sp+3]
+    i=0
     for v in vert:
         scroll_data.append(highest_card[v])
     bp = plt.boxplot(scroll_data,positions=pos,widths=0.5)
+    
     # SetVisBox(bp)
 
     # plt.xlim(0,25)
-    plt.ylim(0,1.1)
-    plt.ylabel('Page Depth (%)')
+    plt.ylim(0,10)
+    plt.ylabel(y_label)
     ax.set_xticklabels(verticals)
 
-    plt.savefig('scroll_depth.png')
+    plt.savefig(filename)
     plt.show()
 
 def PlotSwipeFreqPerVert(swipe_freq):
@@ -606,7 +608,7 @@ def PlotMarkovTransitions(vert_state_transitions):
 
 
 # Format is vert_type : [[x], [y]]
-def PlotXYScatter(vert_scatter, x_title, y_title):
+def PlotXYScatter(vert_scatter, x_title, y_title, file_suffix):
   total = []
   probabilities = {}
   for vert_type, xy_points in vert_scatter.items():
@@ -627,12 +629,12 @@ def PlotXYScatter(vert_scatter, x_title, y_title):
     plt.ylabel(y_title)
     #plt.xlim(0,11)
     #plt.ylim(0,11)
-    plt.xlim(0,55)
-    plt.ylim(0,10)
+    plt.xlim(0,max(x)+1)
+    plt.ylim(0,max(y)+1)
     ax.scatter(x, y)
-    plt.savefig(vert_type+'scatter_click_time.png',bbox_inches='tight' )
+    plt.savefig(vert_type+file_suffix,bbox_inches='tight' )
     plt.show()
-
+'''
   sorted_total = sorted(total, key = lambda x: x[0])
   total_x = []
   total_y = []
@@ -647,8 +649,8 @@ def PlotXYScatter(vert_scatter, x_title, y_title):
   ax.plot(x, fit[0] * (x*x) + fit[1]*x + fit[2] , color='red')
   plt.xlabel(x_title)
   plt.ylabel(y_title)
-  plt.xlim(0,55)
-  plt.ylim(0,10)
+  plt.xlim(0,max(x))
+  plt.ylim(0,max(y))
   #plt.xlim(0,11)
   #plt.ylim(0,11)
   ax.scatter(x, y)
@@ -686,7 +688,7 @@ def PlotXYScatter(vert_scatter, x_title, y_title):
   plt.ylabel(y_title)
   plt.show()
   plt.savefig('confusion_matrix.png', format='png')
-
+'''
 
 '''
 def PlotClickDistPerVertical(click_dist):

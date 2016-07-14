@@ -1,6 +1,82 @@
 import pandas as pd
 import numpy as np
 from computePageLevelMetrics import *
+from plotStats import PlotXYScatter
+
+def ComputeScrollDistributionBeforeClick(merged_table):
+  scroll_events = ['panup', 'pandown']
+  grouped_table = merged_table.groupby(['user_id','task_id'])
+  tfc_swipe_dist = {'i':[], 'v':[], 'w':[], 'o':[]}
+  serp_response_dist = {'i':[], 'v':[], 'w':[], 'o':[]}
+  for name, group in grouped_table:
+    group = group.sort('time')
+    first_result_type = None
+    first_event_time = None
+    first_click_time = None
+    first_click = False
+    # It is a tuple of (relevance, satisfaction)
+    serp_response = None
+    swipe_count = 0.0
+    post_click_swipe = 1
+    for index, row in group.iterrows():
+      if row['type'] == 'results':
+        # Update scroll stats for page
+        if first_click:
+          print first_result_type, swipe_count, post_click_swipe,\
+          swipe_count/post_click_swipe
+          tfc_swipe_dist[first_result_type].append((first_click_time,\
+          swipe_count, swipe_count/(post_click_swipe)))
+        # Set everything to null.
+        first_result_type = None
+        first_event_time = None
+        first_click_time = None
+        first_click = False
+        serp_response = None
+        swipe_count = 0.0
+        post_click_swipe = 1
+        # Set the value
+        first_result_type = row['doc_type']
+      if row['type'] == 'event' and (not first_event_time):
+        first_event_time = row['time']
+      if (row['type'] == 'event') and (row['event_type'] in scroll_events) \
+      and (not first_click):
+        swipe_count+=1
+      if (row['type'] == 'event') and (row['event_type'] in scroll_events) \
+      and (first_click):
+        post_click_swipe+=1.0
+      # append clicks. 
+      if row['type'] == 'click' and (not first_click):
+        first_click = True
+        first_click_time =(row['time']-first_event_time).total_seconds()
+    if first_click:
+      print first_result_type, swipe_count, post_click_swipe,\
+          swipe_count/post_click_swipe
+      tfc_swipe_dist[first_result_type].append((first_click_time,\
+     swipe_count, swipe_count/(post_click_swipe)))
+  
+    # It should ideally be short or long scrolls. Time between two scrolls. 
+  scatter1 = {}
+  swipe_ratio_per_vertical = {'i':[], 'v':[], 'w':[], 'o':[]}
+  for result_type, time_and_swipe_array in tfc_swipe_dist.items():
+    print result_type, len(time_and_swipe_array)
+    # format vert_type : [[x], [y]]
+    scatter1[result_type] = [[],[]]
+    # Sort by time (the format is time, pos, last_viewd_rank)
+    sorted_tuple_by_time = sorted(time_and_swipe_array, key = lambda x : x[0])
+    for sorted_tuple in sorted_tuple_by_time:
+      # Add time
+      if sorted_tuple[0] < 55 and sorted_tuple[2] < 35:
+        scatter1[result_type][0].append(sorted_tuple[0])
+        # Add click rank
+        scatter1[result_type][1].append(sorted_tuple[2])
+        swipe_ratio_per_vertical[result_type].append(sorted_tuple[2])
+  #PlotScrollDepthPerVert(swipe_ratio_per_vertical,' Verticals',\
+  #    'Pre-Post Click Swipe Down Ratio','Swipe Down Ratio Per Vertical',\
+  #    'pre_post_swipe_down_ratio.png')
+
+  print 'Man click i-o', kruskalwallis(swipe_ratio_per_vertical['i'],swipe_ratio_per_vertical['o'])
+  print 'Man click v-o', kruskalwallis(swipe_ratio_per_vertical['v'],swipe_ratio_per_vertical['o'])
+  print 'Man click w-o', kruskalwallis(swipe_ratio_per_vertical['w'],swipe_ratio_per_vertical['o'])
 
 
 def CheckEqualVisEle(prev_vis, curr_vis):
@@ -77,14 +153,14 @@ def FindPageVelocityDistribution(result_table, event_table):
                     index = int((time/bucket_size))
                     if index not in bucket:
                         bucket[index] = 0.0
-                    if dirn == 'up':
-                        bucket[index]+= (1.0 / total)
+                    #if dirn == 'up':
+                    bucket[index]+= (1.0 / total)
 
                 for index, count in bucket.items():
                     if index not in aggregate_freq[vert_type]:
                         aggregate_freq[vert_type][index]= []
                     aggregate_freq[vert_type][index].append(count)
-    PlotVertSwipeInfoByTime(aggregate_freq, 'Time buckets','Normalized Swipe up Freq')
+    PlotVertSwipeInfoByTime(aggregate_freq, 'Time buckets','Normalized Swipe Freq')
     '''
     aggregate_speed_x = {'i': {} , 'v':{} , 'w': {}, 'o':{}}
     aggregate_speed_y = {'i': {} , 'v':{} , 'w': {}, 'o':{}}

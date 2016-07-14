@@ -71,7 +71,7 @@ scroll_event_sortkeys = [ 'user_id','task_id', 'time']
 
 # All event table 
 all_event_header =['time','user_id','task_id','query_text','page_id','event_type',\
-                      'element','direction', 'visible_elements']
+                      'element','direction','delta_time', 'visible_elements']
 # Visibility event table sortkeys
 all_event_sortkeys = [ 'user_id','task_id', 'time']
 
@@ -207,6 +207,8 @@ def main():
     merged_tables = MergeAllTables(results_with_task_type, click_filtered, all_event_table,\
     	 page_response_table, task_response_table)
 
+    # Find the scroll distribution before time to first click.
+    ComputeScrollDistributionBeforeClick(merged_tables)
     # Find state transitions. 
     # FindMarkovNetwork(merged_tables)
 
