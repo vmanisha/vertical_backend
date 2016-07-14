@@ -208,7 +208,9 @@ def main():
     	 page_response_table, task_response_table)
 
     # Find state transitions. 
-    FindMarkovNetwork(merged_tables)
+    # FindMarkovNetwork(merged_tables)
+
+    # ComputePreClickDistributions(merged_tables)
 
     # Filter query table to have only top position on first page
     # TODO: Do this after merge tables as it adds 'type' which is used later
@@ -248,13 +250,13 @@ def main():
     # # FindClickDistributionPerVertical(query_filtered,click_filtered)
 
     # Format scroll event db
-    # scroll_event_table = FormatEventDBForScrolls(event_db,scroll_event_header,\
+    #scroll_event_table = FormatEventDBForScrolls(event_db,scroll_event_header,\
     #    scroll_event_sortkeys)
     # # Find Scroll event stats
-    # FindPageScrollDistributionPerVertical(query_table, scroll_event_table)
+    #FindPageScrollDistributionPerVertical(query_table, scroll_event_table)
 
     # Find time-scroll freq ratio
-    # FindPageVelocityDistribution(query_table, scroll_event_table)
+    #FindPageVelocityDistribution(query_table, scroll_event_table)
 
 if __name__ == "__main__":
     main()

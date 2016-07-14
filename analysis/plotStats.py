@@ -554,7 +554,6 @@ def PlotVertSwipeInfoByTime(aggregate_freq, x_title, y_title):
       mean = []
       var = []
       for entry in sort_freq:
-        print entry
         x.append(entry[0])
         mean.append(np.mean(entry[1]))
         var.append(np.std(entry[1]))
@@ -578,28 +577,115 @@ def PlotMarkovTransitions(vert_state_transitions):
   # Format : {result_type: {state1 : {state2: count}}}
 
   # Make graph 
-  colors = {'start':'lightgreen','end':'salmon','click':'lightyellow','reformulate':'lightblue'}
+  colors = {'start':'green','end':'salmon','click':'lightyellow','reformulate':'lightblue'}
   for result_type, state_transitions in vert_state_transitions.items():
-    G = gv.Digraph(format='svg')
+    G = gv.Digraph(format='png')
     G.graph_attr['layout'] = 'dot'
     states = set([])
-    for state1, second_state_dict in state_transitions.items():
+    for entry in sorted(state_transitions.items()):
+      state1= entry[0]
+      second_state_dict=entry[1]
       if state1 not in states:
         if state1 in colors:
           G.node(state1,state1,{'style':'filled','fillcolor':colors[state1]})
         else:
           G.node(state1,state1)
-      for state2, weight in second_state_dict.items():
+      for entry1 in sorted(second_state_dict.items()):
+        state2 = entry1[0]
+        weight = entry1[1]
         if state2 not in states:
           if state2 in colors:
             G.node(state2,state2,{'style':'filled','fillcolor':colors[state2]})
           else:
             G.node(state2,state2)
         weight=round(weight,2)
-        if weight > 0.01 and (state1 in ['start','end', 'reformulate','click'] or\
-            state2 in ['start','end','reformulate','click']):
+        if weight > 0.01 and (state1 in ['start','end'] or\
+            state2 in ['start','end']):
           G.edge(state1, state2,label=str(weight))
     G.render(result_type+'_trans', view=True) 
+
+
+# Format is vert_type : [[x], [y]]
+def PlotXYScatter(vert_scatter, x_title, y_title):
+  total = []
+  probabilities = {}
+  for vert_type, xy_points in vert_scatter.items():
+    x = np.asarray(xy_points[0])
+    y = np.asarray(xy_points[1])
+    print vert_type, x, y, len(x), len(y)
+    for x1,y1 in zip(xy_points[0],xy_points[1]):
+      total.append((x1,y1))
+      if x1 not in probabilities:
+        probabilities[x1] = {}
+      if y1 not in probabilities[x1]:
+        probabilities[x1][y1] = 0.0
+      probabilities[x1][y1]+=1.0
+    fig, ax = plt.subplots()
+    fit = np.polyfit(x, y, deg=2)
+    ax.plot(x, fit[0] * (x*x) + fit[1]*x + fit[2] , color='red')
+    plt.xlabel(x_title)
+    plt.ylabel(y_title)
+    #plt.xlim(0,11)
+    #plt.ylim(0,11)
+    plt.xlim(0,55)
+    plt.ylim(0,10)
+    ax.scatter(x, y)
+    plt.savefig(vert_type+'scatter_click_time.png',bbox_inches='tight' )
+    plt.show()
+
+  sorted_total = sorted(total, key = lambda x: x[0])
+  total_x = []
+  total_y = []
+  for entry in sorted_total:
+    total_x.append(entry[0])
+    total_y.append(entry[1])
+
+  fig, ax = plt.subplots()
+  x = np.asarray(total_x)
+  y = np.asarray(total_y)
+  fit = np.polyfit(x, y, deg=2)
+  ax.plot(x, fit[0] * (x*x) + fit[1]*x + fit[2] , color='red')
+  plt.xlabel(x_title)
+  plt.ylabel(y_title)
+  plt.xlim(0,55)
+  plt.ylim(0,10)
+  #plt.xlim(0,11)
+  #plt.ylim(0,11)
+  ax.scatter(x, y)
+  plt.savefig('total_scatter_click_time.png',bbox_inches='tight' )
+  plt.show()
+  
+  confusion_matrix = []
+  for rank1 in range(11):
+    row = []
+    total = 0.0
+    if rank1 in probabilities:
+      total = sum(probabilities[rank1].values())
+    for rank2 in range(11):
+      if rank1 in probabilities and rank2 in probabilities[rank1]:
+        row.append(probabilities[rank1][rank2]/total)
+      else:
+        row.append(0)
+    confusion_matrix.append(row)
+
+  fig = plt.figure()
+  plt.clf()
+  ax = fig.add_subplot(111)
+  ax.set_aspect(1)
+  res = ax.imshow(np.array(confusion_matrix), cmap=plt.cm.jet, 
+                  interpolation='nearest')
+  
+  for x in xrange(11):
+      for y in xrange(11):
+          ax.annotate(str(round(confusion_matrix[x][y],2)), xy=(y, x), 
+                      horizontalalignment='center',
+                      verticalalignment='center')
+  
+  cb = fig.colorbar(res)
+  plt.xlabel(x_title)
+  plt.ylabel(y_title)
+  plt.show()
+  plt.savefig('confusion_matrix.png', format='png')
 
 
 '''

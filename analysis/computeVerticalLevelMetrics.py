@@ -53,7 +53,7 @@ def FindMarkovNetwork(merged_table):
                     task_sequence.append('start')
                     last_time = row['time']
                 else:
-                    task_sequence.append(GetTimeLabel(row['time'] - last_time))
+                    #task_sequence.append(GetTimeLabel(row['time'] - last_time))
                     task_sequence.append('reformulate')
                     last_time = row['time']
             # Append the event type. Ignore panleft and right.
@@ -61,18 +61,18 @@ def FindMarkovNetwork(merged_table):
                 event_type = row['event_type']
                 # Handle double or single tap
                 if 'tap' in event_type:
-                    task_sequence.append(GetTimeLabel(row['time'] - last_time))
+                    #task_sequence.append(GetTimeLabel(row['time'] - last_time))
                     last_time = row['time']
                     task_sequence.append('tap')
                     #if len(row['visible_elements']) > 0:
                         # task_sequence.append('click')
                         #task_sequence.extend(GetRankBucket(row['visible_elements']))
-                elif not first_result_type == 'i' and ('left' in event_type or
+                elif (not first_result_type == 'i') and ('left' in event_type or
                         'right' in event_type):
                     continue
                 elif event_type not in ['initial_state','panleft','panright']:
                   if last_time:
-                    task_sequence.append(GetTimeLabel(row['time'] - last_time))
+                    #task_sequence.append(GetTimeLabel(row['time'] - last_time))
                     last_time = row['time']
                   # replace word pan with swipe
                   event_type = event_type.replace('pan','swipe')
@@ -84,11 +84,11 @@ def FindMarkovNetwork(merged_table):
                     continue
             # append clicks. 
             if row['type'] == 'click':
-                task_sequence.append(GetTimeLabel(row['time'] - last_time))
+                #task_sequence.append(GetTimeLabel(row['time'] - last_time))
                 last_time = row['time']
                 task_sequence.append('click')
         if last_time:
-          task_sequence.append(GetTimeLabel(row['time'] - last_time))
+          #task_sequence.append(GetTimeLabel(row['time'] - last_time))
           last_time = row['time']
         task_sequence.append('end')
         if len(task_sequence) > 0 and first_result_type:

@@ -9,8 +9,6 @@ def CheckEqualVisEle(prev_vis, curr_vis):
             return False
     return True
 
-
-
 def FindPageVelocityDistribution(result_table, event_table):
     # Find velocity distribution per serp.
     scroll_events = ['panup','pandown']
@@ -79,14 +77,14 @@ def FindPageVelocityDistribution(result_table, event_table):
                     index = int((time/bucket_size))
                     if index not in bucket:
                         bucket[index] = 0.0
-                    if dirn == 'down':
+                    if dirn == 'up':
                         bucket[index]+= (1.0 / total)
 
                 for index, count in bucket.items():
                     if index not in aggregate_freq[vert_type]:
                         aggregate_freq[vert_type][index]= []
                     aggregate_freq[vert_type][index].append(count)
-    PlotVertSwipeInfoByTime(aggregate_freq, 'Time buckets','Normalized Swipe down Freq')
+    PlotVertSwipeInfoByTime(aggregate_freq, 'Time buckets','Normalized Swipe up Freq')
     '''
     aggregate_speed_x = {'i': {} , 'v':{} , 'w': {}, 'o':{}}
     aggregate_speed_y = {'i': {} , 'v':{} , 'w': {}, 'o':{}}

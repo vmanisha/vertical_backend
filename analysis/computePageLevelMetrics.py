@@ -524,7 +524,7 @@ def FindDwellTimes(concat_table):
     # PlotDwellTimePerVert(vertical_stats)
 
 
-def PlotLastRankBeforeClick(merged_table):
+def ComputePreClickDistributions(merged_table):
   # Compute before each click the scatter plot of
   # time before click and max rank. 
   first_click_time_and_pos = {'i':[], 'v':[], 'w':[], 'o':[]}
@@ -533,23 +533,25 @@ def PlotLastRankBeforeClick(merged_table):
   for name, group in grouped_table:
       group = group.sort('time')
       first_click_pos = None
-      last_result_before_click = -1
       first_click_time = None
       first_result_type = None
       first_event_time = None
+      last_result_before_click = None
       for index, row in group.iterrows():
         # Get the time and max visible result pos for each
         # vertical.
         if row['type'] == 'results':
-          if first_time and (last_result_before_click > -1) \
-              and first_result_type:
+          if first_click_time and last_result_before_click \
+              and first_click_pos and first_result_type:
             first_click_time_and_pos[first_result_type].append(\
-                (first_click_time, last_result_before_click))
+                (first_click_time, first_click_pos, last_result_before_click))
+          
           first_click_pos = None
-          last_result_before_click = -1
           first_click_time = None
           first_event_time = None
           first_result_type = None
+          last_result_before_click = None
+          
           first_result_type = row['doc_type']
 
         if row['type'] == 'event' and (not first_click_pos):
@@ -558,14 +560,74 @@ def PlotLastRankBeforeClick(merged_table):
             first_event_time = row['time']
           # Find the maximum result visible. 
           if len(row['visible_elements']) > 0:
-            for entry in visible_elements.split():
+            for entry in row['visible_elements'].split():
               last_result_before_click = max(last_result_before_click,\
                                         int(entry[entry.rfind('_')+1:]))
         
-        if (row['type'] == 'tap' or row['type'] == 'click') and\
-            (not first_click_pos):
-              first_click_pos = row['doc_id'][row['doc_id'].rfind('_')+1:] 
+          event_type = row['event_type']
+          if 'tap' in event_type and (not first_click_pos):
+            # set the time. 
+            first_click_time = (row['time'] - first_event_time).total_seconds()
+            first_click_pos = int(row['element'])
+            
+        if (row['type'] == 'click') and (not first_click_pos):
+          first_click_time = (row['time'] - first_event_time).total_seconds()
+          first_click_pos = int(row['doc_id'][row['doc_id'].rfind('_')+1:])
 
+      if first_click_time and last_result_before_click \
+          and first_click_pos and first_result_type:
+        first_click_time_and_pos[first_result_type].append(\
+            (first_click_time, first_click_pos, last_result_before_click))
+
+              
+  # Plot the following scatter plots:
+  # 1. Time to rank viewed. 
+  scatter1 = {}
+  for result_type, time_and_pos_array in first_click_time_and_pos.items():
+    # format vert_type : [[x], [y]]
+    scatter1[result_type] = [[],[]]
+    # Sort by time (the format is time, pos, last_viewd_rank)
+    sorted_tuple_by_time = sorted(time_and_pos_array, key = lambda x : x[0])
+    for sorted_tuple in sorted_tuple_by_time:
+      # Time should be less than 100 seconds
+      if sorted_tuple[0] < 55:
+        scatter1[result_type][0].append(sorted_tuple[0])
+        # Adjust the rank
+        scatter1[result_type][1].append(sorted_tuple[2])
+      else:
+        print sorted_tuple
+  # PlotXYScatter(scatter1, 'Time to first click (sec)', 'Lowest rank visible snippet')
+  # 2. Rank visited to rank clicked
+  scatter1 = {}
+  for result_type, time_and_pos_array in first_click_time_and_pos.items():
+    # format vert_type : [[x], [y]]
+    scatter1[result_type] = [[],[]]
+    # Sort by time (the format is time, pos, last_viewd_rank)
+    sorted_tuple_by_view_rank = sorted(time_and_pos_array, key = lambda x : x[2])
+    for sorted_tuple in sorted_tuple_by_view_rank:
+      # Adjust ranks. 
+      # Add rank visible first. 
+      scatter1[result_type][0].append(sorted_tuple[2])
+      # Add click rank
+      scatter1[result_type][1].append(sorted_tuple[1])
+  PlotXYScatter(scatter1, 'Rank of lowest visible snippet','Rank of clicked snippet')
+  # 3. Time to rank clicked. 
+  scatter1 = {}
+  for result_type, time_and_pos_array in first_click_time_and_pos.items():
+    # format vert_type : [[x], [y]]
+    scatter1[result_type] = [[],[]]
+    # Sort by time (the format is time, pos, last_viewd_rank)
+    sorted_tuple_by_time = sorted(time_and_pos_array, key = lambda x : x[0])
+    for sorted_tuple in sorted_tuple_by_time:
+      # Time should be less than 100 seconds
+      if sorted_tuple[0] < 55:
+        scatter1[result_type][0].append(sorted_tuple[0])
+        # Adjust the rank
+        scatter1[result_type][1].append(sorted_tuple[1])
+      else:
+        print sorted_tuple
+
+  # PlotXYScatter(scatter1, 'Time to first click (sec)', 'First click rank')
   # Does the user scan results non-linearly?
   # Show the transitions for each top-mid-bot-with-time
   # markov models. 

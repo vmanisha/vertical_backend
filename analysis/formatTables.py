@@ -250,7 +250,7 @@ The format for different event types is given below:
 def FormatAllEventDB(databases, dbcolumns, sort_keys):
   # Store all events in a table. Mainly for markov transition calculation.
   # Format is : event_type, event_element, visible_elements, distance,
-  # direction, win hieght, delta_x , delta_y.
+  # direction, win height, delta_x , delta_y.
   # keep nothing where events are taps. 
   tsv_data = []
   for database in databases:
@@ -334,7 +334,7 @@ def FormatEventDBForScrolls(databases, dbcolumns, sort_keys):
                     new_entry = [entry , user , int(task), query.strip(), \
                         values['event_type'], prop_dict['element'], visible,\
                         prop_dict['distance'],prop_dict['direction'],\
-                        prop_dict['win_hieght'], prop_dict['vel_x'],
+                        prop_dict['win_height'], prop_dict['vel_x'],
                         prop_dict['vel_y']]
                     tsv_data.append(new_entry)
     # create a new data frame
