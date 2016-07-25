@@ -9,6 +9,74 @@ import math
 
 TASKSATMAP = {'Somewhat Satisfied': 2.0, 'Highly Satisfied': 3.0, 'Not Satisfied' : 1.0}
 
+def GetSERPSatisfactionCorrelationPerVertical(merged_table):
+    grouped_table = merged_table.groupby(['user_id','task_id'])
+    # Find the correlation between the following and satisfaction :
+        # number of swipes up
+        # number of swipe down
+        # reformulation
+        # number of clicked results
+        # total time on SERP
+        # Last depth viewed before first click.
+        # first clicked rank.
+        # distance of swipe up/number of swipe up
+        # distance of swipe down/number of swipe down
+        # time to first click. 
+        # time to last click 
+        # screen time of first 3 results
+        # screen time of 3-6 results
+        # screen time of rest of results. 
+    
+    # Serp level response does not contain the result type on type. 
+    # thus tie it to the query. 
+    for name, group in grouped_table:
+        group = group.sort('time')
+        serp_score_and_features = {}
+        query_result_type_string = None
+        for index, row in group.iterrows():
+            if row['type'] == 'results':
+                # Update the previous query and type features with
+                # reformulation.
+                if query_result_type_string:
+                    serp_score_and_features[query_result_type_string]['reformulate']= 1.0
+                # Initialize the key. 
+                first_result_type = row['doc_type']
+                query =  row['query_text']
+                query_result_type_string = first_result_type+'_'+\
+                                            query.replace(' ','_')
+                if query_result_type_string not in serp_score_and_features:
+                    serp_score_and_features[query_result_type_string] = {}
+            if row['type'] == 'event':
+                # Add first event time. 
+                event_type = row['event_type']
+                serp_score_and_features[query_result_type_string] = AddSerpFeature(\
+                        'first_event_time',serp_score_and_features[query_result_type_string],\
+                        row['time'])
+                # Add event counts. 
+                if ('tap' in event_type) or ('pan' in event_type) or ('swipe'\
+                        in event_type):
+                    serp_score_and_features[query_result_type_string] =\
+                            AddOrUpdateSerpFeature(event_type+'_count',\
+                            serp_score_and_features[query_result_type_string],1.0)
+                # Add visibility of results 
+                
+                    
+
+# Add a feature to serp only if it does not exist. Useful to add time oriented
+# features such as first click/event/tap time. 
+def AddSerpFeature(event_type, serp_event_dict, event_value):
+    if event_type not in serp_event_dict:
+        serp_event_dict[event_type] = event_value
+    return serp_event_dict
+
+# If the feature exists just update its value.
+def AddOrUpdateSerpFeature(event_type, serp_event_dict, event_value):
+    if event_type not in serp_event_dict:
+        serp_event_dict[event_type] = 0.0
+    serp_event_dict[event_type] += event_value
+    return serp_event_dict
+
+
 def GetRankBucket(visible_elements):
     buckets = []
     for entry in visible_elements.split():

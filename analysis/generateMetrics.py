@@ -206,9 +206,8 @@ def main():
 
     merged_tables = MergeAllTables(results_with_task_type, click_filtered, all_event_table,\
     	 page_response_table, task_response_table)
-
     # Find the scroll distribution before time to first click.
-    ComputeScrollDistributionBeforeClick(merged_tables)
+    # ComputeScrollDistributionBeforeClick(merged_tables)
     # Find state transitions. 
     # FindMarkovNetwork(merged_tables)
 
