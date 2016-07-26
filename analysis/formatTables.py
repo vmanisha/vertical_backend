@@ -268,13 +268,19 @@ def FormatAllEventDB(databases, dbcolumns, sort_keys):
         if 'prop' in event_dict:
           prop_dict = ProcessPropInEvents(event_dict['prop'])
           # Use event time
-          # new_entry[0] = prop_dict['time']
+          if user == 'Sankaushik%40gmail.com':
+            new_entry[0] = prop_dict['time']
+
           new_entry.append(prop_dict['element'])
           new_entry.append(prop_dict['direction'])
+          new_entry.append(prop_dict['distance'])
           new_entry.append(prop_dict['delta_time'])
         else:
           new_entry.append(-1)
           new_entry.append('')
+          new_entry.append(0)
+          new_entry.append(0)
+        
         if 'visible_elements' in event_dict:
           new_entry.append(event_dict['visible_elements'])
         else:

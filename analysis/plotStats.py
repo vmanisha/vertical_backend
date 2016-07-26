@@ -89,7 +89,7 @@ def PlotTaskSat(satisfaction):
     plt.show()
 
 
-def PlotPageResponsePerVert(first_rel_group,last_rel_group):
+def PlotSatAndRelBoxPlotPerVertical(first_rel_group, ylabel, filename):
     fig = plt.figure()
     ax = plt.axes()
     plt.hold(True)
@@ -99,7 +99,9 @@ def PlotPageResponsePerVert(first_rel_group,last_rel_group):
     sp = 1
     pos = [sp, sp+1, sp+2, sp+3]
     for v in vert:
-       resp_data.append(first_rel_group.get_group((v,'relevance'))['response_value'])
+      #resp_data.append(first_rel_group.get_group((v,'relevance'))['response_value'])
+      print v, len(first_rel_group.get_group(v)['relevance'])
+      resp_data.append(first_rel_group.get_group(v)['relevance'])
     bp = plt.boxplot(resp_data,positions=pos,widths=0.5)
     SetVisBox(bp)
     
@@ -108,13 +110,15 @@ def PlotPageResponsePerVert(first_rel_group,last_rel_group):
     sp = pos[3]+2
     pos = [sp, sp+1, sp+2, sp+3]
     for v in vert:
-       resp_data.append(first_rel_group.get_group((v,'satisfaction'))['response_value'])
+      #resp_data.append(first_rel_group.get_group((v,'satisfaction'))['response_value'])
+      print v, len(first_rel_group.get_group(v)['satisfaction'])
+      resp_data.append(first_rel_group.get_group(v)['satisfaction'])
     bp = plt.boxplot(resp_data,positions=pos,widths=0.5)
     SetVisBox(bp)
     
     plt.xlim(0,pos[3]+1)
     plt.ylim(0.5,5.5)
-    plt.ylabel('Page Response')
+    plt.ylabel(ylabel)
 
     ax.set_xticklabels(['Relevance','Satisfaction'])
     ax.set_xticks([2.5, 7.5])
@@ -131,7 +135,7 @@ def PlotPageResponsePerVert(first_rel_group,last_rel_group):
     h3.set_visible(False)
     h4.set_visible(False)
 
-    plt.savefig('rel_sat_first_pos.png')
+    plt.savefig(filename)
     plt.show()
 
 def PlotFirstAndLastClickRank(vertical_stats):

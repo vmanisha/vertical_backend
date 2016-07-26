@@ -71,7 +71,7 @@ scroll_event_sortkeys = [ 'user_id','task_id', 'time']
 
 # All event table 
 all_event_header =['time','user_id','task_id','query_text','page_id','event_type',\
-                      'element','direction','delta_time', 'visible_elements']
+                      'element','direction','distance','delta_time', 'visible_elements']
 # Visibility event table sortkeys
 all_event_sortkeys = [ 'user_id','task_id', 'time']
 
@@ -210,6 +210,12 @@ def main():
     # ComputeScrollDistributionBeforeClick(merged_tables)
     # Find state transitions. 
     # FindMarkovNetwork(merged_tables)
+
+    # Serp features. 
+    serp_features = ComputeSERPFeatures(merged_tables)
+    CorrelationAndClassification(serp_features)
+    # Compute correlations. 
+
 
     # ComputePreClickDistributions(merged_tables)
 
