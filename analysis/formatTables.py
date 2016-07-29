@@ -259,6 +259,8 @@ def FormatAllEventDB(databases, dbcolumns, sort_keys):
     for entry, values in database.items():
         entry = datetime.fromtimestamp(float(entry)/1000)
         user, task, page, query = BreakEventUrl(values['doc_url'])
+        # Replace the qoutes
+        query = query.replace('%22','"')
         if not page:
           page = -1
         new_entry = [entry , user , int(task), query.strip(), int(page),\

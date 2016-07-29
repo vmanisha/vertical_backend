@@ -96,61 +96,19 @@ def FindPageMetricsPerVertical(result_table, page_table):
                 }
             })
 
+    verticals = ['i','o','w','v']
+    for i in range(len(verticals)):
+      v1 = verticals[i]
+      for j in range(i, len(verticals)):
+        v2 = verticals[j]
+        for attribute in ['relevance','satisfaction']:
+          print 'Krusk wallis',v1, v2,attribute,'first_rank', \
+          kruskalwallis(first_rel_group.get_group((v1,attribute))['response_value'],\
+                  first_rel_group.get_group((v2, attribute))['response_value'])
+          print 'Krusk wallis', v1, v2, attribute, 'rel_off_rank',\
+          kruskalwallis(last_rel_group.get_group((v1,attribute))['response_value'],\
+                  last_rel_group.get_group((v2,attribute))['response_value'])
 
-
-    # Calculate the significance of all the numbers.
-    print 'Man rel_first_rank i-o',\
-    kruskalwallis(first_rel_group.get_group(('i','relevance'))['response_value'],\
-                  first_rel_group.get_group(('o','relevance'))['response_value'])
-    
-    print 'Man rel_first_rank v-o',\
-    kruskalwallis(first_rel_group.get_group(('v','relevance'))['response_value'],\
-                  first_rel_group.get_group(('o','relevance'))['response_value'])
-
-    print 'Man rel_first_rank w-o',\
-    kruskalwallis(first_rel_group.get_group(('w','relevance'))['response_value'],\
-                  first_rel_group.get_group(('o','relevance'))['response_value'])
-
-    
-    print 'Man sat_first_rank i-o',\
-    kruskalwallis(first_rel_group.get_group(('i','satisfaction'))['response_value'],\
-                  first_rel_group.get_group(('o','satisfaction'))['response_value'])
-    print 'Man sat_first_rank v-o',\
-    kruskalwallis(first_rel_group.get_group(('v','satisfaction'))['response_value'],\
-                  first_rel_group.get_group(('o','satisfaction'))['response_value'])
-    print 'Man sat_first_rank w-o',\
-    kruskalwallis(first_rel_group.get_group(('w','satisfaction'))['response_value'],\
-                  first_rel_group.get_group(('o','satisfaction'))['response_value'])
-
-
-    print 'Man rel_off_rank i-o',\
-    kruskalwallis(last_rel_group.get_group(('i','relevance'))['response_value'],\
-                  last_rel_group.get_group(('o','relevance'))['response_value'])
-    
-    print 'Man rel_off_rank v-o',\
-    kruskalwallis(last_rel_group.get_group(('v','relevance'))['response_value'],\
-                  last_rel_group.get_group(('o','relevance'))['response_value'])
-
-    print 'Man rel_off_rank w-o',\
-    kruskalwallis(last_rel_group.get_group(('w','relevance'))['response_value'],\
-                  last_rel_group.get_group(('o','relevance'))['response_value'])
-
-    
-    print 'Man sat_off_rank i-o',\
-    kruskalwallis(last_rel_group.get_group(('i','satisfaction'))['response_value'],\
-                  last_rel_group.get_group(('o','satisfaction'))['response_value'])
-    print 'Man sat_off_rank v-o',\
-    kruskalwallis(last_rel_group.get_group(('v','satisfaction'))['response_value'],\
-                  last_rel_group.get_group(('o','satisfaction'))['response_value'])
-    print 'Man sat_off_rank w-o',\
-    kruskalwallis(last_rel_group.get_group(('w','satisfaction'))['response_value'],\
-                  last_rel_group.get_group(('o','satisfaction'))['response_value'])
-
-    #print first_rel_group.get_group(('i','satisfaction'))['response_value']
-    #print first_rel_group.get_group(('i','relevance'))['response_value']
-    #print 'Man sat_first_rank i-o',\
-    #kendalltau(first_rel_group.get_group(('i','satisfaction'))['response_value'],\
-    #              first_rel_group.get_group(('i','relevance'))['response_value'])
     print 'Man sat_first_rank v-o',\
     pearsonr(first_rel_group.get_group(('v','satisfaction'))['response_value'],\
                   first_rel_group.get_group(('v','relevance'))['response_value'])
@@ -317,66 +275,31 @@ def FindVisiblityMetricsPerVertical(result_table,vis_event_table):
                 visible_time[top_vert][cid].append(card_time[cid])
 
 
-    print 'image',visibility['i']
-    print 'video',visibility['v']
-    print 'wiki',visibility['w']
-    print 'organic',visibility['o']
+    verticals = visible_time.keys()
+    for vertical in verticals:
+      print vertical ,visibility[vertical]
 
-    print 'image',' '.join([str(round(sum(card_times)/visibility['i'][0],3)) for card_times in
-      visible_time['i'].values()])
-    print 'video',' '.join([ str(round(sum(card_times)/visibility['v'][0],3)) for card_times in
-      visible_time['v'].values()])
-    print 'wiki',' '.join([ str(round(sum(card_times)/visibility['w'][0],3)) for card_times in
-      visible_time['w'].values()])
-    print 'organic',' '.join([str(round(sum(card_times)/visibility['o'][0],3)) for card_times in
-      visible_time['o'].values()])
+    for vertical in verticals:
+      print vertical,' '.join([str(round(sum(card_times)/visibility[vertical][0],3))\
+                      for card_times in visible_time[vertical].values()])
 
-    print 'image',' '.join([str(round(np.median(card_times),3)) for card_times in
-      visible_time['i'].values()])
-    print 'video',' '.join([ str(round(np.median(card_times),3)) for card_times in
-      visible_time['v'].values()])
-    print 'wiki',' '.join([ str(round(np.median(card_times),3)) for card_times in
-      visible_time['w'].values()])
-    print 'organic',' '.join([str(round(np.median(card_times),3)) for card_times in
-      visible_time['o'].values()])
+    for vertical in verticals:
+      print vertical,' '.join([str(round(np.median(card_times),3))\
+                     for card_times in visible_time[vertical].values()])
 
+    for vertical in verticals:
+      print 'Median time',vertical, np.median(visible_time[vertical][0])
 
-    print 'Median time i ', np.median(visible_time['i'][0])
-    print 'Median time v ', np.median(visible_time['v'][0])
-    print 'Median time w ', np.median(visible_time['w'][0])
-    print 'Median time o ', np.median(visible_time['o'][0])
+    for i in range(len(verticals)):
+      v1 = verticals[i]
+      for j in range(i, len(verticals)):
+        v2 = verticals[j]
+        for pos in range(4):
+            print 'Man visibilit time', v1, v2, pos,\
+            kruskalwallis(visible_time[v1][pos],visible_time[v2][pos])
 
-    # find stats significance
-    print 'Man visibilit time 1 i-o',\
-    kruskalwallis(visible_time['i'][0],visible_time['o'][0])
-    print 'Man visibilit time 1 v-o',\
-    kruskalwallis(visible_time['v'][0],visible_time['o'][0])
-    print 'Man visibilit time 1 w-o',\
-    kruskalwallis(visible_time['w'][0],visible_time['o'][0])
-    
-    print 'Man visibilit time 2 i-o',\
-    kruskalwallis(visible_time['i'][1],visible_time['o'][1])
-    print 'Man visibilit time 2 v-o',\
-    kruskalwallis(visible_time['v'][1],visible_time['o'][1])
-    print 'Man visibilit time 2 w-o',\
-    kruskalwallis(visible_time['w'][1],visible_time['o'][1])
-    
-    print 'Man visibilit time3  i-o',\
-    kruskalwallis(visible_time['i'][2],visible_time['o'][2])
-    print 'Man visibilit time 3 v-o',\
-    kruskalwallis(visible_time['v'][2],visible_time['o'][2])
-    print 'Man visibilit time 3 w-o',\
-    kruskalwallis(visible_time['w'][2],visible_time['o'][2])
-
-
-    print 'Man visibilit time 4  i-o',\
-    kruskalwallis(visible_time['i'][3],visible_time['o'][3])
-    print 'Man visibilit time 4 v-o',\
-    kruskalwallis(visible_time['v'][3],visible_time['o'][3])
-    print 'Man visibilit time 4 w-o',\
-    kruskalwallis(visible_time['w'][3],visible_time['o'][3])
-    
-    PlotVisiblityStats(visibility,visible_time)
+    PlotMultipleBoxPlotsPerVertical(visible_time, 5,'Document Positions',\
+                                  'Viewport Time (sec)','','view_port_time.png')
 
  
 # Find mean and std dwell time per vertical. 
@@ -487,22 +410,17 @@ def FindDwellTimes(concat_table):
         np.std(val_dict['on_dwell']),'off-dwell', np.mean(val_dict['off_dwell']), \
         np.std(val_dict['off_dwell']), val_dict['on_count'],\
         val_dict['off_count']
-    
-    # find stats significance
-    print 'Man on_dwell i-o',\
-    kruskalwallis(vertical_stats['i']['on_dwell'],vertical_stats['o']['on_dwell'])
-    print 'Man on_dwell v-o',\
-    kruskalwallis(vertical_stats['v']['on_dwell'],vertical_stats['o']['on_dwell'])
-    print 'Man on_dwell w-o',\
-    kruskalwallis(vertical_stats['w']['on_dwell'],vertical_stats['o']['on_dwell'])
+ 
+    verticals = ['i','o','w','v']
+    for i in range(len(verticals)):
+      v1 = verticals[i]
+      for j in range(i, len(verticals)):
+        v2 = verticals[j]
+        for attribute in ['on_dwell','off_dwell', 'all_clicks']:
+          print 'Krusk wallis',v1, v2,attribute, \
+          kruskalwallis(vertical_stats[v1][attribute],\
+                  vertical_stats[v2][attribute])
 
-    # find stats significance
-    print 'Man off_dwell i-o',\
-    kruskalwallis(vertical_stats['i']['off_dwell'],vertical_stats['o']['off_dwell'])
-    print 'Man off_dwell v-o',\
-    kruskalwallis(vertical_stats['v']['off_dwell'],vertical_stats['o']['off_dwell'])
-    print 'Man off_dwell w-o',\
-    kruskalwallis(vertical_stats['w']['off_dwell'],vertical_stats['o']['off_dwell'])
 
     for vert_type, stats in vertical_stats.items():
         for pos , array in stats['pos_dwell'].items():
@@ -512,14 +430,6 @@ def FindDwellTimes(concat_table):
             vertical_stats[vert_type]['clicks'][pos]/= (stats['on_count']+\
                 stats['off_count']) 
 
-
-    print 'Man off_dwell i-o',\
-    kruskalwallis(vertical_stats['i']['all_clicks'],vertical_stats['o']['all_clicks'])
-    print 'Man off_dwell v-o',\
-    kruskalwallis(vertical_stats['v']['all_clicks'],vertical_stats['o']['all_clicks'])
-    print 'Man off_dwell w-o',\
-    kruskalwallis(vertical_stats['w']['all_clicks'],vertical_stats['o']['all_clicks'])
-    
     # PlotClickDist(vertical_stats)
     PlotClickDistPerVertical(vertical_stats)
     # PlotDwellTimePerVert(vertical_stats)
@@ -542,8 +452,8 @@ def ComputePreClickDistributions(merged_table):
         # Get the time and max visible result pos for each
         # vertical.
         if row['type'] == 'results':
-          if first_click_time and last_result_before_click \
-              and first_click_pos and first_result_type:
+          if first_click_time and last_result_before_click > -1 \
+              and first_click_pos > -1 and first_result_type:
             first_click_time_and_pos[first_result_type].append(\
                 (first_click_time, first_click_pos, last_result_before_click))
           
@@ -555,7 +465,7 @@ def ComputePreClickDistributions(merged_table):
           
           first_result_type = row['doc_type']
 
-        if row['type'] == 'event' and (not first_click_pos):
+        if row['type'] == 'event' and (first_click_pos == None):
           # Record time of first event.
           if not first_event_time:
             first_event_time = row['time']
@@ -566,68 +476,46 @@ def ComputePreClickDistributions(merged_table):
                                         int(entry[entry.rfind('_')+1:]))
         
           event_type = row['event_type']
-          if 'tap' in event_type and (not first_click_pos):
+          if 'tap' in event_type and (first_click_pos == None):
             # set the time. 
             first_click_time = (row['time'] - first_event_time).total_seconds()
             first_click_pos = int(row['element'])
             
-        if (row['type'] == 'click') and (not first_click_pos):
+        if (row['type'] == 'click') and (first_click_pos == None):
           first_click_time = (row['time'] - first_event_time).total_seconds()
           first_click_pos = int(row['doc_id'][row['doc_id'].rfind('_')+1:])
 
-      if first_click_time and last_result_before_click \
-          and first_click_pos and first_result_type:
+      if first_click_time and last_result_before_click > -1 \
+          and first_click_pos > -1 and first_result_type:
         first_click_time_and_pos[first_result_type].append(\
             (first_click_time, first_click_pos, last_result_before_click))
 
-              
+  # Scatter Plots did not lead to any information or significant difference 
+  # between different verticals.
+
   # Plot the following scatter plots:
   # 1. Time to rank viewed. 
   scatter1 = {}
   for result_type, time_and_pos_array in first_click_time_and_pos.items():
-    # format vert_type : [[x], [y]]
-    scatter1[result_type] = [[],[]]
-    # Sort by time (the format is time, pos, last_viewd_rank)
-    sorted_tuple_by_time = sorted(time_and_pos_array, key = lambda x : x[0])
-    for sorted_tuple in sorted_tuple_by_time:
-      # Time should be less than 100 seconds
-      if sorted_tuple[0] < 55:
-        scatter1[result_type][0].append(sorted_tuple[0])
-        # Adjust the rank
-        scatter1[result_type][1].append(sorted_tuple[2])
-      else:
-        print sorted_tuple
-  # PlotXYScatter(scatter1, 'Time to first click (sec)', 'Lowest rank visible snippet')
-  # 2. Rank visited to rank clicked
-  scatter1 = {}
-  for result_type, time_and_pos_array in first_click_time_and_pos.items():
-    # format vert_type : [[x], [y]]
-    scatter1[result_type] = [[],[]]
-    # Sort by time (the format is time, pos, last_viewd_rank)
+    # format vert_type : {pos : [time list (sec)]}
+    scatter1[result_type] ={}
+    # Sort by last viewed result (the format is time, pos, last_viewd_rank)
     sorted_tuple_by_view_rank = sorted(time_and_pos_array, key = lambda x : x[2])
     for sorted_tuple in sorted_tuple_by_view_rank:
-      # Adjust ranks. 
-      # Add rank visible first. 
-      scatter1[result_type][0].append(sorted_tuple[2])
-      # Add click rank
-      scatter1[result_type][1].append(sorted_tuple[1])
-  PlotXYScatter(scatter1, 'Rank of lowest visible snippet','Rank of clicked snippet')
-  # 3. Time to rank clicked. 
-  scatter1 = {}
-  for result_type, time_and_pos_array in first_click_time_and_pos.items():
-    # format vert_type : [[x], [y]]
-    scatter1[result_type] = [[],[]]
-    # Sort by time (the format is time, pos, last_viewd_rank)
-    sorted_tuple_by_time = sorted(time_and_pos_array, key = lambda x : x[0])
-    for sorted_tuple in sorted_tuple_by_time:
+      click_rank = sorted_tuple[1] +1
+      view_rank = sorted_tuple[2] +1
+      if click_rank not in scatter1[result_type]:
+        scatter1[result_type][click_rank] = []
       # Time should be less than 100 seconds
-      if sorted_tuple[0] < 55:
-        scatter1[result_type][0].append(sorted_tuple[0])
-        # Adjust the rank
-        scatter1[result_type][1].append(sorted_tuple[1])
-      else:
-        print sorted_tuple
+      scatter1[result_type][click_rank].append(view_rank)
 
+  print scatter1
+  PlotMultipleBoxPlotsPerVertical(scatter1,6, 'Clicked result',\
+      'Last viewed Rank', '', 'click_view_rank_dist.png')
+  # PlotXYScatter(scatter1, 'Time to first click (sec)', 'Lowest rank visible snippet')
+  # 2. Rank visited to rank clicked
+  # PlotXYScatter(scatter1, 'Rank of lowest visible snippet','Rank of clicked snippet')
+  # 3. Time to rank clicked. 
   # PlotXYScatter(scatter1, 'Time to first click (sec)', 'First click rank')
   # Does the user scan results non-linearly?
   # Show the transitions for each top-mid-bot-with-time

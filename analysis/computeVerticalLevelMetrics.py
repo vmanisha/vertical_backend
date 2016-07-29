@@ -47,7 +47,6 @@ def CorrelationAndClassification(features):
     remaining_features =  remaining_features.drop(['doubletap_count',\
                                 'doubletap_distance','first_doubletap_time','index'],
                                 axis = 1)
- 
 
     # Normalize the features
     remaining_features = (remaining_features - remaining_features.mean()) \
@@ -618,7 +617,7 @@ def FindFirstAndLastClickInfo(concat_table):
            
             if row['type'] == 'results' and row['doc_pos'] == 0:
                 # check prev result data.
-                if vert_type and first_click and last_click:
+                if vert_type and first_click > -1 and last_click > -1:
                     vertical_stats[vert_type]['first_rank'].append(first_click)
                     vertical_stats[vert_type]['last_rank'].append(last_click)
                     vertical_stats[vert_type]['first_click'].append(first_time)
@@ -678,7 +677,7 @@ def FindFirstAndLastClickInfo(concat_table):
                     else:
                         vertical_stats[vert_type]['on_vert_click']+=1.0
 
-                if not first_click:
+                if first_click > -1:
                     first_time  = (start_time - result_time).total_seconds()
                     if (first_time < 50):
                         first_click = click_rank
@@ -689,7 +688,7 @@ def FindFirstAndLastClickInfo(concat_table):
                 found = False
 
         # Set values for last serp.
-        if vert_type and first_click and last_click:
+        if vert_type and first_click > -1 and last_click > -1:
             vertical_stats[vert_type]['first_rank'].append(first_click)
             vertical_stats[vert_type]['last_rank'].append(last_click)
             vertical_stats[vert_type]['first_click'].append(first_time)
@@ -718,45 +717,20 @@ def FindFirstAndLastClickInfo(concat_table):
         kruskalwallis(vertical_stats['on']['first_click'],vertical_stats['off']['first_click'])
     print 'Man lc on-off',\
         kruskalwallis(vertical_stats['on']['last_click'],vertical_stats['off']['last_click'])
-    '''
-    # Print the statistical significance against organic
-    print 'Man off_vert_rank i-o', kruskalwallis(vertical_stats['i']['off_vert_rank'],vertical_stats['o']['off_vert_rank'])
-    print 'Man off_vert_rank v-o',\
-    kruskalwallis(vertical_stats['v']['off_vert_rank'],vertical_stats['o']['off_vert_rank'])
-    print 'Man off_vert_rank w-o',\
-    kruskalwallis(vertical_stats['w']['off_vert_rank'],vertical_stats['o']['off_vert_rank'])
 
-    print 'Man first_rank  i-o',\
-    kruskalwallis(vertical_stats['i']['first_rank'],vertical_stats['o']['first_rank'])
-    print 'Man first_rank v-o',\
-    kruskalwallis(vertical_stats['v']['first_rank'],vertical_stats['o']['first_rank'])
-    print 'Man first_rank w-o',\
-    kruskalwallis(vertical_stats['w']['first_rank'],vertical_stats['o']['first_rank'])
-
-    print 'Man lr i-o',\
-    kruskalwallis(vertical_stats['i']['last_rank'],vertical_stats['o']['last_rank'])
-    print 'Man lr v-o',\
-    kruskalwallis(vertical_stats['v']['last_rank'],vertical_stats['o']['last_rank'])
-    print 'Man lr w-o',\
-    kruskalwallis(vertical_stats['w']['last_rank'],vertical_stats['o']['last_rank'])
+    verticals = vertical_stats.keys():
+    for i in range(len(verticals)):
+        v1 = verticals[i]
+        for j in range(i+1,len(verticals)):
+            v2 = verticals[j]
+            for attribute in ['off_vert_rank','first_rank',\
+                    'last_rank','first_click','last_click']:
+                print 'Man off_vert_rank ',v1, v2,attribute,\
+                    kruskalwallis(vertical_stats[v1][attribute],vertical_stats[v2][attribute])
     
-    print 'Man fc i-o',\
-        kruskalwallis(vertical_stats['i']['first_click'],vertical_stats['o']['first_click'])
-    print 'Man fc v-o',\
-        kruskalwallis(vertical_stats['v']['first_click'],vertical_stats['o']['first_click'])
-    print 'Man fc w-o',\
-        kruskalwallis(vertical_stats['w']['first_click'],vertical_stats['o']['first_click'])
-    
-    print 'Man lc i-o',\
-        kruskalwallis(vertical_stats['i']['last_click'],vertical_stats['o']['last_click'])
-    print 'Man lc v-o',\
-        kruskalwallis(vertical_stats['v']['last_click'],vertical_stats['o']['last_click'])
-    print 'Man lc w-o',\
-        kruskalwallis(vertical_stats['w']['last_click'],vertical_stats['o']['last_click'])
-    '''
     PlotFirstAndLastClickTime(vertical_stats)
-    PlotFirstAndLastClickRank(vertical_stats)
-        
+    PlotFirstAndLastClickRank(vertical_stats, 'Examined Result Pos', 'Result Rank',\
+                    '','first_and_last_click_rank.png') 
 
 def FindDescriptiveStatsPerVertical(concat_table):
     # Find the following stats per vertical:
@@ -872,27 +846,18 @@ def FindDescriptiveStatsPerVertical(concat_table):
         'time ', np.mean(stat_dict['time']),round(np.std(stat_dict['time']),2)
 
     # Print the statistical significance against organic
-    '''print 'Man query i-o', kruskalwallis(vertical_stats['i']['query'],vertical_stats['o']['query'])
-    print 'Man query v-o', kruskalwallis(vertical_stats['v']['query'],vertical_stats['o']['query'])
-    print 'Man query w-o', kruskalwallis(vertical_stats['w']['query'],vertical_stats['o']['query'])
-
-    print 'Man click i-o', kruskalwallis(vertical_stats['i']['clicks'],vertical_stats['o']['clicks'])
-    print 'Man click v-o', kruskalwallis(vertical_stats['v']['clicks'],vertical_stats['o']['clicks'])
-    print 'Man click w-o', kruskalwallis(vertical_stats['w']['clicks'],vertical_stats['o']['clicks'])
-
-    print 'Man page_rel i-o', kruskalwallis(vertical_stats['i']['page_rel'],vertical_stats['o']['page_rel'])
-    print 'Man page rel v-o', kruskalwallis(vertical_stats['v']['page_rel'],vertical_stats['o']['page_rel'])
-    print 'Man page rel w-o', kruskalwallis(vertical_stats['w']['page_rel'],vertical_stats['o']['page_rel'])
+    verticals = vertical_stats.keys():
+    for i in range(len(verticals)):
+        v1 = verticals[i]
+        for j in range(i+1,len(verticals)):
+            v2 = verticals[j]
+            for attribute in ['query','clicks','page_rel',\
+                    'page_sat','task_sat']:
+                print 'Man query',v1,v2,attribute,\
+                        kruskalwallis(vertical_stats[v1][attribute],\
+                        vertical_stats[v2][attribute])
     
-    print 'Man page_sat i-o', kruskalwallis(vertical_stats['i']['page_sat'],vertical_stats['o']['page_sat'])
-    print 'Man page_sat v-o',kruskalwallis(vertical_stats['v']['page_sat'],vertical_stats['o']['page_sat'])
-    print 'Man page sat w-o', kruskalwallis(vertical_stats['w']['page_sat'],vertical_stats['o']['page_sat'])
-    
-    print 'Man task_sat i-o', kruskalwallis(vertical_stats['i']['task_sat'],vertical_stats['o']['task_sat'])
-    print 'Man task_sat v-o',kruskalwallis(vertical_stats['v']['task_sat'],vertical_stats['o']['task_sat'])
-    print 'Man task sat w-o', kruskalwallis(vertical_stats['w']['task_sat'],vertical_stats['o']['task_sat'])
-    '''
-    print 'Man query on-off', kruskalwallis(vertical_stats['on']['query'],vertical_stats['off']['query'])
+                        print 'Man query on-off', kruskalwallis(vertical_stats['on']['query'],vertical_stats['off']['query'])
     print 'Man click on-off', kruskalwallis(vertical_stats['on']['clicks'],vertical_stats['off']['clicks'])
     print 'Man page_rel on-off', kruskalwallis(vertical_stats['on']['page_rel'],vertical_stats['off']['page_rel'])
     print 'Man page_sat on-off', kruskalwallis(vertical_stats['on']['page_sat'],vertical_stats['off']['page_sat'])
