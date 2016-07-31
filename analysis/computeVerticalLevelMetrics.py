@@ -7,108 +7,8 @@ from scipy.stats.mstats import mannwhitneyu, kruskalwallis,ttest_ind
 from plotStats import *
 import math
 
-from sklearn import svm
-from sklearn.linear_model import LogisticRegression
-from sklearn.cross_validation import StratifiedKFold
-from sklearn.metrics import roc_curve, auc, confusion_matrix
-from scipy import interp
-import matplotlib.pyplot as plt
-
-
 TASKSATMAP = {'Somewhat Satisfied': 2.0, 'Highly Satisfied': 3.0, 'Not Satisfied' : 1.0}
 
-def CorrelationAndClassification(features):
-    # write to another file.
-    features.to_csv('serp_features_clean.csv',index=False,encoding='utf-8')
-
-    features = features.reset_index()
-    # get satisfaction and relevance labels 
-    satisfaction = features['satisfaction'].map({1:0,2:0, 3:0, 4:1,5:1 })
-    print satisfaction.value_counts()
-    print satisfaction.shape
-    relevance = features['relevance']
-
-    # take every column and find 
-    # set all other values to 0. 
-    remaining_features = features.drop(['relevance','satisfaction',\
-            'first_event_time','first_result_time','query_task'], axis =1)
-    # Merge the features : (tap and double tap)
-    remaining_features =  remaining_features.drop(['index','tap_distance'], axis = 1)
-    remaining_features = remaining_features.fillna(0)
-
-    # map the vertical name to number.
-    remaining_features['result_type'] =\
-            remaining_features['result_type'].map({'i':1, 'v':2, 'w':3, 'o':4})
-    
-
-    # Normalize the features
-    remaining_features = (remaining_features - remaining_features.mean()) \
-            / (remaining_features.max() - remaining_features.min())
-    # Convert the features into lists. 
-    features_list = remaining_features.values.tolist()
-   
-    for c in [1,2]:
-        mean_tpr = 0.0
-        mean_fpr = np.linspace(0, 1, 100)
-        all_tpr = []
-        confusion_matrix_total = {}
-        # Predict Satisfaction using Logistic regression and print auc.
-        for k, (train, test) in enumerate(StratifiedKFold(satisfaction, 5)):
-            x_train = [ features_list[i] for i in train]
-            y_train = satisfaction.loc[train]
-            x_test = [ features_list[i] for i in test]
-            y_test = satisfaction[test]
-            clf = LogisticRegression(C=c, penalty='l1')
-            clf_fit = clf.fit(x_train, y_train)
-            coeff = clf_fit.coef_.ravel()
-            coeff_tuple = []
-            for i in range(len(list(remaining_features.columns))):
-                coeff_tuple.append((remaining_features.columns[i],round(coeff[i],5)))
-            print 'k=',k,'c=',c
-            for ctuple in coeff_tuple:
-                print ctuple[0], ctuple[1]
-            # Get the confusion matrices. 
-            y_predict= clf_fit.predict(x_test)
-            confusion_fold = confusion_matrix(y_test, y_predict)
-            for i in range(len(confusion_fold)):
-                total = sum(confusion_fold[i])
-                if i not in confusion_matrix_total:
-                    confusion_matrix_total[i] = {}
-                for j in range(len(confusion_fold)):
-                    if j not in confusion_matrix_total[i]:
-                        confusion_matrix_total[i][j] = 0.0
-                    confusion_matrix_total[i][j] += (confusion_fold[i][j] *1.0)/total 
-            
-            prob_y_test = clf_fit.predict_proba(x_test)
-            fpr, tpr, thresholds = roc_curve(y_test, prob_y_test[:, 1])
-            mean_tpr += interp(mean_fpr, fpr, tpr)
-            mean_tpr[0] = 0.0
-            roc_auc = auc(fpr, tpr)
-            plt.plot(fpr, tpr, lw=1, label='ROC fold %d (area = %0.2f)' % (k,
-                roc_auc))
-
-        for i, jdict in confusion_matrix_total.items():
-            for j,value in jdict.items():
-                print 'logistic c=',c,i,j,value/5
-
-
-        plt.plot([0, 1], [0, 1], '--', color=(0.6, 0.6, 0.6), label='Random')
-        mean_tpr /= 5  # Number of folds. 
-        mean_tpr[-1] = 1.0
-        mean_auc = auc(mean_fpr, mean_tpr)
-        plt.plot(mean_fpr, mean_tpr, 'k--',
-                         label='Mean ROC (area = %0.2f)' % mean_auc, lw=2)
-
-        plt.xlim([-0.05, 1.05])
-        plt.ylim([-0.05, 1.05])
-        plt.xlabel('False Positive Rate')
-        plt.ylabel('True Positive Rate')
-        plt.title('Receiver operating characteristic Logistic C='+str(c))
-        #plt.legend(loc="lower right")
-        plt.legend(loc='lower right', ncol = 1, fontsize=15)
-        plt.savefig('roc_logistic_'+str(c)+'.png',bbox_inches='tight')
-        plt.show()
-        #plt.clf()
 
 def ComputeSERPFeatures(merged_table):
     grouped_table = merged_table.groupby(['user_id','task_id'])
@@ -137,7 +37,7 @@ def ComputeSERPFeatures(merged_table):
                 # Update the previous query and type features with
                 # reformulation.
                 if query_result_type_string:
-                    serp_score_and_features[query_result_type_string]['reformulate']= 1.0
+                    serp_score_and_features[query_result_type_string]['cq_sess_qr']= 1.0
                 # Initialize the key. 
                 first_result_type = row['doc_type']
                 query =  row['query_text']
@@ -148,7 +48,7 @@ def ComputeSERPFeatures(merged_table):
                     serp_score_and_features[query_result_type_string] = {}
                 # Add the number of terms in query as feature. 
                 serp_score_and_features[query_result_type_string] = SetSerpFeature(\
-                        'query_term_count',serp_score_and_features[query_result_type_string],\
+                        'cq_sess_ql',serp_score_and_features[query_result_type_string],\
                         len(query.split()))
                 serp_score_and_features[query_result_type_string] = SetSerpFeature(\
                         'first_result_time',serp_score_and_features[query_result_type_string],\
@@ -178,49 +78,62 @@ def ComputeSERPFeatures(merged_table):
                     # Add event counts. 
                     if ('tap' in event_type) or ('pan' in event_type) or ('swipe'\
                             in event_type):
+
+                        # Change event name
+                        event_type = event_type.replace('swipeup','su')
+                        event_type = event_type.replace('swipedown','sd')
+                        event_type = event_type.replace('swiperight','sr')
+                        event_type = event_type.replace('swipeleft','sl')
+                        event_type = event_type.replace('tap','t')
+                        
+                        # Add tap on first result. 
+                        if event_type == 't' and row['element'] == 0:
+                            serp_score_and_features[query_result_type_string] =\
+                                IncrementSerpFeature('vert_sess_c',\
+                                serp_score_and_features[query_result_type_string],1.0)
+
                         # Add first event time.
                         serp_score_and_features[query_result_type_string]=SetSerpFeature(\
-                            'gestures_first_'+event_type+'_time',\
+                            'gest_sess_f'+event_type+'_time',\
                             serp_score_and_features[query_result_type_string],\
                             row['time'])
 
                         # Update the event count. 
                         serp_score_and_features[query_result_type_string] =\
-                          IncrementSerpFeature('gestures_'+event_type+'_count',\
+                          IncrementSerpFeature('gest_sess_'+event_type+'c',\
                           serp_score_and_features[query_result_type_string],1.0)
 
                         # Update the distance total. 
                         serp_score_and_features[query_result_type_string] =\
-                          IncrementSerpFeature('gestures_'+event_type+'_distance',\
+                          IncrementSerpFeature('gest_sess_'+event_type+'d',\
                           serp_score_and_features[query_result_type_string],\
                           row['distance'])
 
                         # Record the time of event. 
                         serp_score_and_features[query_result_type_string] =\
-                          AppendValueToSERPFeature('time_list_'+event_type,\
+                          AppendValueToSERPFeature('gest_sess_time_list_'+event_type,\
                           serp_score_and_features[query_result_type_string],\
                           row['time'])
 
-
                         # Add pre-click information 
-                        if ('first_click_time' not in \
+                        if ('cq_sess_first_click_time' not in \
                             serp_score_and_features[query_result_type_string]) and \
-                            ('first_tap_time' not in\
+                            ('gest_sess_ft_time' not in\
                             serp_score_and_features[query_result_type_string]):
 
                             # Update the event count. 
                             serp_score_and_features[query_result_type_string] =\
-                                    IncrementSerpFeature('gestures_pre_click_'+event_type+'_count',\
+                                    IncrementSerpFeature('gest_pc_'+event_type+'c',\
                                     serp_score_and_features[query_result_type_string],1.0)
 
                             # Update the distance total. 
                             serp_score_and_features[query_result_type_string] =\
-                                    IncrementSerpFeature('gestures_pre_click_'+event_type+'_distance',\
+                                    IncrementSerpFeature('gest_pc_'+event_type+'d',\
                                     serp_score_and_features[query_result_type_string],\
                                     row['distance'])
                             # Record the time of event. 
                             serp_score_and_features[query_result_type_string] =\
-                              AppendValueToSERPFeature('gestures_pre_click_time_list_'+event_type,\
+                              AppendValueToSERPFeature('gest_pc_time_list_'+event_type,\
                               serp_score_and_features[query_result_type_string],\
                               row['time'])
 
@@ -229,61 +142,87 @@ def ComputeSERPFeatures(merged_table):
                     visible_positions_list=GetVisibleRanks(row['visible_elements']) 
                     if len(visible_positions_list) > 0: 
                         # Update the last visible position and time before first click.
-                        if 'first_click_time' not in \
+                        if 'cq_sess_first_click_time' not in \
                                 serp_score_and_features[query_result_type_string]:
                             # Add the last position. This has to be updated with each
                             # row. Thus cant use SetSerpFeature function. 
                             serp_score_and_features[query_result_type_string]\
-                                    ['last_visible_result_before_click']=\
+                                    ['view_pc_lvr']=\
                                     max(visible_positions_list)
                         
                         # Add time of visibility for each element on SERP.
                         # (Not very correlated)
-                        # for visible_element in visible_positions_list:
-                        #    serp_score_and_features[query_result_type_string]=\
-                        #        IncrementSerpFeature(str(visible_element)+'_viewport_ms', \
-                        #        serp_score_and_features[query_result_type_string],\
-                        #        row['delta_time'])
                         
                         # Update the rank of last visible result for the whole serp
                         # time.
-                        serp_score_and_features[query_result_type_string]['last_visible_result']=\
+                        serp_score_and_features[query_result_type_string]['view_sess_lvr']=\
                             max(visible_positions_list)
 
                     # Update the bucket count. The results are (top, med and bottom
                     # buckets)
                     for result_bucket in GetRankBucket(row['visible_elements']):
+                        # add viewport (view) features for whole session
+                        # (sess). For each bucket of positions record count (c)
+                        # and time (t)
                         serp_score_and_features[query_result_type_string]=\
-                            IncrementSerpFeature(result_bucket+'_count', \
+                            IncrementSerpFeature('view_sess_'+result_bucket+'c', \
                             serp_score_and_features[query_result_type_string],\
                             1.0)
                         serp_score_and_features[query_result_type_string]=\
-                            IncrementSerpFeature(result_bucket+'_viewport_ms', \
+                            IncrementSerpFeature('view_sess_'+result_bucket+'t_ms', \
                             serp_score_and_features[query_result_type_string],\
                             row['delta_time'])
 
+                        if 'cq_sess_first_click_time' not in \
+                                serp_score_and_features[query_result_type_string]:
+                            # Add time and count for pre-click (pc) for result
+                            # buckets. 
+                            serp_score_and_features[query_result_type_string]=\
+                                IncrementSerpFeature('view_pc_'+result_bucket+'c', \
+                                serp_score_and_features[query_result_type_string],\
+                                1.0)
+                            serp_score_and_features[query_result_type_string]=\
+                                IncrementSerpFeature('view_pc_'+result_bucket+'t_ms', \
+                                serp_score_and_features[query_result_type_string],\
+                                row['delta_time'])
+
+
                 # Add click info. 
                 if row['type'] == 'click':
+                    rank = int(row['doc_id'][row['doc_id'].find('_')+1:])+1
+
+                    # Register vertical click
+                    if rank == 1:
+                        serp_score_and_features[query_result_type_string] =\
+                            IncrementSerpFeature('vert_sess_c',\
+                            serp_score_and_features[query_result_type_string],1.0)
+
                     # Add the first click time.
                     serp_score_and_features[query_result_type_string]=SetSerpFeature(\
-                            'first_click_time',\
+                            'cq_sess_first_click_time',\
                             serp_score_and_features[query_result_type_string],\
                             row['time'])
                     # Update the click count. 
                     serp_score_and_features[query_result_type_string] =\
-                            IncrementSerpFeature('click_count',\
+                            IncrementSerpFeature('cq_sess_cc',\
                             serp_score_and_features[query_result_type_string],1.0)
                     # Update rank.
                     serp_score_and_features[query_result_type_string]=SetSerpFeature(\
-                            'first_click_rank',\
+                            'cq_sess_fcr',\
                             serp_score_and_features[query_result_type_string],\
-                            int(row['doc_id'][row['doc_id'].find('_')+1:])+1)
+                            rank)
                   
                     # Record the click rank 
                     serp_score_and_features[query_result_type_string] =\
-                      AppendValueToSERPFeature('click_rank_list',\
+                      AppendValueToSERPFeature('cq_sess_rclick_rank_list',\
                       serp_score_and_features[query_result_type_string],\
-                      int(row['doc_id'][row['doc_id'].find('_')+1:])+1)
+                      rank)
+
+                    # Record the time of clicks too.
+                    serp_score_and_features[query_result_type_string] =\
+                      AppendValueToSERPFeature('cq_sess_time_list_c',\
+                      serp_score_and_features[query_result_type_string],\
+                      row['time'])
                 
                 # Record the satisfaction and relevance for SERP response. 
                 if row['type'] == 'page_response' and\
@@ -322,7 +261,7 @@ def ComputeSERPFeatures(merged_table):
     serp_feat_list = []
     for key, feat_dict in serp_score_and_features.items():
         feat_dict['query_task'] = key[key.find('_')+1:]
-        feat_dict['result_type'] = key[:key.find('_')]
+        feat_dict['vert_sess_result_type'] = key[:key.find('_')]
         # get the time differences in second and delete the timestamps. 
         first_time = None
         if 'first_event_time' in feat_dict :
@@ -336,12 +275,17 @@ def ComputeSERPFeatures(merged_table):
             elif 'time' in feat_key:
                 feat_dict[feat_key] = (feat_dict[feat_key] - first_time)\
                         .total_seconds()
-            if 'rank_list' in feat_key:
+
+            # Get the average rank and last rank
+            if 'click_rank_list' in feat_key:
+                suffix = feat_key[:feat_key.find('click_rank_list')]
                 print feat_dict[feat_key] 
-                feat_dict[feat_key] = np.mean(feat_dict[feat_key])
+                feat_dict['avg_'+suffix] = np.mean(feat_dict[feat_key])
+                feat_dict['last_'+suffix] = feat_dict[feat_key][-1]
+                del (feat_dict[feat_key])
 
         for feat_key in feat_dict.keys():  
-            if 'viewport_ms' in feat_key:
+            if 't_ms' in feat_key:
                 # Convert ms into seconds and then convert into ratio.  
                 feat_dict[feat_key] =  (feat_dict[feat_key]*0.001)
 
@@ -409,13 +353,13 @@ def GetRankBucket(visible_elements):
     for entry in visible_elements.split():
         index = int(entry[entry.rfind('_')+1:])
         if index == 0:
-            buckets.append('firstr')
+            buckets.append('fr')
         if index < 4:
-            buckets.append('top')
+            buckets.append('t')
         elif index < 7:
-            buckets.append('middle')
+            buckets.append('m')
         else:
-            buckets.append('bottom')
+            buckets.append('b')
 
     return buckets
 

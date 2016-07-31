@@ -9,6 +9,7 @@ from formatTables import *
 from computePageLevelMetrics import *
 from computeVerticalLevelMetrics import *
 from computeEventStats import *
+from classification import *
 # Construct several tables.
 #               Find the distribution of following variables:
 #
