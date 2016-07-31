@@ -180,18 +180,18 @@ def ComputeSERPFeatures(merged_table):
                             in event_type):
                         # Add first event time.
                         serp_score_and_features[query_result_type_string]=SetSerpFeature(\
-                            'first_'+event_type+'_time',\
+                            'gestures_first_'+event_type+'_time',\
                             serp_score_and_features[query_result_type_string],\
                             row['time'])
 
                         # Update the event count. 
                         serp_score_and_features[query_result_type_string] =\
-                          IncrementSerpFeature(event_type+'_count',\
+                          IncrementSerpFeature('gestures_'+event_type+'_count',\
                           serp_score_and_features[query_result_type_string],1.0)
 
                         # Update the distance total. 
                         serp_score_and_features[query_result_type_string] =\
-                          IncrementSerpFeature(event_type+'_distance',\
+                          IncrementSerpFeature('gestures_'+event_type+'_distance',\
                           serp_score_and_features[query_result_type_string],\
                           row['distance'])
 
@@ -210,17 +210,17 @@ def ComputeSERPFeatures(merged_table):
 
                             # Update the event count. 
                             serp_score_and_features[query_result_type_string] =\
-                                    IncrementSerpFeature('pre_click_'+event_type+'_count',\
+                                    IncrementSerpFeature('gestures_pre_click_'+event_type+'_count',\
                                     serp_score_and_features[query_result_type_string],1.0)
 
                             # Update the distance total. 
                             serp_score_and_features[query_result_type_string] =\
-                                    IncrementSerpFeature('pre_click_'+event_type+'_distance',\
+                                    IncrementSerpFeature('gestures_pre_click_'+event_type+'_distance',\
                                     serp_score_and_features[query_result_type_string],\
                                     row['distance'])
                             # Record the time of event. 
                             serp_score_and_features[query_result_type_string] =\
-                              AppendValueToSERPFeature('pre_click_time_list_'+event_type,\
+                              AppendValueToSERPFeature('gestures_pre_click_time_list_'+event_type,\
                               serp_score_and_features[query_result_type_string],\
                               row['time'])
 
