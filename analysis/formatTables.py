@@ -272,9 +272,15 @@ def FormatAllEventDB(databases, dbcolumns, sort_keys):
           # Use event time
           if user == 'Sankaushik%40gmail.com':
             new_entry[0] = prop_dict['time']
-
           new_entry.append(prop_dict['element'])
-          new_entry.append(prop_dict['direction'])
+          if 'panup' in values['event_type'] or 'pandown' in values['event_type']:
+            # When y is + direction is up. 
+            if prop_dict['delta_y'] > 0:
+              new_entry.append('up')
+            else:
+              new_entry.append('down')
+          else:    
+            new_entry.append(prop_dict['direction'])
           new_entry.append(prop_dict['distance'])
           new_entry.append(prop_dict['delta_time'])
         else:

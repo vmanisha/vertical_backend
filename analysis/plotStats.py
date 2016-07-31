@@ -58,11 +58,11 @@ def PlotMultipleBoxPlotsPerVertical(per_vertical_and_pos_data, doc_pos,\
       SetVisBox(bp)
 
     # set axes limits and labels
-    plt.xlim(0,26)
-    plt.ylim(0,11)
+    plt.xlim(0,20)
+    plt.ylim(0,80)
     plt.xlabel(x_label)
     plt.ylabel(y_label)
-    ax.set_xticklabels(range(1,doc_pos+1)) #['1', '2', '3', '4', '5'])
+    ax.set_xticklabels(range(1,doc_pos)) #['1', '2', '3', '4', '5'])
     #ax.set_xticks([2.5, 7.5, 12.5, 17.5, 22.5])
     ax.set_xticks ([x*2.5 for x in range(1,doc_pos*2,2)])
     # draw temporary red and blue lines and use them to create a legend
@@ -71,13 +71,13 @@ def PlotMultipleBoxPlotsPerVertical(per_vertical_and_pos_data, doc_pos,\
     h3, = plt.plot([1,1],color=vert_color[2])
     h4, = plt.plot([1,1],color=vert_color[3])
     plt.legend((h1,h2,h3,h4),verticals, loc='upper center',\
-        bbox_to_anchor=(0.5, 1.05),ncol=4,fontsize=15)
+        bbox_to_anchor=(0.5, 1.05),ncol=2,fontsize=15)
     h1.set_visible(False)
     h2.set_visible(False)
     h3.set_visible(False)
     h4.set_visible(False)
 
-    plt.savefig(filename)
+    plt.savefig(filename, bbox_inches='tight' )
     plt.show()
 
 
@@ -213,7 +213,7 @@ def PlotFirstAndLastClickRank(vertical_stats, x_label, y_label, title, filename)
     h3, = plt.plot([1,1],color=vert_color[2])
     h4, = plt.plot([1,1],color=vert_color[3])
     plt.legend((h1,h2,h3,h4),verticals, loc='upper center',\
-        bbox_to_anchor=(0.5, 1.05),ncol=4, fontsize = 12)
+        bbox_to_anchor=(0.5, 1.05),ncol=2, fontsize = 15)
     #plt.legend((h1,h2),['On','Off'], loc='upper center',\
     #    bbox_to_anchor=(0.5, 1.05),ncol=2, fontsize = 12)
     h1.set_visible(False)
@@ -221,7 +221,7 @@ def PlotFirstAndLastClickRank(vertical_stats, x_label, y_label, title, filename)
     h3.set_visible(False)
     h4.set_visible(False)
 
-    plt.savefig(filename)
+    plt.savefig(filename,bbox_inches='tight' )
     plt.show()
 
 
@@ -284,89 +284,6 @@ def PlotFirstAndLastClickTime(vertical_stats):
     plt.savefig('first_last_time.png')
     plt.show()
 
-
-# def PlotPageResponsePerVert(first_rel_group,last_rel_group):
-#     fig = plt.figure()
-#     ax = plt.axes()
-#     plt.hold(True)
-
-#     # On Relevance
-#     resp_data = []
-#     sp = 1
-#     pos = [sp, sp+1, sp+2, sp+3]
-#     #for v in vert:
-#     #    resp_data.append(first_rel_group.get_group((v,'relevance'))['response_value'])
-#     for v in vert:
-#         print v,'last ranks', np.median(first_rel_group[v]['last_rank'])
-#         resp_data.append(first_rel_group[v]['last_rank'])
-#     # sym='' for not showing outliers
-#     bp = plt.boxplot(resp_data,positions=pos,widths=0.5)#,sym='')
-#     SetVisBox(bp)
-#     '''
-#     # Off Relevance
-#     resp_data = []
-#     sp = pos[3]+2
-#     pos = [sp, sp+1, sp+2, sp+3]
-#     for v in vert:
-#         resp_data.append(last_rel_group.get_group((v,'relevance'))['response_value'])
-#     # sym='' for not showing outliers
-#     bp = plt.boxplot(resp_data,positions=pos,widths=0.5,sym='')
-#     SetVisBox(bp)
-    
-#     # On Satisfaction
-#     resp_data = []
-#     sp = pos[3]+2
-#     pos = [sp, sp+1, sp+2, sp+3]
-#     for v in vert:
-#         resp_data.append(first_rel_group[v]['last_rank'])
-#     #for v in vert:
-#     #    resp_data.append(first_rel_group.get_group((v,'satisfaction'))['response_value'])
-#     # sym='' for not showing outliers
-#     bp = plt.boxplot(resp_data,positions=pos,widths=0.5)#,sym='')
-#     SetVisBox(bp)
-    
-#     # Off Satisfaction
-#     resp_data = []
-#     sp = pos[3]+2
-#     pos = [sp, sp+1, sp+2, sp+3]
-#     for v in vert:
-#         resp_data.append(last_rel_group.get_group((v,'satisfaction'))['response_value'])
-#     # sym='' for not showing outliers
-#     bp = plt.boxplot(resp_data,positions=pos,widths=0.5,sym='')
-#     SetVisBox(bp)
-#     '''
-#     # set axes limits and labels
-#     plt.xlim(0,pos[3]+1)
-#     plt.ylim(0,12)
-#     #plt.ylim(0,40)
-#     # plt.xlabel('Page Response Type')
-#     # plt.ylabel('Page Response')
-#     # plt.ylabel('Result Rank')
-#     # plt.ylabel('#clicks')
-#     plt.ylabel('Result Rank')
-
-#     # plt.title('Document Viewport Times (sec) ')
-#     # ax.set_xticklabels(['Relevance','Satisfaction'])
-#     ax.set_xticklabels(['Last Click Rank'])
-#     #ax.set_xticklabels(['Number of clicks per SERP'])
-
-#     ax.set_xticks([2.5]) #, 7.5]) #, 12.5, 17.5])
-
-#     # draw temporary red and blue lines and use them to create a legend
-#     h1, = plt.plot([1,1],color=vert_color[0])
-#     h2, = plt.plot([1,1],color=vert_color[1])
-#     h3, = plt.plot([1,1],color=vert_color[2])
-#     h4, = plt.plot([1,1],color=vert_color[3])
-#     plt.legend((h1,h2,h3,h4),verticals, loc='upper center',\
-#         bbox_to_anchor=(0.5, 1.05),ncol=2, fontsize = 12)
-#     h1.set_visible(False)
-#     h2.set_visible(False)
-#     h3.set_visible(False)
-#     h4.set_visible(False)
-
-#     #plt.savefig('page_resp_per_vert.png')
-#     plt.savefig('first_last_rank.png')
-#     plt.show()
 
 def PlotDwellTimePerVert(vertical_stats):
 	fig = plt.figure()
@@ -483,7 +400,12 @@ def PlotScrollDepthPerVert(highest_card, x_lable, y_label, title,filename):
     plt.savefig(filename)
     plt.show()
 
-def PlotSwipeFreqPerVert(swipe_freq):
+'''
+@attribute1 and @attribute2 : Direction of swipe (up/down, left/right)
+@x_ticks: the labels on x-axis, pair of directions (i.e. attr1 and attr2)
+'''
+def PlotSwipeDataPerVert(swipe_dist, attribute1, attribute2, x_ticks,x_label,\
+                        y_label,y_lim, filename):
     fig = plt.figure()
     ax = plt.axes()
     plt.hold(True)
@@ -493,7 +415,7 @@ def PlotSwipeFreqPerVert(swipe_freq):
     sp = 1
     pos = [sp, sp+1, sp+2, sp+3]
     for v in vert:
-        resp_data.append(swipe_freq[v]['panup'])
+        resp_data.append(swipe_dist[v][attribute1])
     bp = plt.boxplot(resp_data,positions=pos,widths=0.5)
     SetVisBox(bp)
 
@@ -502,14 +424,15 @@ def PlotSwipeFreqPerVert(swipe_freq):
     sp = pos[3]+2
     pos = [sp, sp+1, sp+2, sp+3]
     for v in vert:
-        resp_data.append(swipe_freq[v]['pandown'])
+        resp_data.append(swipe_dist[v][attribute2])
     bp = plt.boxplot(resp_data,positions=pos,widths=0.5)
     SetVisBox(bp)
 
     plt.xlim(0,pos[3]+1)
-    plt.ylim(0,45)
-    plt.ylabel('Swipe Counts')
-    ax.set_xticklabels(['Down', 'Up'])
+    plt.ylim(0,y_lim)
+    plt.ylabel(y_label)
+    plt.xlabel(x_label)
+    ax.set_xticklabels(x_ticks)
     ax.set_xticks([2.5, 7.5])
 
     # draw temporary red and blue lines and use them to create a legend
@@ -524,53 +447,9 @@ def PlotSwipeFreqPerVert(swipe_freq):
     h3.set_visible(False)
     h4.set_visible(False)
 
-    plt.savefig('swipe_freq.png')
+    plt.savefig(filename)
     plt.show()
 
-def PlotSwipeDistPerVert(swipe_dist):
-    fig = plt.figure()
-    ax = plt.axes()
-    plt.hold(True)
-
-    # PanUp
-    resp_data = []
-    sp = 1
-    pos = [sp, sp+1, sp+2, sp+3]
-    for v in vert:
-        resp_data.append(swipe_dist[v]['panup'])
-    bp = plt.boxplot(resp_data,positions=pos,widths=0.5)
-    SetVisBox(bp)
-
-    # PanDown
-    resp_data = []
-    sp = pos[3]+2
-    pos = [sp, sp+1, sp+2, sp+3]
-    for v in vert:
-        resp_data.append(swipe_dist[v]['pandown'])
-    bp = plt.boxplot(resp_data,positions=pos,widths=0.5)
-    SetVisBox(bp)
-
-    plt.xlim(0,pos[3]+1)
-    plt.ylim(0,6500)
-    plt.xlabel('Direction of Swipe')
-    plt.ylabel('Swipe Distance (px)')
-    ax.set_xticklabels(['Down', 'Up'])
-    ax.set_xticks([2.5, 7.5])
-
-    # draw temporary red and blue lines and use them to create a legend
-    h1, = plt.plot([1,1],color=vert_color[0])
-    h2, = plt.plot([1,1],color=vert_color[1])
-    h3, = plt.plot([1,1],color=vert_color[2])
-    h4, = plt.plot([1,1],color=vert_color[3])
-    plt.legend((h1,h2,h3,h4),verticals, loc='upper center',\
-        bbox_to_anchor=(0.5, 1.05),ncol=4,fontsize=15)
-    h1.set_visible(False)
-    h2.set_visible(False)
-    h3.set_visible(False)
-    h4.set_visible(False)
-
-    plt.savefig('swipe_dist.png')
-    plt.show()
 
 def PlotVertSwipeInfoByTime(aggregate_freq, x_title, y_title):
   # Format : {'i': {0 : [] , 1 : [] , 2 : [] .. }}

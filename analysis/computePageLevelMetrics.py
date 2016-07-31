@@ -496,22 +496,33 @@ def ComputePreClickDistributions(merged_table):
   # Plot the following scatter plots:
   # 1. Time to rank viewed. 
   scatter1 = {}
+  last_viewed_result = {}
   for result_type, time_and_pos_array in first_click_time_and_pos.items():
     # format vert_type : {pos : [time list (sec)]}
     scatter1[result_type] ={}
+    last_viewed_result[result_type] =[]
     # Sort by last viewed result (the format is time, pos, last_viewd_rank)
     sorted_tuple_by_view_rank = sorted(time_and_pos_array, key = lambda x : x[2])
     for sorted_tuple in sorted_tuple_by_view_rank:
       click_rank = sorted_tuple[1] +1
       view_rank = sorted_tuple[2] +1
+      last_viewed_result[result_type].append(view_rank)
       if click_rank not in scatter1[result_type]:
         scatter1[result_type][click_rank] = []
       # Time should be less than 100 seconds
-      scatter1[result_type][click_rank].append(view_rank)
-
-  print scatter1
-  PlotMultipleBoxPlotsPerVertical(scatter1,6, 'Clicked result',\
-      'Last viewed Rank', '', 'click_view_rank_dist.png')
+      scatter1[result_type][click_rank].append(sorted_tuple[0])
+        
+  for vert, dictionary in scatter1.items():
+      print 'krusk walllis ', vert, kruskalwallis(last_viewed_result[vert],last_viewed_result['o'])
+      for rank, array in dictionary.items():
+          if rank in scatter1['o']:
+              print 'krusk walllis ', vert,rank, kruskalwallis(array,scatter1['o'][rank])
+  
+  PlotFirstAndLastClickRank(last_viewed_result, ['Last Examined Snippet'],\
+      'Snippet Rank', '', 'last_viewed_snippet.png')
+  
+  #PlotMultipleBoxPlotsPerVertical(scatter1,5, 'Clicked result',\
+  #    'Time to First Click', '', 'first_time_click_rank_dist.png')
   # PlotXYScatter(scatter1, 'Time to first click (sec)', 'Lowest rank visible snippet')
   # 2. Rank visited to rank clicked
   # PlotXYScatter(scatter1, 'Rank of lowest visible snippet','Rank of clicked snippet')

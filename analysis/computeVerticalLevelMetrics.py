@@ -18,7 +18,9 @@ import matplotlib.pyplot as plt
 TASKSATMAP = {'Somewhat Satisfied': 2.0, 'Highly Satisfied': 3.0, 'Not Satisfied' : 1.0}
 
 def CorrelationAndClassification(features):
-    print features.columns
+    # write to another file.
+    features.to_csv('serp_features_clean.csv',index=False,encoding='utf-8')
+
     features = features.reset_index()
     # get satisfaction and relevance labels 
     satisfaction = features['satisfaction'].map({1:0,2:0, 3:0, 4:1,5:1 })
@@ -30,23 +32,14 @@ def CorrelationAndClassification(features):
     # set all other values to 0. 
     remaining_features = features.drop(['relevance','satisfaction',\
             'first_event_time','first_result_time','query_task'], axis =1)
+    # Merge the features : (tap and double tap)
+    remaining_features =  remaining_features.drop(['index','tap_distance'], axis = 1)
     remaining_features = remaining_features.fillna(0)
 
-    # write to another file.
-    remaining_features.to_csv('serp_features_clean.csv',index=False,encoding='utf-8')
     # map the vertical name to number.
     remaining_features['result_type'] =\
             remaining_features['result_type'].map({'i':1, 'v':2, 'w':3, 'o':4})
     
-    # Merge the features : (tap and double tap)
-    remaining_features['tap_count'] += remaining_features['doubletap_count']
-    remaining_features['tap_distance'] +=remaining_features['doubletap_distance']
-    remaining_features['first_tap_time'] = \
-            remaining_features[['first_doubletap_time',\
-            'first_tap_time']].min(axis=1)
-    remaining_features =  remaining_features.drop(['doubletap_count',\
-                                'doubletap_distance','first_doubletap_time','index'],
-                                axis = 1)
 
     # Normalize the features
     remaining_features = (remaining_features - remaining_features.mean()) \
@@ -54,7 +47,7 @@ def CorrelationAndClassification(features):
     # Convert the features into lists. 
     features_list = remaining_features.values.tolist()
    
-    for c in [0.01, 0.1,1,5,10,100]:
+    for c in [1,2]:
         mean_tpr = 0.0
         mean_fpr = np.linspace(0, 1, 100)
         all_tpr = []
@@ -173,6 +166,12 @@ def ComputeSERPFeatures(merged_table):
 
                     # Add first event time. 
                     event_type = row['event_type']
+                    # Remove pan and double events. 
+                    if 'pan' in event_type:
+                      event_type = event_type.replace('pan','swipe')
+                    if 'double' in event_type:
+                      event_type = event_type.replace('double','')
+
                     serp_score_and_features[query_result_type_string] = SetSerpFeature(\
                             'first_event_time',serp_score_and_features[query_result_type_string],\
                             row['time'])
@@ -184,16 +183,47 @@ def ComputeSERPFeatures(merged_table):
                             'first_'+event_type+'_time',\
                             serp_score_and_features[query_result_type_string],\
                             row['time'])
+
                         # Update the event count. 
                         serp_score_and_features[query_result_type_string] =\
-                                IncrementSerpFeature(event_type+'_count',\
-                                serp_score_and_features[query_result_type_string],1.0)
+                          IncrementSerpFeature(event_type+'_count',\
+                          serp_score_and_features[query_result_type_string],1.0)
 
                         # Update the distance total. 
                         serp_score_and_features[query_result_type_string] =\
-                                IncrementSerpFeature(event_type+'_distance',\
-                                serp_score_and_features[query_result_type_string],\
-                                row['distance'])
+                          IncrementSerpFeature(event_type+'_distance',\
+                          serp_score_and_features[query_result_type_string],\
+                          row['distance'])
+
+                        # Record the time of event. 
+                        serp_score_and_features[query_result_type_string] =\
+                          AppendValueToSERPFeature('time_list_'+event_type,\
+                          serp_score_and_features[query_result_type_string],\
+                          row['time'])
+
+
+                        # Add pre-click information 
+                        if ('first_click_time' not in \
+                            serp_score_and_features[query_result_type_string]) and \
+                            ('first_tap_time' not in\
+                            serp_score_and_features[query_result_type_string]):
+
+                            # Update the event count. 
+                            serp_score_and_features[query_result_type_string] =\
+                                    IncrementSerpFeature('pre_click_'+event_type+'_count',\
+                                    serp_score_and_features[query_result_type_string],1.0)
+
+                            # Update the distance total. 
+                            serp_score_and_features[query_result_type_string] =\
+                                    IncrementSerpFeature('pre_click_'+event_type+'_distance',\
+                                    serp_score_and_features[query_result_type_string],\
+                                    row['distance'])
+                            # Record the time of event. 
+                            serp_score_and_features[query_result_type_string] =\
+                              AppendValueToSERPFeature('pre_click_time_list_'+event_type,\
+                              serp_score_and_features[query_result_type_string],\
+                              row['time'])
+
 
                     # Add visibility of results
                     visible_positions_list=GetVisibleRanks(row['visible_elements']) 
@@ -207,12 +237,14 @@ def ComputeSERPFeatures(merged_table):
                                     ['last_visible_result_before_click']=\
                                     max(visible_positions_list)
                         
-                        # Add time of visibility for each element on SERP.  
-                        for visible_element in visible_positions_list:
-                            serp_score_and_features[query_result_type_string]=\
-                                IncrementSerpFeature(str(visible_element)+'_viewport_ms', \
-                                serp_score_and_features[query_result_type_string],\
-                                row['delta_time'])
+                        # Add time of visibility for each element on SERP.
+                        # (Not very correlated)
+                        # for visible_element in visible_positions_list:
+                        #    serp_score_and_features[query_result_type_string]=\
+                        #        IncrementSerpFeature(str(visible_element)+'_viewport_ms', \
+                        #        serp_score_and_features[query_result_type_string],\
+                        #        row['delta_time'])
+                        
                         # Update the rank of last visible result for the whole serp
                         # time.
                         serp_score_and_features[query_result_type_string]['last_visible_result']=\
@@ -220,11 +252,15 @@ def ComputeSERPFeatures(merged_table):
 
                     # Update the bucket count. The results are (top, med and bottom
                     # buckets)
-                    for entry in GetRankBucket(row['visible_elements']):
+                    for result_bucket in GetRankBucket(row['visible_elements']):
                         serp_score_and_features[query_result_type_string]=\
-                            IncrementSerpFeature(entry+'_count', \
+                            IncrementSerpFeature(result_bucket+'_count', \
                             serp_score_and_features[query_result_type_string],\
                             1.0)
+                        serp_score_and_features[query_result_type_string]=\
+                            IncrementSerpFeature(result_bucket+'_viewport_ms', \
+                            serp_score_and_features[query_result_type_string],\
+                            row['delta_time'])
 
                 # Add click info. 
                 if row['type'] == 'click':
@@ -241,8 +277,13 @@ def ComputeSERPFeatures(merged_table):
                     serp_score_and_features[query_result_type_string]=SetSerpFeature(\
                             'first_click_rank',\
                             serp_score_and_features[query_result_type_string],\
-                            int(row['doc_id'][row['doc_id'].find('_')+1:]))
-
+                            int(row['doc_id'][row['doc_id'].find('_')+1:])+1)
+                  
+                    # Record the click rank 
+                    serp_score_and_features[query_result_type_string] =\
+                      AppendValueToSERPFeature('click_rank_list',\
+                      serp_score_and_features[query_result_type_string],\
+                      int(row['doc_id'][row['doc_id'].find('_')+1:])+1)
                 
                 # Record the satisfaction and relevance for SERP response. 
                 if row['type'] == 'page_response' and\
@@ -288,10 +329,17 @@ def ComputeSERPFeatures(merged_table):
             first_time = feat_dict['first_event_time']
         else:
             first_time = feat_dict['first_result_time']
-        for feat_key in feat_dict.keys():  
-            if 'time' in feat_key:
+        for feat_key in feat_dict.keys(): 
+            # List of times. Get the average instead. 
+            if 'time_list' in feat_key:
+                feat_dict[feat_key] = GetAverageBetweenTwoEntries(feat_dict[feat_key])
+            elif 'time' in feat_key:
                 feat_dict[feat_key] = (feat_dict[feat_key] - first_time)\
                         .total_seconds()
+            if 'rank_list' in feat_key:
+                print feat_dict[feat_key] 
+                feat_dict[feat_key] = np.mean(feat_dict[feat_key])
+
         for feat_key in feat_dict.keys():  
             if 'viewport_ms' in feat_key:
                 # Convert ms into seconds and then convert into ratio.  
@@ -313,6 +361,27 @@ def ComputeSERPFeatures(merged_table):
     '''
     return filtered_feature_frame
 
+def GetAverageBetweenTwoEntries(time_list):
+  difference = []
+  for i in range(len(time_list)-1):
+    j = i+1
+    difference.append((time_list[j] - time_list[i]).total_seconds())
+  
+  if len(difference) > 0:
+    return max(difference)
+  return 0
+
+
+# Feature is a list of values (mostly times, ranks etc). Append a value to 
+# list. 
+def AppendValueToSERPFeature(event_type, serp_event_dict, event_value):
+    if event_type not in serp_event_dict:
+        serp_event_dict[event_type] = []
+    if (len(serp_event_dict[event_type]) == 0) or \
+      (serp_event_dict[event_type][-1] != event_value):
+        serp_event_dict[event_type].append(event_value)
+        
+    return serp_event_dict
 
 # Add a feature to serp only if it does not exist. Useful to add time oriented
 # features such as first click/event/tap time. 
@@ -332,16 +401,18 @@ def GetVisibleRanks(visible_string):
     indices = []
     for entry in visible_string.split():
         index = int(entry[entry.rfind('_')+1:])
-        indices.append(index)
+        indices.append(index+1)
     return indices
 
 def GetRankBucket(visible_elements):
     buckets = []
     for entry in visible_elements.split():
         index = int(entry[entry.rfind('_')+1:])
-        if index < 3:
+        if index == 0:
+            buckets.append('firstr')
+        if index < 4:
             buckets.append('top')
-        elif index < 6:
+        elif index < 7:
             buckets.append('middle')
         else:
             buckets.append('bottom')
@@ -718,7 +789,7 @@ def FindFirstAndLastClickInfo(concat_table):
     print 'Man lc on-off',\
         kruskalwallis(vertical_stats['on']['last_click'],vertical_stats['off']['last_click'])
 
-    verticals = vertical_stats.keys():
+    verticals = vertical_stats.keys()
     for i in range(len(verticals)):
         v1 = verticals[i]
         for j in range(i+1,len(verticals)):
@@ -846,7 +917,7 @@ def FindDescriptiveStatsPerVertical(concat_table):
         'time ', np.mean(stat_dict['time']),round(np.std(stat_dict['time']),2)
 
     # Print the statistical significance against organic
-    verticals = vertical_stats.keys():
+    verticals = vertical_stats.keys()
     for i in range(len(verticals)):
         v1 = verticals[i]
         for j in range(i+1,len(verticals)):
@@ -857,7 +928,7 @@ def FindDescriptiveStatsPerVertical(concat_table):
                         kruskalwallis(vertical_stats[v1][attribute],\
                         vertical_stats[v2][attribute])
     
-                        print 'Man query on-off', kruskalwallis(vertical_stats['on']['query'],vertical_stats['off']['query'])
+    print 'Man query on-off', kruskalwallis(vertical_stats['on']['query'],vertical_stats['off']['query'])
     print 'Man click on-off', kruskalwallis(vertical_stats['on']['clicks'],vertical_stats['off']['clicks'])
     print 'Man page_rel on-off', kruskalwallis(vertical_stats['on']['page_rel'],vertical_stats['off']['page_rel'])
     print 'Man page_sat on-off', kruskalwallis(vertical_stats['on']['page_sat'],vertical_stats['off']['page_sat'])

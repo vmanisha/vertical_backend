@@ -212,11 +212,11 @@ def main():
     # FindMarkovNetwork(merged_tables)
 
     # Serp features. 
-    #serp_features = ComputeSERPFeatures(merged_tables)
-    #CorrelationAndClassification(serp_features)
+    serp_features = ComputeSERPFeatures(merged_tables)
     # Compute correlations. 
+    CorrelationAndClassification(serp_features)
 
-    ComputePreClickDistributions(merged_tables)
+    # ComputePreClickDistributions(merged_tables)
 
     # Filter query table to have only top position on first page
     # TODO: Do this after merge tables as it adds 'type' which is used later

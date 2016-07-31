@@ -364,5 +364,9 @@ def FindPageScrollDistributionPerVertical(result_table, event_table):
     # PlotScrollDepthPerVert(max_scroll_card)
     # PlotScrollDepthPerVert(max_vis_card)
     
-    # PlotSwipeFreqPerVert(swipe_freq)
-    # PlotSwipeDistPerVert(swipe_dist)
+    # PlotSwipeDataPerVert(swipe_freq, 'panup','pandown',['Down', 'Up'],\
+    #                      'Swipe Direction','Swipe Frequency',45,\
+    #                      'swipe_freq.png')
+    # PlotSwipeDataPerVert(swipe_dist, 'panup','pandown',['Down', 'Up'],\
+    #                      'Swipe Direction','Swipe Distance (px)',6500,\
+    #                      'swipe_dist.png')
