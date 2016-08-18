@@ -184,6 +184,7 @@ def main():
             == 5]
 
     query_filtered = query_table[query_table['doc_pos'] == 0]
+    
     # Filter the columns for count.
     #click_filtered[['task_id','doc_pos']].groupby(['task_id','doc_pos'])['doc_pos'].\
     #        count().to_csv('task_rank_click_counts.csv', encoding = 'utf-8',\
@@ -214,8 +215,11 @@ def main():
 
     # Serp features. 
     serp_features = ComputeSERPFeatures(merged_tables)
-    # Compute correlations. 
-    CorrelationAndClassification(serp_features)
+    remaining_features, satisfaction = PrepareFeaturesAndSatisfactionLabels(serp_features,'serp_features_clean.csv')
+    # Get classification results
+    PerformClassificationViaCrossValidation(remaining_features, satisfaction,'classifier.csv')
+    # Compute Mean and std-dev of features for SAT and DSAT labels. 
+    ComputeFeatMeanStdDevOfSatAndDSatLabels(remaining_features) 
 
     # ComputePreClickDistributions(merged_tables)
 

@@ -235,6 +235,7 @@ def ProcessPropInEvents(prop_string):
   except:
       prop_dict['element'] = -1
   prop_dict['distance'] = float(split[7])
+  # Fix swipe right 
   prop_dict['direction'] = hammer_direction[split[6]]
   return prop_dict
 
@@ -273,7 +274,7 @@ def FormatAllEventDB(databases, dbcolumns, sort_keys):
           if user == 'Sankaushik%40gmail.com':
             new_entry[0] = prop_dict['time']
           new_entry.append(prop_dict['element'])
-          if 'panup' in values['event_type'] or 'pandown' in values['event_type']:
+          if 'panleft' in values['event_type'] or 'panright' in values['event_type']:
             # When y is + direction is up. 
             if prop_dict['delta_y'] > 0:
               new_entry.append('up')
@@ -281,6 +282,8 @@ def FormatAllEventDB(databases, dbcolumns, sort_keys):
               new_entry.append('down')
           else:    
             new_entry.append(prop_dict['direction'])
+
+
           new_entry.append(prop_dict['distance'])
           new_entry.append(prop_dict['delta_time'])
         else:

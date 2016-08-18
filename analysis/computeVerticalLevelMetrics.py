@@ -9,7 +9,6 @@ import math
 
 TASKSATMAP = {'Somewhat Satisfied': 2.0, 'Highly Satisfied': 3.0, 'Not Satisfied' : 1.0}
 
-
 def ComputeSERPFeatures(merged_table):
     grouped_table = merged_table.groupby(['user_id','task_id'])
     query_regex = re.compile('query=(.*?)(&|\Z)')
@@ -31,7 +30,11 @@ def ComputeSERPFeatures(merged_table):
         group = group.sort('time')
         query_result_type_string = None
         curr_time = None
+        row_index = -1
         for index, row in group.iterrows():
+            # index row. 
+            row_index+=1
+
             curr_time = row['time']
             if row['type'] == 'results':
                 # Update the previous query and type features with
@@ -78,19 +81,56 @@ def ComputeSERPFeatures(merged_table):
                     # Add event counts. 
                     if ('tap' in event_type) or ('pan' in event_type) or ('swipe'\
                             in event_type):
-
                         # Change event name
-                        event_type = event_type.replace('swipeup','su')
-                        event_type = event_type.replace('swipedown','sd')
-                        event_type = event_type.replace('swiperight','sr')
-                        event_type = event_type.replace('swipeleft','sl')
-                        event_type = event_type.replace('tap','t')
-                        
+                        if 'tap' in event_type:
+                          event_type = 't'
+                        elif row['direction']!='none':
+                          event_type = row['direction']
+                          event_type = event_type.replace('up','su')
+                          event_type = event_type.replace('down','sd')
+                          event_type = event_type.replace('right','sr')
+                          event_type = event_type.replace('left','sl')
+                        else:
+                          event_type = event_type.replace('swipe','')
+                          event_type = event_type.replace('pan','')
+                          event_type = event_type.replace('up','su')
+                          event_type = event_type.replace('down','sd')
+                          event_type = event_type.replace('right','sr')
+                          event_type = event_type.replace('left','sl')
+
                         # Add tap on first result. 
-                        if event_type == 't' and row['element'] == 0:
-                            serp_score_and_features[query_result_type_string] =\
-                                IncrementSerpFeature('vert_sess_c',\
-                                serp_score_and_features[query_result_type_string],1.0)
+                        if event_type == 't' :
+                            if row['element'] == 0:
+                                serp_score_and_features[query_result_type_string] =\
+                                    IncrementSerpFeature('vert_sess_c',\
+                                    serp_score_and_features[query_result_type_string],1.0)
+                            
+                            # Update tap rank before first click to fill first
+                            # click info. 
+                            serp_score_and_features[query_result_type_string]=SetSerpFeature(\
+                                'cq_sess_ftr',\
+                                serp_score_and_features[query_result_type_string],\
+                                row['element']+1)
+
+                            # Get next row index 
+                            next_event_row_index = GetNextEventRowIndexAfterClickOrTap(name,\
+                                                    row_index, group)
+                            
+                            # Update the number of sat and dsat clicks
+                            if next_event_row_index < len(group):
+                                time_diff = (group.ix[group.index[next_event_row_index]]['time'] -\
+                                    row['time']).total_seconds()
+                                if time_diff < 30:
+                                    serp_score_and_features[query_result_type_string]=IncrementSerpFeature(\
+                                    'cq_sess_dsat_click',\
+                                    serp_score_and_features[query_result_type_string],\
+                                    1)
+                            '''    else:
+                                    serp_score_and_features[query_result_type_string]=IncrementSerpFeature(\
+                                    'cq_sess_sat_click',\
+                                    serp_score_and_features[query_result_type_string],\
+                                    1)
+                            '''
 
                         # Add first event time.
                         serp_score_and_features[query_result_type_string]=SetSerpFeature(\
@@ -202,10 +242,12 @@ def ComputeSERPFeatures(merged_table):
                             'cq_sess_first_click_time',\
                             serp_score_and_features[query_result_type_string],\
                             row['time'])
+                    
                     # Update the click count. 
                     serp_score_and_features[query_result_type_string] =\
                             IncrementSerpFeature('cq_sess_cc',\
                             serp_score_and_features[query_result_type_string],1.0)
+                    
                     # Update rank.
                     serp_score_and_features[query_result_type_string]=SetSerpFeature(\
                             'cq_sess_fcr',\
@@ -223,7 +265,26 @@ def ComputeSERPFeatures(merged_table):
                       AppendValueToSERPFeature('cq_sess_time_list_c',\
                       serp_score_and_features[query_result_type_string],\
                       row['time'])
-                
+
+                    # Record sat and dsat click
+                    '''
+                    next_event_row_index = GetNextEventRowIndexAfterClickOrTap(name,\
+                                            row_index, group)
+                    if next_event_row_index < len(group):
+                        time_diff = (group.ix[group.index[next_event_row_index]]['time'] -\
+                            row['time']).total_seconds()
+                        print time_diff, row['time'], group.ix[group.index[next_event_row_index]]
+                        if time_diff < 30:
+                            serp_score_and_features[query_result_type_string]=IncrementSerpFeature(\
+                            'cq_sess_dsat_click',\
+                            serp_score_and_features[query_result_type_string],\
+                            1)
+                        else:
+                            serp_score_and_features[query_result_type_string]=IncrementSerpFeature(\
+                            'cq_sess_sat_click',\
+                            serp_score_and_features[query_result_type_string],\
+                            1)
+                    '''
                 # Record the satisfaction and relevance for SERP response. 
                 if row['type'] == 'page_response' and\
                         '128.16.12.66:4730/' in row['doc_url']:
@@ -304,6 +365,40 @@ def ComputeSERPFeatures(merged_table):
                                     'rel_sat_serp_resonse.png')
     '''
     return filtered_feature_frame
+
+
+def GetGestDistToCountRatio(feat_dict, feat_num, feat_den, result_feature):
+    # Average the distances/
+    print feat_num, feat_den, result_feature
+    if (feat_den in feat_dict)  and (feat_num in feat_dict) and (feat_dict[feat_den] > 0):
+        feat_dict[result_feature] = feat_dict[feat_num] / feat_dict[feat_den]
+    else:
+        feat_dict[result_feature] = 0.0
+
+    if (feat_num in feat_dict) :
+        del feat_dict[feat_num]
+    if (feat_den in feat_dict)  :
+        del feat_dict[feat_den]
+    return feat_dict
+
+
+def GetNextEventRowIndexAfterClickOrTap(group_name, row_index, group):
+    # Get the row after tap that indicates return on
+    # SERP. 
+    next_event_row_index = row_index+1 
+    while next_event_row_index < len(group):
+        row_type = group.ix[group.index[next_event_row_index]]['type']
+        row_event_type = group.ix[group.index[next_event_row_index]]['event_type']
+        #print group_name, next_event_row_index,row_type,\
+        #    row_event_type
+        if (row_type == 'event' and 'tap' in row_event_type) or \
+                (row_type == 'click'):
+                    next_event_row_index+=1
+        else:
+            break
+    return next_event_row_index
+
+
 
 def GetAverageBetweenTwoEntries(time_list):
   difference = []
@@ -602,11 +697,16 @@ def FindFirstAndLastClickInfo(concat_table):
     vertical_stats = {
             'on' : { 'first_click': [], 'first_rank':[], 'last_click':[],\
                    'last_rank':[], 'total_clicks':0.0, 'off_vert_click':0.0,\
-                   'off_vert_rank':[], 'on_vert_click':0.0,\
+                   'off_vert_rank':[], 'on_vert_click':0.0,'reformulate':0.0,\
+                   'first_last_same':0.0 }, \
+            'o' : { 'first_click': [], 'first_rank':[], 'last_click':[],\
+                   'last_rank':[], 'total_clicks':0.0, 'off_vert_click':0.0,\
+                   'off_vert_rank':[], 'on_vert_click':0.0,'reformulate':0.0,\
                    'first_last_same':0.0 }, \
             'off' : { 'first_click': [], 'first_rank':[], 'last_click':[],\
                    'last_rank':[], 'total_clicks':0.0, 'off_vert_click':0.0,\
-                   'off_vert_rank':[],'on_vert_click':0.0, 'first_last_same':0.0 }
+                   'off_vert_rank':[],'on_vert_click':0.0, 'reformulate':0.0,\
+                   'first_last_same':0.0 }
     }
 
     # Remove task responses.
@@ -616,8 +716,10 @@ def FindFirstAndLastClickInfo(concat_table):
     grouped_table = concat_table.groupby(['user_id','task_id'])
     for name, group in grouped_table:
         group = group.sort('time')
-        vert_type = first_click = first_time = None
-        last_time= last_click = result_time = None
+        first_click = last_click = -1
+        first_time= last_time=result_time= vert_type = None
+        first_query_result = None
+        counted = False
         rows = []
         results = {}
         recorded_clicks = {}
@@ -629,7 +731,7 @@ def FindFirstAndLastClickInfo(concat_table):
             # Store results.
             if row['type'] == 'results':
                 results[row['doc_pos']] = row
-           
+          
             if row['type'] == 'results' and row['doc_pos'] == 0:
                 # check prev result data.
                 if vert_type and first_click > -1 and last_click > -1:
@@ -637,26 +739,34 @@ def FindFirstAndLastClickInfo(concat_table):
                     vertical_stats[vert_type]['last_rank'].append(last_click)
                     vertical_stats[vert_type]['first_click'].append(first_time)
                     vertical_stats[vert_type]['last_click'].append(last_time)
-                    if first_click == last_click:
+                    if first_click == last_click and first_click > -1:
                         vertical_stats[vert_type]['first_last_same']+=1.0
+                    if first_query_result and not counted:
+                        vertical_stats[vert_type]['reformulate'] += 1
+                        counted = True
+
                     # Set everything to null.
-                    first_click= first_time= last_time= last_click=\
-                        result_time= vert_type = None
+                    first_click = last_click = -1
+                    first_time= last_time=result_time= vert_type = None
                     recorded_clicks = {}
                 # Set vertical type for this page and request time.
                 vert_type = str(row['doc_type']).strip()
-                if vert_type == row['task_vertical']:
+                if vert_type == 'o':
+                    vert_type = 'o'
+                elif vert_type == row['task_vertical']:
                     vert_type = 'on'
                 else:
                     vert_type = 'off'
-
+                
+                if first_query_result == None:
+                    first_query_result = True
                 result_time = row['time']
 
-            # Found a tap or a click
             start_time  = row['time']
             etype = None
             click_rank = None
             found = False
+            # Found a tap or a click
             if (row['type'] == 'event') and (row['event_type'] == 'tap') and\
                 (row['element'] > -1):
                 click_url = results[row['element']]['doc_url']
@@ -692,7 +802,7 @@ def FindFirstAndLastClickInfo(concat_table):
                     else:
                         vertical_stats[vert_type]['on_vert_click']+=1.0
 
-                if first_click > -1:
+                if first_click == -1:
                     first_time  = (start_time - result_time).total_seconds()
                     if (first_time < 50):
                         first_click = click_rank
@@ -710,6 +820,8 @@ def FindFirstAndLastClickInfo(concat_table):
             vertical_stats[vert_type]['last_click'].append(last_time)
             if first_click == last_click:
                 vertical_stats[vert_type]['first_last_same']+=1.0
+            if first_query_result:
+                vertical_stats[vert_type]['reformulate'] += 1
 
 
     for vertical_type, stats in vertical_stats.items():
@@ -721,17 +833,8 @@ def FindFirstAndLastClickInfo(concat_table):
         'last-rank',np.mean(stats['last_rank']),np.std(stats['last_rank']),\
         'first-time',np.mean(stats['first_click']),np.std(stats['first_click']),\
         'last-time',np.mean(stats['last_click']),np.std(stats['last_click']),\
-        'first_last_same',stats['first_last_same'], (stats['first_last_same']/stats['total_clicks'])
-
-    print 'Man off_vert_rank on-off', kruskalwallis(vertical_stats['on']['off_vert_rank'],vertical_stats['off']['off_vert_rank'])
-    print 'Man first_rank  on-off',\
-    kruskalwallis(vertical_stats['on']['first_rank'],vertical_stats['off']['first_rank'])
-    print 'Man lr on-off',\
-    kruskalwallis(vertical_stats['on']['last_rank'],vertical_stats['off']['last_rank'])
-    print 'Man fc on-off',\
-        kruskalwallis(vertical_stats['on']['first_click'],vertical_stats['off']['first_click'])
-    print 'Man lc on-off',\
-        kruskalwallis(vertical_stats['on']['last_click'],vertical_stats['off']['last_click'])
+        'first_last_same',stats['first_last_same'],'reformulate',stats['reformulate'],\
+        (stats['first_last_same']/stats['total_clicks'])
 
     verticals = vertical_stats.keys()
     for i in range(len(verticals)):
@@ -743,9 +846,19 @@ def FindFirstAndLastClickInfo(concat_table):
                 print 'Man off_vert_rank ',v1, v2,attribute,\
                     kruskalwallis(vertical_stats[v1][attribute],vertical_stats[v2][attribute])
     
-    PlotFirstAndLastClickTime(vertical_stats)
-    PlotFirstAndLastClickRank(vertical_stats, 'Examined Result Pos', 'Result Rank',\
-                    '','first_and_last_click_rank.png') 
+    PlotVerticalLevelAttributeBoxPlot(vertical_stats, 'first_rank', 11,\
+            ['First Click'], 'Result Rank', '',\
+            'first_rank_click_on_and_off_dist.png')
+    PlotVerticalLevelAttributeBoxPlot(vertical_stats, 'last_rank', 11,\
+            ['Last Click'], 'Result Rank', '',\
+            'last_rank_click_on_and_off_dist.png')
+    PlotVerticalLevelAttributeBoxPlot(vertical_stats, 'first_click', 50,\
+            ['First Click'], 'Time to Click (sec)', '',\
+            'first_click_time_on_and_off_dist.png')
+    PlotVerticalLevelAttributeBoxPlot(vertical_stats, 'last_click', 200,\
+            ['Last Click'], 'Time to Click (sec)', '',\
+            'last_click_time_on_and_off_dist.png')
+
 
 def FindDescriptiveStatsPerVertical(concat_table):
     # Find the following stats per vertical:
@@ -767,14 +880,18 @@ def FindDescriptiveStatsPerVertical(concat_table):
     '''
     vertical_stats = {
             'off' : {'sess':0.0, 'query': [], 'clicks':[], 'page_rel':[],\
-                'page_sat':[], 'task_sat':[] , 'time' : [] }, \
+                    'page_sat':[], 'task_sat':[] , 'time' : [] ,\
+                    'reformulate':0.0}, \
             'on' : {'sess':0.0, 'query': [], 'clicks':[], 'page_rel': [],\
-                'page_sat':[], 'task_sat':[], 'time': []}, \
+            'page_sat':[], 'task_sat':[], 'time': [], 'reformulate':0.0}, \
+            'o' : {'sess':0.0, 'query': [], 'clicks':[], 'page_rel': [],\
+            'page_sat':[], 'task_sat':[], 'time': [], 'reformulate':0.0}, \
     }
 
     # Group by task_id and query_id and Sort by time within each group.
-    grouped_table = concat_table.sort(['time']).groupby(['task_id','user_id'])
+    grouped_table = concat_table.groupby(['user_id','task_id'])
     for name, group in grouped_table:
+        group = group.sort('time')
         user = name[1]
         task = name[0]
         if user not in user_stats:
@@ -790,6 +907,8 @@ def FindDescriptiveStatsPerVertical(concat_table):
         page_rel = {}
         doc_type = None
         n_task_response = 0.0
+        first_session_query = None
+        counted = False
 
         for index, row in group.iterrows():
             if row['type'] == 'results' and row['doc_pos'] == 0:
@@ -800,13 +919,22 @@ def FindDescriptiveStatsPerVertical(concat_table):
                     sess+=1.0
                     doc_type = str(row['doc_type']).strip()
                     # To mark on and off vertical.
-                    if doc_type == row['task_vertical']:
+                    if doc_type == 'o':
+                        doc_type = 'o'
+                    elif doc_type == row['task_vertical']:
                         doc_type = 'on'
                     else:
                         doc_type = 'off'
 
                 # Record queries.
                 queries +=1.0
+                if first_session_query and not counted:
+                    counted=True
+                    vertical_stats[doc_type]['reformulate'] +=1.0
+
+                if first_session_query == None:
+                    first_session_query = True
+
 
             if row['type'] == 'click':
                 # Record only one click per url.
@@ -858,7 +986,8 @@ def FindDescriptiveStatsPerVertical(concat_table):
         'page_rel',np.mean(stat_dict['page_rel']),round(np.std(stat_dict['page_rel']),2),\
         'page_sat', np.mean(stat_dict['page_sat']),round(np.std(stat_dict['page_sat']),2),\
         'task sat', np.mean(stat_dict['task_sat']),round(np.std(stat_dict['task_sat']),2),\
-        'time ', np.mean(stat_dict['time']),round(np.std(stat_dict['time']),2)
+        'time ', np.mean(stat_dict['time']),round(np.std(stat_dict['time']),2),\
+        'reformulate', stat_dict['reformulate']
 
     # Print the statistical significance against organic
     verticals = vertical_stats.keys()
@@ -872,11 +1001,6 @@ def FindDescriptiveStatsPerVertical(concat_table):
                         kruskalwallis(vertical_stats[v1][attribute],\
                         vertical_stats[v2][attribute])
     
-    print 'Man query on-off', kruskalwallis(vertical_stats['on']['query'],vertical_stats['off']['query'])
-    print 'Man click on-off', kruskalwallis(vertical_stats['on']['clicks'],vertical_stats['off']['clicks'])
-    print 'Man page_rel on-off', kruskalwallis(vertical_stats['on']['page_rel'],vertical_stats['off']['page_rel'])
-    print 'Man page_sat on-off', kruskalwallis(vertical_stats['on']['page_sat'],vertical_stats['off']['page_sat'])
-    print 'Man task sat on-off', kruskalwallis(vertical_stats['on']['task_sat'],vertical_stats['off']['task_sat'])
     print 'Not registered clicks ', not_registered_clicks
 
 def FindTaskSatPerVertical(result_table,task_table):
@@ -893,10 +1017,11 @@ def FindTaskSatPerVertical(result_table,task_table):
     for index, row in merge_table.iterrows():
         doc_type = row['doc_type']
         task_vert = row['task_vertical']
-        if doc_type == task_vert:
-            vert = 'on'
-        else:
-            vert = 'off'
+        if doc_type != 'o':
+            if doc_type == task_vert:
+                vert = 'on'
+            else:
+                vert = 'off'
 
         # Check if the vertical is a valid vertical
         # Need to check this because not all entires in task db

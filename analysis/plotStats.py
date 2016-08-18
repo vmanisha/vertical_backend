@@ -159,9 +159,9 @@ def PlotSatAndRelBoxPlotPerVertical(first_rel_group, ylabel, filename):
 
 
 '''
-@xlabel : an array of labels to display on x-axis
+@xlabels : an array of labels to display on x-axis
 '''
-def PlotFirstAndLastClickRank(vertical_stats, x_label, y_label, title, filename):
+def PlotVerticalLevelAttributeBoxPlot(vertical_stats, attribute, y_lim, x_labels, y_label, title, filename):
     fig = plt.figure()
     ax = plt.axes()
     plt.hold(True)
@@ -169,13 +169,17 @@ def PlotFirstAndLastClickRank(vertical_stats, x_label, y_label, title, filename)
     # First Click Rank
     resp_data = []
     sp = 1
-    '''
     #pos = [sp, sp+1, sp+2, sp+3]
     pos = [sp, sp+1]
     for v in ['on','off']:
     #for v in vert:
-        print v,'first ranks', np.median(vertical_stats[v]['first_rank'])
-        resp_data.append(vertical_stats[v]['first_rank'])
+        if len(attribute) > 0:
+          print v,attribute, vertical_stats[v][attribute]
+          resp_data.append(vertical_stats[v][attribute])
+        else:
+          print v, np.median(vertical_stats[v])
+          resp_data.append(vertical_stats[v])
+
     bp = plt.boxplot(resp_data,positions=pos,widths=0.5)
     # SetVisBox(bp)
     SetVisBoxForOnOff(bp)
@@ -185,8 +189,6 @@ def PlotFirstAndLastClickRank(vertical_stats, x_label, y_label, title, filename)
     resp_data = []
     #sp = pos[1]+2
     pos = [sp, sp+1, sp+2, sp+3]
-    #pos = [sp, sp+1]
-    #for v in ['on','off']:
     for v in vert:
         #print v,'last ranks examined', np.median(vertical_stats[v]['last_rank'])
         #resp_data.append(vertical_stats[v]['last_rank'])
@@ -194,78 +196,17 @@ def PlotFirstAndLastClickRank(vertical_stats, x_label, y_label, title, filename)
         resp_data.append(vertical_stats[v])
     bp = plt.boxplot(resp_data,positions=pos,widths=0.5)
     SetVisBox(bp)
-    #SetVisBoxForOnOff(bp)
-    
+    ''' 
     # set axes limits and labels
-    plt.xlim(0,pos[3]+1)
-    plt.ylim(0.5,11)
+    plt.xlim(0,pos[1]+1)
+    plt.ylim(0,y_lim)
     plt.ylabel(y_label) 
 
     #ax.set_xticklabels([])#,'Last Click'])
-    ax.set_xticklabels(x_label)
+    ax.set_xticklabels(x_labels)
     #ax.set_xticks([2.5, 7.5])
     #ax.set_xticks([1.5])#, 4.5])
-    ax.set_xticks([2.5])
-
-    # draw temporary red and blue lines and use them to create a legend
-    h1, = plt.plot([1,1],color=vert_color[0])
-    h2, = plt.plot([1,1],color=vert_color[1])
-    h3, = plt.plot([1,1],color=vert_color[2])
-    h4, = plt.plot([1,1],color=vert_color[3])
-    plt.legend((h1,h2,h3,h4),verticals, loc='upper center',\
-        bbox_to_anchor=(0.5, 1.05),ncol=2, fontsize = 15)
-    #plt.legend((h1,h2),['On','Off'], loc='upper center',\
-    #    bbox_to_anchor=(0.5, 1.05),ncol=2, fontsize = 12)
-    h1.set_visible(False)
-    h2.set_visible(False)
-    h3.set_visible(False)
-    h4.set_visible(False)
-
-    plt.savefig(filename,bbox_inches='tight' )
-    plt.show()
-
-
-def PlotFirstAndLastClickTime(vertical_stats):
-    fig = plt.figure()
-    ax = plt.axes()
-    plt.hold(True)
-    '''
-    # First Click Rank
-    resp_data = []
-    sp = 1
-    #pos = [sp, sp+1, sp+2, sp+3]
-    pos = [sp, sp+1]
-    #for v in vert:
-    for v in ['on','off']:
-        print v,'first click', np.median(vertical_stats[v]['first_click'])
-        resp_data.append(vertical_stats[v]['first_click'])
-    bp = plt.boxplot(resp_data,positions=pos,widths=0.5)
-    #SetVisBox(bp)
-    SetVisBoxForOnOff(bp)
-    '''
-    # Last Click Rank
-    resp_data = []
-    sp = 1
-    #sp = pos[1]+2
-    #pos = [sp, sp+1, sp+2, sp+3]
-    pos = [sp, sp+1] 
-    #for v in vert:
-    for v in ['on','off']:
-        print v,'last click', np.median(vertical_stats[v]['last_click'])
-        resp_data.append(vertical_stats[v]['last_click'])
-    bp = plt.boxplot(resp_data,positions=pos,widths=0.5)
-    #SetVisBox(bp)
-    SetVisBoxForOnOff(bp)
-    
-    # set axes limits and labels
-    #plt.xlim(0,pos[3]+1)
-    plt.xlim(0,pos[1]+1)
-    plt.ylim(0,200)
-    plt.ylabel('Time to Click (seconds)')
-
-    ax.set_xticklabels(['Last Click'])#,'Last Click'])
-    # ax.set_xticks([2.5, 7.5])
-    ax.set_xticks([1.5])#, 4])
+    ax.set_xticks([1.5])
 
     # draw temporary red and blue lines and use them to create a legend
     h1, = plt.plot([1,1],color=vert_color[0])
@@ -273,7 +214,7 @@ def PlotFirstAndLastClickTime(vertical_stats):
     #h3, = plt.plot([1,1],color=vert_color[2])
     #h4, = plt.plot([1,1],color=vert_color[3])
     #plt.legend((h1,h2,h3,h4),verticals, loc='upper center',\
-    #    bbox_to_anchor=(0.5, 1.05),ncol=4, fontsize = 12)
+    #    bbox_to_anchor=(0.5, 1.05),ncol=2, fontsize = 15)
     plt.legend((h1,h2),['On','Off'], loc='upper center',\
         bbox_to_anchor=(0.5, 1.05),ncol=2, fontsize = 12)
     h1.set_visible(False)
@@ -281,7 +222,7 @@ def PlotFirstAndLastClickTime(vertical_stats):
     #h3.set_visible(False)
     #h4.set_visible(False)
 
-    plt.savefig('first_last_time.png')
+    plt.savefig(filename,bbox_inches='tight' )
     plt.show()
 
 

@@ -518,8 +518,8 @@ def ComputePreClickDistributions(merged_table):
           if rank in scatter1['o']:
               print 'krusk walllis ', vert,rank, kruskalwallis(array,scatter1['o'][rank])
   
-  PlotFirstAndLastClickRank(last_viewed_result, ['Last Examined Snippet'],\
-      'Snippet Rank', '', 'last_viewed_snippet.png')
+  #PlotVerticalLevelAttributeBoxPlot(last_viewed_result,'', 11, ['Last Examined Snippet'],\
+  #    'Snippet Rank', '', 'last_viewed_snippet.png')
   
   #PlotMultipleBoxPlotsPerVertical(scatter1,5, 'Clicked result',\
   #    'Time to First Click', '', 'first_time_click_rank_dist.png')
