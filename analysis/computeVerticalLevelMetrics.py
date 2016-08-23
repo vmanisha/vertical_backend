@@ -495,6 +495,11 @@ def FindMarkovNetwork(merged_table):
             # Append the event type. Ignore panleft and right.
             if row['type'] == 'event':
                 event_type = row['event_type']
+                if row['direction']!='none' and len(row['direction']) > 0:
+                    event_type = row['direction']
+                event_type = event_type.replace('swipe','')
+                event_type = event_type.replace('doubletap','tap')
+                event_type = event_type.replace('pan','')
                 # Handle double or single tap
                 if 'tap' in event_type:
                     #task_sequence.append(GetTimeLabel(row['time'] - last_time))
@@ -502,20 +507,19 @@ def FindMarkovNetwork(merged_table):
                     task_sequence.append('tap')
                     #if len(row['visible_elements']) > 0:
                         # task_sequence.append('click')
-                        #task_sequence.extend(GetRankBucket(row['visible_elements']))
-                elif (not first_result_type == 'i') and ('left' in event_type or
+                elif (not first_result_type == 'i') and ('left' in event_type or\
                         'right' in event_type):
                     continue
                 elif event_type not in ['initial_state','panleft','panright']:
-                  if last_time:
-                    #task_sequence.append(GetTimeLabel(row['time'] - last_time))
-                    last_time = row['time']
-                  # replace word pan with swipe
-                  event_type = event_type.replace('pan','swipe')
-                  task_sequence.append(event_type)
-                  #if len(row['visible_elements']) > 0:
-                  #    task_sequence.append('click')
-                  #    task_sequence.extend(GetRankBucket(row['visible_elements']))
+                    if last_time:
+                        #task_sequence.append(GetTimeLabel(row['time'] - last_time))
+                        last_time = row['time']
+                    # replace word pan with swipe
+                    #event_type = event_type.replace('pan','swipe')
+                    task_sequence.append(event_type)
+                    #if len(row['visible_elements']) > 0:
+                    #    task_sequence.append('click')
+                    #    task_sequence.extend(GetRankBucket(row['visible_elements']))
                 else:
                     continue
             # append clicks. 
@@ -527,7 +531,7 @@ def FindMarkovNetwork(merged_table):
           #task_sequence.append(GetTimeLabel(row['time'] - last_time))
           last_time = row['time']
         task_sequence.append('end')
-        if len(task_sequence) > 0 and first_result_type:
+        if len(task_sequence) > 2 and first_result_type:
             vert_markov_trans_prob=UpdateStateTransitions(task_sequence, first_result_type,\
                 vert_markov_trans_prob)
             vert_markov_trans_sequence[first_result_type].append(task_sequence)
@@ -578,33 +582,38 @@ def FindMarkovNetwork(merged_table):
     # Likelihood of each sequence
     log_likelihood_sequence = {}
     sid = 0
+    sequences = {}
+
     for i in range(len(result_types)):
       log_likelihood_sequence[result_types[i]] = {}
       # Aggregate counts of each state.
       for sequence in vert_markov_trans_sequence[result_types[i]]:
-        log_likelihood_sequence[result_types[i]][sid] = {}
-        transition_counts = ComputeTransitionFrequencies(sequence)
-        for j in range(len(result_types)):
-          # Get the probabilities.
-          transition_probabilities = vert_markov_trans_prob[result_types[j]]
-          seq_likelihood = ComputeLogLikelihood(transition_counts, transition_probabilities)
-          log_likelihood_sequence[result_types[i]][sid][result_types[j]] = seq_likelihood
-        sid+=1
+          transition_counts = ComputeTransitionFrequencies(sequence)
+          for j in range(len(result_types)):
+              if result_types[j] not in log_likelihood_sequence:
+                  log_likelihood_sequence[result_types[j]] = {}
+              # Get the probabilities.
+              transition_probabilities = vert_markov_trans_prob[result_types[j]]
+              seq_likelihood = ComputeLogLikelihood(transition_counts, transition_probabilities)
+              log_likelihood_sequence[result_types[j]][sid] = seq_likelihood
+              sequences[sid] = sequence
+          sid+=1
+
+      sort_entries =  sorted(log_likelihood_sequence[result_types[i]].items(),\
+              key = lambda x : x[1], reverse = True)
+      for sentry in sort_entries[0:10]:
+          mod_seq = [sequences[sentry[0]][0]]
+          for entry in sequences[sentry[0]][1:]:
+              if mod_seq[-1] != entry:
+                  mod_seq.append(entry)
+          print result_types[i], mod_seq, sentry[0], sentry[1] 
     
-    # Compute the significance with probabilities. 
-    prob_lists = {}
-    for result_type in vert_markov_trans_prob.keys():
-      prob_lists[result_type] = []
-      for state1, state_trans in vert_markov_trans_prob[result_type].items():
-        prob_lists[result_type].extend(state_trans.values())
-      print  len(prob_lists[result_type])
-
-    for result_type1 in prob_lists.keys():
-      for result_type2 in prob_lists.keys():
-        print 'wallis ',result_type1,result_type2,\
-            kruskalwallis(prob_lists[result_type1],\
-            prob_lists[result_type2])
-
+    for i in range(len(result_types)):
+        for j in range(len(result_types)):
+            print result_types[i], result_types[j],\
+                kruskalwallis(log_likelihood_sequence[result_types[i]].values(),\
+                log_likelihood_sequence[result_types[j]].values())
+    
     # Print probabilities per combination for each vertical. 
     transitions = {}
     for result_type in vert_markov_trans_prob.keys():
@@ -619,7 +628,7 @@ def FindMarkovNetwork(merged_table):
     for combination, vert_values in transitions.items():
       print combination, vert_values  
 
-    PlotMarkovTransitions(vert_markov_trans_prob)
+    # PlotMarkovTransitions(vert_markov_trans_prob)
 
 def GetTimeLabel(time_diff):
   time_in_sec = time_diff.total_seconds()
@@ -866,16 +875,16 @@ def FindDescriptiveStatsPerVertical(concat_table):
     # task-responses.
     user_stats = {}
     not_registered_clicks = 0.0
-    '''
     vertical_stats = {
             'i' : {'sess':0.0, 'query': [], 'clicks':[], 'page_rel':[],\
-                'page_sat':[], 'task_sat':[] , 'time' : [] }, \
+                    'page_sat':[], 'task_sat':[] , 'time' : [] , \
+                    'reformulate' : 0.0}, \
             'v' : {'sess':0.0, 'query': [], 'clicks':[], 'page_rel': [],\
-                'page_sat':[], 'task_sat':[], 'time': []}, \
+                'page_sat':[], 'task_sat':[], 'time': [], 'reformulate' : 0.0}, \
             'o' : {'sess':0.0, 'query': [], 'clicks':[], 'page_rel':[],\
-                'page_sat':[], 'task_sat':[], 'time': []}, \
+                'page_sat':[], 'task_sat':[], 'time': [], 'reformulate' : 0.0}, \
             'w' :  {'sess':0.0, 'query': [], 'clicks':[],'page_sat':[],\
-                'page_rel':[],'task_sat':[], 'time': []}
+                'page_rel':[],'task_sat':[], 'time': [], 'reformulate' : 0.0}
     }
     '''
     vertical_stats = {
@@ -887,7 +896,7 @@ def FindDescriptiveStatsPerVertical(concat_table):
             'o' : {'sess':0.0, 'query': [], 'clicks':[], 'page_rel': [],\
             'page_sat':[], 'task_sat':[], 'time': [], 'reformulate':0.0}, \
     }
-
+    '''
     # Group by task_id and query_id and Sort by time within each group.
     grouped_table = concat_table.groupby(['user_id','task_id'])
     for name, group in grouped_table:
@@ -901,14 +910,12 @@ def FindDescriptiveStatsPerVertical(concat_table):
 
         last_time = None
         sess = 0.0
-        queries = 0.0
+        query_list= []
         clicks = {}
         page_sat = {}
         page_rel = {}
         doc_type = None
         n_task_response = 0.0
-        first_session_query = None
-        counted = False
 
         for index, row in group.iterrows():
             if row['type'] == 'results' and row['doc_pos'] == 0:
@@ -919,22 +926,18 @@ def FindDescriptiveStatsPerVertical(concat_table):
                     sess+=1.0
                     doc_type = str(row['doc_type']).strip()
                     # To mark on and off vertical.
+                    '''
                     if doc_type == 'o':
                         doc_type = 'o'
                     elif doc_type == row['task_vertical']:
                         doc_type = 'on'
                     else:
                         doc_type = 'off'
+                    '''
 
                 # Record queries.
-                queries +=1.0
-                if first_session_query and not counted:
-                    counted=True
-                    vertical_stats[doc_type]['reformulate'] +=1.0
-
-                if first_session_query == None:
-                    first_session_query = True
-
+                if row['query_text'] not in query_list:
+                    query_list.append(row['query_text'])
 
             if row['type'] == 'click':
                 # Record only one click per url.
@@ -963,7 +966,9 @@ def FindDescriptiveStatsPerVertical(concat_table):
                     if n_task_response > 0:
                         print 'ERROR :',user, 'did task more than once?', task
                     vertical_stats[doc_type]['sess'] += sess
-                    vertical_stats[doc_type]['query'].append(queries)
+                    vertical_stats[doc_type]['query'].append(len(query_list))
+                    if len(query_list) > 1:
+                        vertical_stats[doc_type]['reformulate'] += 1.0 
                     vertical_stats[doc_type]['clicks'].append(sum(clicks.values()))
                     vertical_stats[doc_type]['page_sat'].extend(page_sat.values())
                     vertical_stats[doc_type]['page_rel'].extend(page_rel.values())
@@ -977,7 +982,21 @@ def FindDescriptiveStatsPerVertical(concat_table):
                     print 'There was no search in the beginning!', task,user,\
                     index
                 n_task_response+=1.0
-
+        # If the group finishes without task-feedback. 
+        if doc_type and n_task_response == 0:
+            vertical_stats[doc_type]['sess'] += sess
+            vertical_stats[doc_type]['query'].append(len(query_list))
+            vertical_stats[doc_type]['clicks'].append(sum(clicks.values()))
+            vertical_stats[doc_type]['page_sat'].extend(page_sat.values())
+            vertical_stats[doc_type]['page_rel'].extend(page_rel.values())
+            task_time = (row['time'] - last_time).total_seconds()
+            if task_time < 2000:
+                vertical_stats[doc_type]['time'].append((row['time']-last_time).total_seconds())
+            else:
+                print task, user, task_time, 'Unusual time'
+        else:
+            print 'There was no search in the beginning!', task,user,\
+            index
     # Count mean and std-dev of page responses and task responses.
     for vertical_type, stat_dict in vertical_stats.items():
         print vertical_type , stat_dict['sess'],\

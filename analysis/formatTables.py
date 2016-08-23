@@ -65,7 +65,7 @@ def GetValueFromRegex(regex, string, default):
 # Always on serp
 # TODO: Should we call FormatUrl here as well?
 def BreakEventUrl(url):
-  query = GetValueFromRegex(query_regex, url,'').replace('+',' ')
+  query = GetValueFromRegex(query_regex, url,'').replace('+',' ').lower()
   user = GetValueFromRegex(user_id_regex, url,'')
   task = GetValueFromRegex(task_id_regex, url,-1)
   page = GetValueFromRegex(page_id_regex, url,-1)

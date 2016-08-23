@@ -211,15 +211,15 @@ def main():
     # Find the scroll distribution before time to first click.
     # ComputeScrollDistributionBeforeClick(merged_tables)
     # Find state transitions. 
-    # FindMarkovNetwork(merged_tables)
+    FindMarkovNetwork(merged_tables)
 
     # Serp features. 
-    serp_features = ComputeSERPFeatures(merged_tables)
-    remaining_features, satisfaction = PrepareFeaturesAndSatisfactionLabels(serp_features,'serp_features_clean.csv')
+    # serp_features = ComputeSERPFeatures(merged_tables)
+    # remaining_features, satisfaction = PrepareFeaturesAndSatisfactionLabels(serp_features,'serp_features_clean.csv')
     # Get classification results
-    PerformClassificationViaCrossValidation(remaining_features, satisfaction,'classifier.csv')
+    #PerformClassificationViaCrossValidation(remaining_features, satisfaction,'classifier.csv')
     # Compute Mean and std-dev of features for SAT and DSAT labels. 
-    ComputeFeatMeanStdDevOfSatAndDSatLabels(remaining_features) 
+    # ComputeFeatMeanStdDevOfSatAndDSatLabels(remaining_features) 
 
     # ComputePreClickDistributions(merged_tables)
 

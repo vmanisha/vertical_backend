@@ -169,10 +169,10 @@ def PlotVerticalLevelAttributeBoxPlot(vertical_stats, attribute, y_lim, x_labels
     # First Click Rank
     resp_data = []
     sp = 1
-    #pos = [sp, sp+1, sp+2, sp+3]
-    pos = [sp, sp+1]
-    for v in ['on','off']:
-    #for v in vert:
+    pos = [sp, sp+1, sp+2, sp+3]
+    # pos = [sp, sp+1]
+    # for v in ['on','off']:
+    for v in vert:
         if len(attribute) > 0:
           print v,attribute, vertical_stats[v][attribute]
           resp_data.append(vertical_stats[v][attribute])
@@ -181,8 +181,8 @@ def PlotVerticalLevelAttributeBoxPlot(vertical_stats, attribute, y_lim, x_labels
           resp_data.append(vertical_stats[v])
 
     bp = plt.boxplot(resp_data,positions=pos,widths=0.5)
-    # SetVisBox(bp)
-    SetVisBoxForOnOff(bp)
+    SetVisBox(bp)
+    # SetVisBoxForOnOff(bp)
     '''
     
     # Last Click Rank
@@ -198,29 +198,29 @@ def PlotVerticalLevelAttributeBoxPlot(vertical_stats, attribute, y_lim, x_labels
     SetVisBox(bp)
     ''' 
     # set axes limits and labels
-    plt.xlim(0,pos[1]+1)
+    plt.xlim(0,pos[3]+1)
     plt.ylim(0,y_lim)
     plt.ylabel(y_label) 
 
     #ax.set_xticklabels([])#,'Last Click'])
     ax.set_xticklabels(x_labels)
     #ax.set_xticks([2.5, 7.5])
-    #ax.set_xticks([1.5])#, 4.5])
-    ax.set_xticks([1.5])
+    ax.set_xticks([2.5])#, 4.5])
+    # ax.set_xticks([1.5])
 
     # draw temporary red and blue lines and use them to create a legend
     h1, = plt.plot([1,1],color=vert_color[0])
     h2, = plt.plot([1,1],color=vert_color[1])
-    #h3, = plt.plot([1,1],color=vert_color[2])
-    #h4, = plt.plot([1,1],color=vert_color[3])
-    #plt.legend((h1,h2,h3,h4),verticals, loc='upper center',\
-    #    bbox_to_anchor=(0.5, 1.05),ncol=2, fontsize = 15)
-    plt.legend((h1,h2),['On','Off'], loc='upper center',\
-        bbox_to_anchor=(0.5, 1.05),ncol=2, fontsize = 12)
+    h3, = plt.plot([1,1],color=vert_color[2])
+    h4, = plt.plot([1,1],color=vert_color[3])
+    plt.legend((h1,h2,h3,h4),verticals, loc='upper center',\
+        bbox_to_anchor=(0.5, 1.05),ncol=2, fontsize = 14)
+    # plt.legend((h1,h2),['On','Off'], loc='upper center',\
+    #    bbox_to_anchor=(0.5, 1.05),ncol=2, fontsize = 12)
     h1.set_visible(False)
     h2.set_visible(False)
-    #h3.set_visible(False)
-    #h4.set_visible(False)
+    h3.set_visible(False)
+    h4.set_visible(False)
 
     plt.savefig(filename,bbox_inches='tight' )
     plt.show()
@@ -311,7 +311,7 @@ def PlotClickDist(vertical_stats):
     # SetVisBox(bp)
 
     # plt.xlim(0,25)
-    plt.ylim(0,20)
+    plt.ylim(0,10)
     plt.ylabel('Number of Clicks on SERP')
     ax.set_xticklabels(verticals)
 

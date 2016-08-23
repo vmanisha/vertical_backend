@@ -326,13 +326,14 @@ def FindDwellTimes(concat_table):
 
     # Group by task_id and query_id and Sort by time within each group.
     grouped_table = concat_table.groupby(['user_id','task_id'])
-    recorded_clicks = {}
-    vert_type = None
     for name, group in grouped_table:
         group = group.sort('time')
         rows = []
         results = {}
         serp_clicks = 0
+        vert_type = None
+        recorded_clicks = {}
+
         for index, row in group.iterrows():
             rows.append(row)
         for i in range(len(rows)):
@@ -348,17 +349,16 @@ def FindDwellTimes(concat_table):
                 for curl, stats in recorded_clicks.items():
                     vtype = stats['type']
                     if stats['rank'] < 5:
-                        vertical_stats[stats['type']]['pos_dwell'][stats['rank']].append(min(stats['time']))
-                        vertical_stats[stats['type']]['clicks'][stats['rank']]+=1
-
+                        vertical_stats[vtype]['pos_dwell'][stats['rank']].append(min(stats['time']))
+                        vertical_stats[vtype]['clicks'][stats['rank']]+=1
                     if stats['rank'] == 0:
-                        vertical_stats[stats['type']]['on_dwell'].append(min(stats['time']))
-                        vertical_stats[stats['type']]['on_count']+=1.0
+                        vertical_stats[vtype]['on_dwell'].append(min(stats['time']))
+                        vertical_stats[vtype]['on_count']+=1.0
                     else:
-                        vertical_stats[stats['type']]['off_dwell'].append(min(stats['time']))
-                        vertical_stats[stats['type']]['off_count']+=1.0
-                if vtype and serp_clicks > 0:
-                    vertical_stats[vtype]['all_clicks'].append(serp_clicks)
+                        vertical_stats[vtype]['off_dwell'].append(min(stats['time']))
+                        vertical_stats[vtype]['off_count']+=1.0
+                    if vtype and serp_clicks > 0:
+                      vertical_stats[vtype]['all_clicks'].append(serp_clicks)
                 recorded_clicks = {}
                 serp_clicks = 0
                 vert_type = str(row['doc_type']).strip()
@@ -369,13 +369,16 @@ def FindDwellTimes(concat_table):
             found = False
             click_rank = None
             click_url = None
-            if (row['type'] == 'event_response') or (row['type'] == 'click') :
-                if (row['type'] == 'event_response'):
-                    click_url = results[row['event_value']]['doc_url']
-                    click_rank = int(row['event_value'])
+            if (row['type'] == 'event' and 'tap' in row['event_type'] and\
+                row['element'] > -1) or (row['type'] == 'click') :
+                if row['type'] == 'event':
+                    click_url = results[row['element']]['doc_url']
+                    click_rank = int(row['element'])
+
                 if (row['type'] == 'click'):
                     click_rank = int(row['doc_id'][row['doc_id'].find('_')+1:])
                     click_url = row['doc_url']
+              
                 # Check if page response for this url has been submitted.
                 j = i+1
                 while (j < len(rows)) and (not (rows[j]['type'] == 'results')):
@@ -385,6 +388,11 @@ def FindDwellTimes(concat_table):
                             found = True
                             end_time = rows[j]['time']
                             break
+                    if rows[j]['type'] == 'event' and 'tap' not in rows[j]['event_type']:
+                        found = True
+                        end_time = rows[j]['time']
+                        break
+                        
                     if rows[j]['type'] == 'task_response':
                         # user did not provide page or serp feedback :(
                         found = True
@@ -393,17 +401,33 @@ def FindDwellTimes(concat_table):
                     if found :
                         break
                     j+=1
+                    
                 if found and end_time:
                     if click_url not in recorded_clicks:
-                        recorded_clicks[click_url] ={'rank':None, 'type':None,
-                               'time':[]}
+                        recorded_clicks[click_url] ={'rank':None, 'type':None,'time':[]}
                     recorded_clicks[click_url]['time'].append((end_time-start_time).total_seconds())
                     recorded_clicks[click_url]['rank']= click_rank
                     recorded_clicks[click_url]['type']= vert_type
-                    serp_clicks+=1.0
+                    serp_clicks = len(recorded_clicks)
                 else:
                     print 'Cannot find in responses', click_url,\
                         row['user_id'], row['task_id'], row['type']
+        ''' 
+        vtype = None
+        for curl, stats in recorded_clicks.items():
+            vtype = stats['type']
+            if stats['rank'] < 5:
+                vertical_stats[vtype]['pos_dwell'][stats['rank']].append(min(stats['time']))
+                vertical_stats[vtype]['clicks'][stats['rank']]+=1
+            if stats['rank'] == 0:
+                vertical_stats[vtype]['on_dwell'].append(min(stats['time']))
+                vertical_stats[vtype]['on_count']+=1.0
+            else:
+                vertical_stats[vtype]['off_dwell'].append(min(stats['time']))
+                vertical_stats[vtype]['off_count']+=1.0
+            if vtype and serp_clicks > 0:
+              vertical_stats[vtype]['all_clicks'].append(serp_clicks)
+        '''
 
     for vertical, val_dict in vertical_stats.items():
         print vertical, 'on-dwell',np.mean(val_dict['on_dwell']),\
@@ -414,12 +438,12 @@ def FindDwellTimes(concat_table):
     verticals = ['i','o','w','v']
     for i in range(len(verticals)):
       v1 = verticals[i]
-      for j in range(i, len(verticals)):
+      for j in range(i+1, len(verticals)):
         v2 = verticals[j]
         for attribute in ['on_dwell','off_dwell', 'all_clicks']:
           print 'Krusk wallis',v1, v2,attribute, \
-          kruskalwallis(vertical_stats[v1][attribute],\
-                  vertical_stats[v2][attribute])
+          kruskalwallis(vertical_stats[v1][attribute], \
+          vertical_stats[v2][attribute])
 
 
     for vert_type, stats in vertical_stats.items():
@@ -430,8 +454,8 @@ def FindDwellTimes(concat_table):
             vertical_stats[vert_type]['clicks'][pos]/= (stats['on_count']+\
                 stats['off_count']) 
 
-    # PlotClickDist(vertical_stats)
-    PlotClickDistPerVertical(vertical_stats)
+    PlotClickDist(vertical_stats)
+    # PlotClickDistPerVertical(vertical_stats)
     # PlotDwellTimePerVert(vertical_stats)
 
 
@@ -517,9 +541,10 @@ def ComputePreClickDistributions(merged_table):
       for rank, array in dictionary.items():
           if rank in scatter1['o']:
               print 'krusk walllis ', vert,rank, kruskalwallis(array,scatter1['o'][rank])
+
   
-  #PlotVerticalLevelAttributeBoxPlot(last_viewed_result,'', 11, ['Last Examined Snippet'],\
-  #    'Snippet Rank', '', 'last_viewed_snippet.png')
+  PlotVerticalLevelAttributeBoxPlot(last_viewed_result,'', 11, ['Lowest Examined Snippet'],\
+      'Snippet Rank', '', 'last_viewed_snippet.png')
   
   #PlotMultipleBoxPlotsPerVertical(scatter1,5, 'Clicked result',\
   #    'Time to First Click', '', 'first_time_click_rank_dist.png')

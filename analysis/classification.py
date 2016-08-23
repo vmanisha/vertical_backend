@@ -14,8 +14,10 @@ def ComputeFeatMeanStdDevOfSatAndDSatLabels(remaining_features):
     
     # Find the mean and std-dev of each feature for SAT and DSAT SERP. 
     remaining_features = remaining_features[\
-              remaining_features['vert_sess_result_type'] ==1]
-
+              remaining_features['vert_sess_result_type'] ==4]
+   
+    rel_corr , relp = pearsonr(remaining_features['relevance'],remaining_features['satisfaction']) 
+    print 'Rel-sat correlation', round(rel_corr,2), round(relp,2)
     for feat in remaining_features.columns:
       if feat not in ['relevance', 'query_task', 'satisfaction']:
         # Get two groups of SAT and DSAT label and print mean, std-dev and
@@ -23,9 +25,11 @@ def ComputeFeatMeanStdDevOfSatAndDSatLabels(remaining_features):
         groups =  remaining_features[feat].groupby(remaining_features['satisfaction'])
         means = groups.mean()
         stds = groups.std()
+        corr, pval = pearsonr(remaining_features[feat],remaining_features['satisfaction'])
+        stat, pstat = ttest_ind(groups.get_group(1), groups.get_group(0))
         print feat, 'mean ', means.ix[0], stds.ix[0], means.ix[1] ,\
-          stds.ix[1],ttest_ind(groups.get_group(1), groups.get_group(0))
-
+          stds.ix[1],round(stat,2), round(pstat,2), round(corr,2),\
+          round(pval,2) 
 
 
 def PerformClassificationViaCrossValidation(remaining_features, satisfaction, result_file):
@@ -183,19 +187,6 @@ def PrepareFeaturesAndSatisfactionLabels(features, clean_feat_file):
 
     return remaining_features, satisfaction
     
-def ComputeCorrelations(remaining_features):
-    # Take all columns and print pearson corr
-    organic_satisfaction = remaining_features[remaining_features['vert_sess_result_type'] ==\
-                                            4]['satisfaction']
-    print 'image sat dist',organic_satisfaction.value_counts()
-    print 'image shape',organic_satisfaction.shape
-    # take every column and find set all other values to 0. 
-    organic_features=remaining_features[remaining_features['vert_sess_result_type']== 4]
-    
-    for entry in remaining_features.columns:
-        pearson, pval = pearsonr(organic_features[entry], organic_satisfaction)
-        if pval < 0.1:
-            print entry,pearson, pval
 
 def GetFeatureGroups(data_frame):
   ftype =['gest','vert','view','cq']
