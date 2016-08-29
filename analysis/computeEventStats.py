@@ -87,14 +87,15 @@ def CheckEqualVisEle(prev_vis, curr_vis):
 
 def FindPageVelocityDistribution(result_table, event_table):
     # Find velocity distribution per serp.
-    scroll_events = ['panup','pandown']
+    scroll_events = ['panup','pandown', 'swipeup','swipedown',\
+            'panleft','panright']
     verticals = ['i','v','w','o']
 
     result_table['type'] = 'results'
     event_table['type'] = 'event'
     # Will contain dictionary of time : velocity. 
-    speedx_buckets = {'i':[], 'v':[] ,'w':[], 'o':[]}
-    speedy_buckets = {'i':[], 'v':[] ,'w':[], 'o':[]}
+    #speedx_buckets = {'i':[], 'v':[] ,'w':[], 'o':[]}
+    #speedy_buckets = {'i':[], 'v':[] ,'w':[], 'o':[]}
     # Will contain list of time of swipe in seconds from the beginning.   
     swipe_time_buckets = {'i':[], 'v':[] ,'w':[], 'o':[]}
 
@@ -105,62 +106,103 @@ def FindPageVelocityDistribution(result_table, event_table):
         # Set vertical type for each serp. 
         vert_type = None
         swipe_time = {}
-        speeds_x = {}
-        speeds_y = {}
-
+        clicked = False
+        last_action = None
+        #speeds_x = {}
+        #speeds_y = {}
         start_time = None
         for index, row in group.iterrows():
             if row['type'] == 'results' and row['doc_pos'] == 0:
                 # update the vertical level stats
                 if vert_type:
-                    speedx_buckets[vert_type].append(speeds_x)
-                    speedy_buckets[vert_type].append(speeds_y)
+                    #speedx_buckets[vert_type].append(speeds_x)
+                    #speedy_buckets[vert_type].append(speeds_y)
                     swipe_time_buckets[vert_type].append(swipe_time)
                 vert_type = row['doc_type']
                 swipe_time = {}
-                speeds_x = {}
-                speeds_y = {}
-                vert_type = row['doc_type']
+                #speeds_x = {}
+                #speeds_y = {}
                 start_time = row['time']
-                
+                last_action = 'start'
+            
+            if row['type'] == 'event' and (('click' in row['event_type']) or\
+                    ('tap' in row['event_type'])) and not clicked:
+                        swipe_time['first_click'] = (event_time - start_time).total_seconds()
+                        last_action = 'click'
+                        clicked = True
 
             if row['type'] == 'event' and row['event_type'] in scroll_events:
                 event_time = row['time']
                 # Append the speed. 
-                speeds_x[(event_time - start_time).total_seconds()] =\
-                    row['event_x']
-                speeds_y[(event_time - start_time).total_seconds()] =\
-                    row['event_y']
+                #speeds_x[(event_time - start_time).total_seconds()] =\
+                #    row['event_x']
+                #speeds_y[(event_time - start_time).total_seconds()] =\
+                #    row['event_y']
 
                 # Append the time for frequency.
-                swipe_time[(event_time - start_time).total_seconds()] = row['direction']
+                if start_time and last_action!=row['direction']:
+                    swipe_time[(event_time - start_time).total_seconds()] = row['direction']
+                last_action = row['direction']
 
         if vert_type:
-            speedx_buckets[vert_type].append(speeds_x)
-            speedy_buckets[vert_type].append(speeds_y)
+            #speedx_buckets[vert_type].append(speeds_x)
+            #speedy_buckets[vert_type].append(speeds_y)
             swipe_time_buckets[vert_type].append(swipe_time)
     
     aggregate_freq = {'i': {} , 'v':{} , 'w': {}, 'o':{}}
+    freq_per_time_bucket = {'i':{'percent_action':[]},\
+                            'v':{'percent_action':[]} ,\
+                            'w':{'percent_action':[]},\
+                            'o':{'percent_action':[]}}
+    curr_dirn = 'up'
     for  vert_type, time_stamps in swipe_time_buckets.items():
         # take max time (last swipe)
         for time_dict in time_stamps:
-            if len(time_dict) > 0:
-                max_time = max(time_dict.keys())
-                total = len(time_dict)
-                bucket_size = max_time/10
-                bucket = {}
+            action_freq_bfc = 0.0 
+            action_freq_afc = 0.0 
+            total_dirn = 0.0
+            print sorted(time_dict.items(), key = lambda x : x[0])
+            if len(time_dict) > 0 and 'first_click' in time_dict:
+                first_click_time = time_dict['first_click']
+                #max_time = max(time_dict.keys())
+                #total = len(time_dict)
+                #bucket_size = max_time/10
+                #bucket = {}
                 for time, dirn in time_dict.items():
-                    index = int((time/bucket_size))
-                    if index not in bucket:
-                        bucket[index] = 0.0
-                    #if dirn == 'up':
-                    bucket[index]+= (1.0 / total)
+                    if dirn == curr_dirn:
+                        total_dirn+=1.0
+                        if time < first_click_time:
+                            action_freq_bfc+=1.0
+                        else:
+                            action_freq_afc+=1.0
 
+                    #index = int((time/bucket_size))
+                    #if index not in bucket:
+                    #    bucket[index] = 0.0
+                    #if dirn == 'up':
+                    #bucket[index]+= (1.0 / total)
+                
+                freq_per_time_bucket[vert_type]['percent_action'].append(action_freq_bfc/(action_freq_afc+1))
+                '''
                 for index, count in bucket.items():
                     if index not in aggregate_freq[vert_type]:
                         aggregate_freq[vert_type][index]= []
                     aggregate_freq[vert_type][index].append(count)
-    PlotVertSwipeInfoByTime(aggregate_freq, 'Time buckets','Normalized Swipe Freq')
+                '''
+    PlotVerticalLevelAttributeBoxPlot(freq_per_time_bucket, 'percent_action',\
+            8,['Swipe Up'], 'Before/after first click swipe ratio', '',\
+            'swipe_up_percentage_before_click.png')
+    for v1 in ['i' , 'v' , 'w', 'o']:
+        for v2 in ['i' , 'v' , 'w', 'o']:
+            print v1, v2, kruskalwallis(freq_per_time_bucket[v1]['percent_action'],\
+                    freq_per_time_bucket[v2]['percent_action']),\
+            np.mean(freq_per_time_bucket[v1]['percent_action']),\
+            np.std(freq_per_time_bucket[v1]['percent_action']),\
+            np.mean(freq_per_time_bucket[v2]['percent_action']),\
+            np.std(freq_per_time_bucket[v2]['percent_action'])
+    #PlotMultipleBoxPlotsPerVertical(freq_per_time_bucket, [5,10,20,'>20'],'Time (sec)',\
+    #                              'Gesture Frequency','','gesture_frequency_with_time.png')
+    # PlotVertSwipeInfoByTime(aggregate_freq, 'Time buckets','Normalized Swipe Freq')
     '''
     aggregate_speed_x = {'i': {} , 'v':{} , 'w': {}, 'o':{}}
     aggregate_speed_y = {'i': {} , 'v':{} , 'w': {}, 'o':{}}

@@ -298,7 +298,7 @@ def FindVisiblityMetricsPerVertical(result_table,vis_event_table):
             print 'Man visibilit time', v1, v2, pos,\
             kruskalwallis(visible_time[v1][pos],visible_time[v2][pos])
 
-    PlotMultipleBoxPlotsPerVertical(visible_time, 5,'Document Positions',\
+    PlotMultipleBoxPlotsPerVertical(visible_time, [1,2,3,4,5],'Document Positions',\
                                   'Viewport Time (sec)','','view_port_time.png')
 
  

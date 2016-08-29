@@ -267,7 +267,7 @@ def main():
     #FindPageScrollDistributionPerVertical(query_table, scroll_event_table)
 
     # Find time-scroll freq ratio
-    #FindPageVelocityDistribution(query_table, scroll_event_table)
+    #FindPageVelocityDistribution(query_table, all_event_table)
 
 if __name__ == "__main__":
     main()

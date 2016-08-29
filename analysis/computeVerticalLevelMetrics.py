@@ -496,15 +496,14 @@ def FindMarkovNetwork(merged_table):
             if row['type'] == 'event':
                 event_type = row['event_type']
                 if row['direction']!='none' and len(row['direction']) > 0:
-                    event_type = row['direction']
-                event_type = event_type.replace('swipe','')
+                    event_type = 'swipe'+row['direction']
                 event_type = event_type.replace('doubletap','tap')
-                event_type = event_type.replace('pan','')
+                event_type = event_type.replace('pan','swipe')
                 # Handle double or single tap
                 if 'tap' in event_type:
                     #task_sequence.append(GetTimeLabel(row['time'] - last_time))
                     last_time = row['time']
-                    task_sequence.append('tap')
+                    task_sequence.append('click')
                     #if len(row['visible_elements']) > 0:
                         # task_sequence.append('click')
                 elif (not first_result_type == 'i') and ('left' in event_type or\
@@ -531,7 +530,7 @@ def FindMarkovNetwork(merged_table):
           #task_sequence.append(GetTimeLabel(row['time'] - last_time))
           last_time = row['time']
         task_sequence.append('end')
-        if len(task_sequence) > 2 and first_result_type:
+        if len(task_sequence) > 1 and first_result_type:
             vert_markov_trans_prob=UpdateStateTransitions(task_sequence, first_result_type,\
                 vert_markov_trans_prob)
             vert_markov_trans_sequence[first_result_type].append(task_sequence)
@@ -601,7 +600,7 @@ def FindMarkovNetwork(merged_table):
 
       sort_entries =  sorted(log_likelihood_sequence[result_types[i]].items(),\
               key = lambda x : x[1], reverse = True)
-      for sentry in sort_entries[0:10]:
+      for sentry in sort_entries[0:20]:
           mod_seq = [sequences[sentry[0]][0]]
           for entry in sequences[sentry[0]][1:]:
               if mod_seq[-1] != entry:
@@ -628,7 +627,7 @@ def FindMarkovNetwork(merged_table):
     for combination, vert_values in transitions.items():
       print combination, vert_values  
 
-    # PlotMarkovTransitions(vert_markov_trans_prob)
+    PlotMarkovTransitions(vert_markov_trans_prob)
 
 def GetTimeLabel(time_diff):
   time_in_sec = time_diff.total_seconds()

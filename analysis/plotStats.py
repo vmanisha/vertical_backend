@@ -28,7 +28,7 @@ def SetVisBoxForOnOff(bp):
 
 '''
 @per_vertical_and_pos_data: {vertical_type: {position : [data points]}}
-@pos: position to plot results.
+@pos: array containing list of positions to plot results.
 @xlabel and @ylabel: Labels for x and y axis respectively.
 @title : Plot title
 @filename : filename for saving plot.
@@ -38,8 +38,8 @@ def PlotMultipleBoxPlotsPerVertical(per_vertical_and_pos_data, doc_pos,\
     fig = plt.figure()
     ax = plt.axes()
     plt.hold(True)
-
-    for cid in range(1,doc_pos):
+    i = 1
+    for cid in doc_pos:
       for v in vert:
         if cid not in per_vertical_and_pos_data[v]:
           per_vertical_and_pos_data[v][cid] = [0]
@@ -48,23 +48,24 @@ def PlotMultipleBoxPlotsPerVertical(per_vertical_and_pos_data, doc_pos,\
             per_vertical_and_pos_data['v'][cid],\
             per_vertical_and_pos_data['w'][cid],\
             per_vertical_and_pos_data['o'][cid]]
-      sp = ((cid-1)*4)+(cid-1)+1
+      sp = ((i-1)*4)+(i-1)+1
       pos = [sp, sp+1, sp+2, sp+3]
-      print cid, time_data,pos
+      print i, cid, time_data,pos
       # sym='' for not showing outliers
       bp = plt.boxplot(time_data,positions=pos,widths=0.5,sym='')
       # means = [np.mean(data) for data in time_data]
       # ax.plot(pos,means,'rs')
       SetVisBox(bp)
+      i+=1
 
     # set axes limits and labels
     plt.xlim(0,20)
-    plt.ylim(0,80)
+    plt.ylim(0,0.6)
     plt.xlabel(x_label)
     plt.ylabel(y_label)
-    ax.set_xticklabels(range(1,doc_pos)) #['1', '2', '3', '4', '5'])
+    ax.set_xticklabels(doc_pos) #['1', '2', '3', '4', '5'])
     #ax.set_xticks([2.5, 7.5, 12.5, 17.5, 22.5])
-    ax.set_xticks ([x*2.5 for x in range(1,doc_pos*2,2)])
+    ax.set_xticks ([x*2.5 for x in range(1,len(doc_pos)*2,2)])
     # draw temporary red and blue lines and use them to create a legend
     h1, = plt.plot([1,1],color=vert_color[0])
     h2, = plt.plot([1,1],color=vert_color[1])
@@ -199,7 +200,7 @@ def PlotVerticalLevelAttributeBoxPlot(vertical_stats, attribute, y_lim, x_labels
     ''' 
     # set axes limits and labels
     plt.xlim(0,pos[3]+1)
-    plt.ylim(0,y_lim)
+    plt.ylim(0.0,y_lim)
     plt.ylabel(y_label) 
 
     #ax.set_xticklabels([])#,'Last Click'])
@@ -214,7 +215,7 @@ def PlotVerticalLevelAttributeBoxPlot(vertical_stats, attribute, y_lim, x_labels
     h3, = plt.plot([1,1],color=vert_color[2])
     h4, = plt.plot([1,1],color=vert_color[3])
     plt.legend((h1,h2,h3,h4),verticals, loc='upper center',\
-        bbox_to_anchor=(0.5, 1.05),ncol=2, fontsize = 14)
+        bbox_to_anchor=(0.5, 1.05),ncol=5, fontsize = 12)
     # plt.legend((h1,h2),['On','Off'], loc='upper center',\
     #    bbox_to_anchor=(0.5, 1.05),ncol=2, fontsize = 12)
     h1.set_visible(False)
