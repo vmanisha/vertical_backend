@@ -183,7 +183,7 @@ def main():
     click_filtered = click_table[click_table['doc_id'].str.len()\
             == 5]
 
-    query_filtered = query_table[query_table['doc_pos'] == 0]
+    # query_filtered = query_table[query_table['doc_pos'] == 0]
     
     # Filter the columns for count.
     #click_filtered[['task_id','doc_pos']].groupby(['task_id','doc_pos'])['doc_pos'].\
@@ -203,7 +203,7 @@ def main():
     # tap_event_table = FormatEventDBForTap(event_db,tap_event_header,tap_event_sortkeys)
     # Assign the on-off vertical label depending on tasktype. 
     task_vert_dict = {1:'i',2:'i',3:'w',4:'w',5:'v',6:'w',7:'w',8:'v',9:'i',10:'v'}
-    results_with_task_type = AssignTaskVerticalLabel(query_filtered,\
+    results_with_task_type = AssignTaskVerticalLabel(query_table,\
         task_vert_dict)
 
     merged_tables = MergeAllTables(results_with_task_type, click_filtered, all_event_table,\
@@ -211,7 +211,7 @@ def main():
     # Find the scroll distribution before time to first click.
     # ComputeScrollDistributionBeforeClick(merged_tables)
     # Find state transitions. 
-    FindMarkovNetwork(merged_tables)
+    # FindMarkovNetwork(merged_tables)
 
     # Serp features. 
     # serp_features = ComputeSERPFeatures(merged_tables)
@@ -240,7 +240,7 @@ def main():
 
     # # Find dwell time information for each vertical for on-vert and off-vert
     # # click. 
-    # FindDwellTimes(merged_tables)
+    FindDwellTimes(merged_tables)
 
     # # Generate visibility statistics
     # Format visibility event db
