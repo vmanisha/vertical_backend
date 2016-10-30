@@ -217,7 +217,7 @@ def main():
     # serp_features = ComputeSERPFeatures(merged_tables)
     # remaining_features, satisfaction = PrepareFeaturesAndSatisfactionLabels(serp_features,'serp_features_clean.csv')
     # Get classification results
-    #PerformClassificationViaCrossValidation(remaining_features, satisfaction,'classifier.csv')
+    # PerformClassificationViaCrossValidation(remaining_features, satisfaction,'classifier.csv')
     # Compute Mean and std-dev of features for SAT and DSAT labels. 
     # ComputeFeatMeanStdDevOfSatAndDSatLabels(remaining_features) 
 
